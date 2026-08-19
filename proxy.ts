@@ -59,7 +59,19 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  if (!user && !isPublic) {
+  // ⚠ Les routes d'API ne sont JAMAIS redirigées.
+  //
+  // Rediriger un appel d'API vers une page de connexion en HTML donne un 307
+  // suivi d'une page illisible, là où l'appelant attend un statut. Deux cas
+  // concrets le rendaient inopérant :
+  //   • Vercel Cron appelle /api/cron/schedule-checks avec un en-tête Bearer et
+  //     AUCUN cookie de session : redirigé, le travail ne s'exécutait jamais ;
+  //   • le client d'upload lisait une page HTML au lieu d'un JSON d'erreur.
+  //
+  // Chaque route se protège elle-même : 401 sans session, 503 sans secret.
+  const isApi = pathname.startsWith("/api/");
+
+  if (!user && !isPublic && !isApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     // On mémorise la destination pour y revenir après connexion.
