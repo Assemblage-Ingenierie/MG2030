@@ -1,0 +1,5 @@
+wbs_code,constraint_type,constraint_date,source
+TV.1,start_no_earlier_than,2026-07-01,TV!C15 saisi en dur
+TV.2.1,start_no_earlier_than,2026-09-01,TV!C24 saisi en dur
+SC.1,start_no_earlier_than,2026-07-01,SC!C15 saisi en dur
+SC.2.2,start_no_earlier_than,2026-09-01,SC!C24 saisi en dur

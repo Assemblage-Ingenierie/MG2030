@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Typo : pile sans-serif système (zéro téléchargement → léger, brief §4).
+   Cette pile couvre les diacritiques albanais (ë, ç) sur Windows et macOS sans
+   rien ajouter ; Noto Sans couvre Linux en repli. Ne PAS introduire de webfont. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* Les variables de couleur (--app-bg, --text, …) sont posées sur <body>
+   depuis lib/tokens.ts (source unique). */
+body {
+  font-family: var(--font-sans);
+  background: var(--app-bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Accessibilité : focus clavier toujours visible. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Conteneur défilable au drag, sans barre de défilement visible (Gantt). */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Respect de prefers-reduced-motion : on neutralise transitions et animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

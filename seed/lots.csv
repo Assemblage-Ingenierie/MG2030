@@ -1,0 +1,16 @@
+lot_code,contract_code,lot_number,name,amount_eur_min,amount_eur_max,min_turnover_eur_min,min_turnover_eur_max,contractor,source
+C-TA-L1,C-TA,1,Technical Assistance,,,,,,PS 3.3
+C-TV-DD-L1,C-TV-DD,1,Training venues - Detailed Design and works supervision,,,,,,PS 3.3
+C-SC-DD-L1,C-SC-DD,1,Student Center - Detailed Design,,,,,,PS 3.3
+C-SC-SUP-L1,C-SC-SUP,1,Student Center - Works supervision,,,,,,PS 3.3
+W-TV-L1,W-TV,1,Training venues - Lot 1 (3 venues),1000000,2000000,1125000,1680000,,PS 3.3 / BPR 7.4.7
+W-TV-L2,W-TV,2,Training venues - Lot 2 (3 venues),1000000,2000000,1125000,1680000,,PS 3.3 / BPR 7.4.7
+W-TV-L3,W-TV,3,Training venues - Lot 3 (3 venues),1000000,2000000,1125000,1680000,,PS 3.3 / BPR 7.4.7
+W-TV-L4,W-TV,4,Training venues - Lot 4 (4 venues),1000000,2000000,1125000,1680000,,PS 3.3 / BPR 7.4.7
+W-SC-L1,W-SC,1,Student Center - Services and Sports facilities zone (incl. semi-Olympic pool),6900000,6900000,6900000,10350000,,BPR 7.4.7
+W-SC-L2,W-SC,2,Student Center - Residential zone (dormitories refurbishment and new dormitories),39700000,39700000,39700000,59550000,,BPR 7.4.7
+DB-SC-L1,DB-SC,1,Student Center - Services and Sports facilities zone (incl. semi-Olympic pool),15700000,15700000,,,,PS 3.3
+DB-SC-L2,DB-SC,2,Student Center - Residential zone (dormitories refurbishment and new dormitories),28700000,28700000,,,,PS 3.3
+G-SC-L1,G-SC,1,Student Center - Furniture and equipment - dormitories,,,,,,PS 3.3
+G-SC-L2,G-SC,2,Student Center - Furniture and equipment - administration and health center,,,,,,PS 3.3
+G-SPORT-L1,G-SPORT,1,"Sport equipment - 13 training venues, FEFS hall and swimming pool",,,,,,PS 3.3

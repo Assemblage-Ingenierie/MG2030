@@ -1,0 +1,29 @@
+# ── Dépendances et artefacts de build ───────────────────────
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Secrets et environnements locaux ────────────────────────
+.env*.local
+.vercel
+
+# ── DOCUMENTS SOURCES DU CLIENT — NE JAMAIS PUBLIER ─────────
+# Ce dépôt est PUBLIC. docs/source/ contient des pièces qui ne nous
+# appartiennent pas et qui ne sont pas diffusables :
+#   • le rapport de préparation du conseil d'administration de l'AFD ;
+#   • la stratégie de passation, avec les dates et montants de marchés
+#     NON ENCORE LANCÉS — publier des seuils financiers avant consultation
+#     donnerait le budget aux candidats (Directives AFD §3.1.2) ;
+#   • les fiches de poste de la PIU.
+#
+# Ces documents restent en local et se transmettent hors dépôt. Le seed de
+# seed/ en est l'extraction déjà arbitrée, et lui est versionné : c'est la
+# source unique du peuplement (seed/README_SEED.md).
+docs/source/
+
+# ── Divers ──────────────────────────────────────────────────
+.DS_Store
+~$*

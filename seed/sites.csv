@@ -1,0 +1,15 @@
+site_code,subproject,name,beneficiary_institution,site_type,address,latitude,longitude,gross_area_sqm,year_of_construction,occupancy_status,source
+SC,athletes_village,Student Center of the University of Pristina,University of Pristina / Student Center,student_campus,,,,,,occupied_year_round,BPR 2.2 / 5.2.1
+TV-FEFS,training_venues,FEFS sports hall,University of Pristina - FEFS,university_sports_hall,,,,1066,1975,occupied_academic_year,BPR 5.3.1
+TV-FAIK,training_venues,Faik Konica physical education hall,Faik Konica school,school_sports_hall,,,,592,2010,occupied_academic_year,BPR 5.3.1
+TV-NAZI,training_venues,Nazim Gafurri physical education hall,Nazim Gafurri school,school_sports_hall,,,,574,2013,occupied_academic_year,BPR 5.3.1
+TV-EMIN,training_venues,Emin Duraku physical education hall,Emin Duraku school,school_sports_hall,,,,554,2014,occupied_academic_year,BPR 5.3.1
+TV-XHEM,training_venues,Xhemail Mustafa physical education hall,Xhemail Mustafa school,school_sports_hall,,,,617,2005,occupied_academic_year,BPR 5.3.1
+TV-PAVA,training_venues,Pavaresia physical education hall,Pavaresia school,school_sports_hall,,,,534,2013,occupied_academic_year,BPR 5.3.1
+TV-ELEN,training_venues,Elena Gjika physical education hall,Elena Gjika school,school_sports_hall,,,,379,1980,occupied_academic_year,BPR 5.3.1
+TV-HASA,training_venues,Hasan Prishtina physical education hall,Hasan Prishtina school,school_sports_hall,,,,710,1974,occupied_academic_year,BPR 5.3.1
+TV-ILIR,training_venues,Iliria physical education hall,Iliria school,school_sports_hall,,,,514,1986,occupied_academic_year,BPR 5.3.1
+TV-ISMA,training_venues,Ismail Qemali physical education hall,Ismail Qemali school,school_sports_hall,,,,692,1981,occupied_academic_year,BPR 5.3.1
+TV-GJEL,training_venues,Shkolla e gjelber physical education hall,Shkolla e gjelber,school_sports_hall,,,,492,2011,occupied_academic_year,BPR 5.3.1
+TV-QAMI,training_venues,Qamil Batalli physical education hall,Qamil Batalli school,school_sports_hall,,,,650,2016,occupied_academic_year,BPR 5.3.1
+TV-DONB,training_venues,Don Bosko physical education hall,Don Bosko school,school_sports_hall,,,,1180,2015,occupied_academic_year,BPR 5.3.1

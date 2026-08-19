@@ -1,0 +1,15 @@
+role_code,title,organisation,reports_to,supervises,time_type,posts,level_of_effort,source
+COORD,Project Coordinator,PIU,MYS hierarchical superior (to be specified),All PIU members,full_time,1,,JD 3.1
+CONSTR,Construction Specialist (with energy efficiency expertise),PIU,COORD,,full_time,1,,JD 3.2
+CONSTR-DEP,Deputy to the Construction Specialist,PIU,CONSTR,,full_time,1,,JD 3.3
+PROC,Procurement Specialist,PIU,COORD,,full_time,1,,JD 3.4
+ADMFIN,Administrative and Financial Specialist,PIU,COORD,,full_time,1,,JD 3.5
+ACCT,Accountant,PIU,ADMFIN,,full_time,1,,JD 3.6
+MRE,"Monitoring, Reporting and Evaluation Specialist",PIU,COORD,,full_time_or_part_time,1,,JD 3.7
+ESHS,"Environmental, Social, Health and Safety Specialist",PIU,COORD,,full_time,1,,JD 3.8
+LEGAL,Legal Specialist,PIU,COORD,,part_time,1,,JD 3.9
+COMM,Communication Specialist,PIU,COORD,,part_time,1,5 days per month,JD 3.10
+SITEREP,On-site Project Owner Representative,PIU,COORD,,part_time,14,,JD 3.11
+ADMIN,Platform administrator,PIU,COORD,,,1,,hors documents projet
+TA,Technical Assistance expert,TA,,,,3,,BPR 7.3.3
+AFD,AFD task team member,AFD,,,,5,,hypothese utilisateur

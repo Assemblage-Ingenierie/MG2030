@@ -1,0 +1,50 @@
+source_sheet,source_row,activity,start_value,duration_days,end_value,row_hidden,exclusion_reason
+TV,12,ETUDES COMPLEMENTAIRES,,,,yes,En-tete de section sans tache - ligne masquee
+TV,14,CONSTRUCTION DORTOIRS,,,,yes,En-tete de section sans tache - ligne masquee
+TV,16,EOI,2026-09-01,21,2026-09-21,yes,Doublon masque du bloc TV.2 (conception detaillee) - pas de duree en semaines
+TV,17,TA + MYS validation,2026-09-21,15,2026-10-06,yes,Doublon masque du bloc TV.2 (conception detaillee) - pas de duree en semaines
+TV,18,AFD's NoN,2026-10-06,10,2026-10-16,yes,Doublon masque du bloc TV.2 (conception detaillee) - pas de duree en semaines
+TV,19,Proposal Preparation,2026-10-07,42,2026-11-18,yes,Doublon masque du bloc TV.2 (conception detaillee) - pas de duree en semaines
+TV,20,TA + MYS validation,2026-11-18,15,2026-12-03,yes,Doublon masque du bloc TV.2 (conception detaillee) - pas de duree en semaines
+TV,21,Contracts negociation + AFD's NoNs,2026-12-03,30,2027-01-02,yes,Doublon masque du bloc TV.2 (conception detaillee) - pas de duree en semaines
+TV,23,Detail Design,2027-01-02,,2026-10-05,yes,Ligne masquee libellee 'Detail Design' en doublon de la ligne 22
+TV,31,Tender + Construction works (student center),2027-01-07,,2029-04-29,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,32,Call for bids training venues,2026-09-21,56,2026-11-16,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,33,TA + MYS validation,2026-11-16,15,2026-12-01,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,34,AFD's NoN + contracts negociation,2026-12-01,30,2026-12-31,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,35,Student center work,2026-12-31,850,2029-04-29,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,36,COJO,2029-04-29,45,2029-06-13,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,37,Négociation du contrat,2029-06-13,45,2029-07-28,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+TV,54,EPP COLLEGES - PHASE 0,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+TV,55,ACTIVITE 1: GUIDES,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+TV,56,Production du Guide 1: Construction,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+TV,57,Production du guide 2: Entretien / maintenance,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+TV,58,ACTIVITE 2: COMMUNAUTAIRE,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+SC,12,ETUDES COMPLEMENTAIRES,,,,no,En-tete de section sans tache - aucune tache rattachee
+SC,14,CONSTRUCTION DORTOIRS,,,,no,En-tete de section sans tache - aucune tache rattachee
+SC,31,Tender + Construction works (student center),2027-02-27,,2029-04-29,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,32,Call for bids training venues,2026-09-21,56,2026-11-16,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,33,TA + MYS validation,2026-11-16,15,2026-12-01,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,34,AFD's NoN + contracts negociation,2026-12-01,30,2026-12-31,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,35,Student center work,2026-12-31,850,2029-04-29,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,36,COJO,2029-04-29,45,2029-06-13,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,37,Négociation du contrat,2029-06-13,45,2029-07-28,yes,Bloc masque relatif au Student Center - obsolete - dates au-dela de 2030
+SC,38,Works,,,,yes,Bloc masque training venues dans l onglet SC - cale a tort sur la fin du Design and Build
+SC,39,Training venues tender,2029-05-29,,2029-09-07,yes,Bloc masque training venues dans l onglet SC - cale a tort sur la fin du Design and Build
+SC,40,Call for bids training venues,2029-05-29,56,2029-07-24,yes,Bloc masque training venues dans l onglet SC - cale a tort sur la fin du Design and Build
+SC,41,TA + MYS validation,2029-07-24,15,2029-08-08,yes,Bloc masque training venues dans l onglet SC - cale a tort sur la fin du Design and Build
+SC,42,AFD's NoN + contracts negociation,2029-08-08,30,2029-09-07,yes,Bloc masque training venues dans l onglet SC - cale a tort sur la fin du Design and Build
+SC,43,Training venues works,2029-09-07,100,2029-12-16,yes,Bloc masque training venues dans l onglet SC - cale a tort sur la fin du Design and Build
+SC,44,Student center tender,2029-04-04,,2029-07-13,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,45,Prequalification,2029-04-04,30,2029-05-04,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,46,TA + MYS validation,2029-05-04,15,2029-05-19,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,47,AFD's NoN,2029-05-19,10,2029-05-29,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,48,offer submission,2029-05-29,56,2029-07-24,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,49,TA + MYS validation,2029-05-29,15,2029-06-13,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,50,Contracts negociation + AFD's NoNs,2029-06-13,30,2029-07-13,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,51,Student center works,2029-07-13,822,2031-10-13,yes,Scenario classique Student Center - masque et calcule a rebours sur I30 - fin des travaux 13/10/2031
+SC,54,EPP COLLEGES - PHASE 0,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+SC,55,ACTIVITE 1: GUIDES,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+SC,56,Production du Guide 1: Construction,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+SC,57,Production du guide 2: Entretien / maintenance,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)
+SC,58,ACTIVITE 2: COMMUNAUTAIRE,,,,yes,Reliquat de modele d'un autre projet (EPP Colleges)

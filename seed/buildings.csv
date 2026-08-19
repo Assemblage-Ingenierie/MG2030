@@ -1,0 +1,37 @@
+building_code,site_code,name,zone,typology,intervention_type,net_area_sqm,gross_area_sqm,unit_cost_eur_sqm,works_estimate_eur,year_of_construction,construction_type,source
+SC-KON1,SC,Konvikti 1 (Dormitory 1),residential,dormitory,renovation,4385,,369,1618721,1965,TYPE 1 (unique),BPR 5.2.2 / 7.7
+SC-KON2,SC,Konvikti 2 (Dormitory 2),residential,dormitory,renovation,2855,,406,1159058,1971,TYPE 2,BPR 5.2.2 / 7.7
+SC-KON3,SC,Konvikti 3 (Dormitory 3),residential,dormitory,renovation,3647,,414,1510265,,TYPE 2,BPR 5.2.2 / 7.7
+SC-KON4,SC,Konvikti 4 (Dormitory 4),residential,dormitory,renovation,2888,,405,1169081,,TYPE 2,BPR 5.2.2 / 7.7
+SC-KON5,SC,Konvikti 5 (Dormitory 5),residential,dormitory,renovation,5777,,406,2348352,1980,TYPE 3 (unique),BPR 5.2.2 / 7.7
+SC-KON6,SC,Konvikti 6 (Dormitory 6),residential,dormitory,renovation,3519,,372,1309426,,TYPE 4,BPR 5.2.2 / 7.7
+SC-KON7,SC,Konvikti 7 (Dormitory 7),residential,dormitory,renovation,3407,,375,1278055,,TYPE 4,BPR 5.2.2 / 7.7
+SC-KON8,SC,Konvikti 8 (Dormitory 8),residential,dormitory,renovation,3085,,359,1107836,,TYPE 4,BPR 5.2.2 / 7.7
+SC-REST,SC,Restaurant and kitchen,services_and_sports,restaurant,renovation,1417,2500,785,1112483,1974,,BPR 5.2.2 / 7.7
+SC-TETO,SC,Tetori sports hall,services_and_sports,sports_hall,renovation,1987,3934,875,1738079,1975,,BPR 5.2.2 / 7.7
+SC-ADMO,SC,Administration building (existing),services_and_sports,administration,demolition,,,,,,,BPR 5.2.2
+SC-HEAO,SC,Health center (existing),services_and_sports,health_centre,demolition,,,,,,,BPR 5.2.2
+SC-AMPH,SC,Amphitheatre (existing),services_and_sports,amphitheatre,demolition,,,,,,,BPR 5.2.2
+SC-ND01,SC,New Dormitory 01,residential,dormitory,new_construction,5417,,950,5146150,,,BPR 5.2.2 / 7.7
+SC-ND02,SC,New Dormitory 02,residential,dormitory,new_construction,4532,,950,4305400,,,BPR 5.2.2 / 7.7
+SC-ND03,SC,New Dormitory 03,residential,dormitory,new_construction,8324,,950,7907800,,,BPR 5.2.2 / 7.7
+SC-ADMN,SC,Administration (new),services_and_sports,administration,new_construction,410,,950,389500,,,BPR 7.7
+SC-HEAN,SC,Health Center (new),services_and_sports,health_centre,new_construction,955,,1150,1098250,,,BPR 7.7
+SC-POOL,SC,Semi-Olympic swimming pool,services_and_sports,swimming_pool,new_construction,1300,,2000,2600000,,,BPR 7.7
+SC-MPHA,SC,Multi Purpose Hall,services_and_sports,multi_purpose_hall,new_construction,450,,950,427500,,,BPR 7.7
+SC-CAFE,SC,Cafeteria,services_and_sports,cafeteria,new_construction,160,,950,152000,,,BPR 7.7
+SC-LIBR,SC,Library and studying area,services_and_sports,library,new_construction,315,,950,299250,,,BPR 7.7
+SC-COMM,SC,Commercial areas and conference rooms,services_and_sports,commercial,new_construction,570,,950,541500,,,BPR 7.7
+TV-FEFS-H,TV-FEFS,FEFS sports hall,,sports_hall,renovation,870,1066,433,376840,1975,,BPR 5.3.1 / 7.7
+TV-ELEN-H,TV-ELEN,Elena Gjika hall,,sports_hall,renovation,379,379,581,220261,1980,,BPR 5.3.1 / 7.7
+TV-EMIN-H,TV-EMIN,Emin Duraku hall,,sports_hall,renovation,554,554,471,261144,2014,,BPR 5.3.1 / 7.7
+TV-FAIK-H,TV-FAIK,Faik Konica hall,,sports_hall,renovation,592,592,433,256043,2010,,BPR 5.3.1 / 7.7
+TV-HASA-H,TV-HASA,Hasan Prishtina hall,,sports_hall,renovation,710,710,480,340697,1974,,BPR 5.3.1 / 7.7
+TV-ILIR-H,TV-ILIR,Iliria hall,,sports_hall,renovation,514,514,514,264097,1986,,BPR 5.3.1 / 7.7
+TV-ISMA-H,TV-ISMA,Ismail Qemali hall,,sports_hall,renovation,692,692,548,378924,1981,,BPR 5.3.1 / 7.7
+TV-NAZI-H,TV-NAZI,Nazim Gafurri hall,,sports_hall,renovation,574,574,499,286327,2013,,BPR 5.3.1 / 7.7
+TV-PAVA-H,TV-PAVA,Pavaresia hall,,sports_hall,renovation,540,534,522,281606,2013,,BPR 5.3.1 / 7.7
+TV-GJEL-H,TV-GJEL,Shkolla e gjelber hall,,sports_hall,renovation,492,492,120,59021,2011,,BPR 5.3.1 / 7.7
+TV-QAMI-H,TV-QAMI,Qamil Batalli hall,,sports_hall,renovation,649,650,120,77934,2016,,BPR 5.3.1 / 7.7
+TV-XHEM-H,TV-XHEM,Xhemail Mustafa hall,,sports_hall,renovation,617,617,518,320034,2005,,BPR 5.3.1 / 7.7
+TV-DONB-H,TV-DONB,Don Bosko hall,,sports_hall,renovation,1180,1180,353,416488,2015,,BPR 5.3.1 / 7.7

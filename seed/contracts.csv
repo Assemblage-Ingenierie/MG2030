@@ -1,0 +1,10 @@
+contract_code,contract_number,name,contract_type,competition_type,procedure,selection_method,afd_review,scenario,estimated_amount_eur,spn_publication_date,bid_opening_date,signature_date,completion_date,source
+C-TA,MYS/MG2030/C/2026/XX,Technical Assistance,C,IPC,REOI,QCBS,PRIOR,base,,2026-11-15,2027-02-09,2027-03-23,2030-06-15,PS 3.3
+C-TV-DD,MYS/MG2030/C/2026/XX,Training venues - Detailed Design and works supervision,C,IPC,REOI,QCBS,PRIOR,base,,2026-09-01,2026-11-13,2026-11-27,2028-10-31,PS 3.3
+C-SC-DD,MYS/MG2030/C/2026/XX,Student Center - Detailed Design,C,,DC,,PRIOR,design_bid_build,,,,2026-10-20,2027-05-18,PS 3.3
+C-SC-SUP,MYS/MG2030/C/2027/XX,Student Center - Works supervision,C,IPC,REOI,QCBS,PRIOR,design_bid_build,,2027-03-02,2027-05-14,2027-06-25,2029-09-12,PS 3.3
+W-TV,MYS/MG2030/W/2027/XX,Training venues - Works,W,NPC,IB,lowest_evaluated_compliant_bid,PRIOR,base,,2027-08-05,2027-09-30,2027-11-11,2029-02-01,PS 3.3
+W-SC,MYS/MG2030/W/2027/XX,Student Center - Works,W,IPC,PQL+IB,lowest_evaluated_compliant_bid,PRIOR,design_bid_build,,2027-03-27,2027-07-13,2027-08-24,2029-09-12,PS 3.3
+DB-SC,MYS/MG2030/DB/2027/XX,Student Center - Design and Build,DB,IPC,PQL+IB,QCBS,PRIOR,design_build,44400000,2026-09-01,2027-01-14,2027-02-27,2029-05-29,PS 3.3
+G-SC,MYS/MG2030/C/2027/XX,Student Center - Furniture and equipment,G,IPC,IB,lowest_evaluated_compliant_bid,PRIOR,base,,2029-01-15,2029-03-15,2029-05-01,2030-01-31,PS 3.3
+G-SPORT,MYS/MG2030/C/2027/XX,"Sport equipment - 13 training venues, FEFS hall, swimming pool",G,IPC,IB,lowest_evaluated_compliant_bid,PRIOR,base,,2029-01-15,2029-03-15,2029-05-01,2030-01-31,PS 3.3

@@ -1,0 +1,60 @@
+lot_code,building_code,source
+W-SC-L2,SC-KON1,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON1,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON2,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON2,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON3,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON3,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON4,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON4,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON5,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON5,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON6,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON6,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON7,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON7,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-KON8,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-KON8,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-ND01,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-ND01,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-ND02,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-ND02,BPR 7.4.7 (zone residentielle)
+W-SC-L2,SC-ND03,BPR 7.4.7 (zone residentielle)
+DB-SC-L2,SC-ND03,BPR 7.4.7 (zone residentielle)
+W-SC-L1,SC-REST,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-REST,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-TETO,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-TETO,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-ADMO,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-ADMO,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-HEAO,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-HEAO,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-AMPH,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-AMPH,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-ADMN,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-ADMN,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-HEAN,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-HEAN,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-POOL,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-POOL,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-MPHA,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-MPHA,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-CAFE,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-CAFE,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-LIBR,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-LIBR,BPR 7.4.7 (zone services et sports)
+W-SC-L1,SC-COMM,BPR 7.4.7 (zone services et sports)
+DB-SC-L1,SC-COMM,BPR 7.4.7 (zone services et sports)
+,TV-FEFS-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-ELEN-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-EMIN-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-FAIK-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-HASA-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-ILIR-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-ISMA-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-NAZI-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-PAVA-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-GJEL-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-QAMI-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-XHEM-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md
+,TV-DONB-H,AFFECTATION DE LOT NON DEFINIE - voir README_SEED.md

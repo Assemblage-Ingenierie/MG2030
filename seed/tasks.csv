@@ -1,0 +1,28 @@
+wbs_code,plan_code,scenario,parent_wbs,task_type,group,activity,start_date,duration_weeks,duration_days,end_date,contract_code,source_sheet,source_row
+TV.1,TV,base,,task,Design,Schematic design,2026-07-01,14.0,98,2026-10-07,,TV,15
+TV.2,TV,base,,summary,Design,Detail Design,2026-09-01,,,2027-08-05,C-TV-DD,TV,22
+TV.2.1,TV,base,TV.2,task,Design,EOI,2026-09-01,3.0,21,2026-09-21,C-TV-DD,TV,24
+TV.2.2,TV,base,TV.2,task,Design,TA + MYS validation,2026-09-21,2.0,14,2026-10-05,C-TV-DD,TV,25
+TV.2.3,TV,base,TV.2,task,Design,AFD's NoN,2026-10-05,1.43,10,2026-10-15,C-TV-DD,TV,26
+TV.2.4,TV,base,TV.2,task,Design,Proposal Preparation,2026-10-15,6.0,42,2026-11-26,C-TV-DD,TV,27
+TV.2.5,TV,base,TV.2,task,Design,TA + MYS validation,2026-11-26,2.0,14,2026-12-10,C-TV-DD,TV,28
+TV.2.6,TV,base,TV.2,task,Design,Contracts negociation + AFD's NoNs,2026-12-10,4.0,28,2027-01-07,C-TV-DD,TV,29
+TV.2.7,TV,base,TV.2,task,Design,Detail Design studies,2027-01-07,30.0,210,2027-08-05,C-TV-DD,TV,30
+TV.3,TV,base,,group_header,Works,Works,,,,,,TV,38
+TV.3.1,TV,base,TV.3,summary,Works,Training venues tender,2027-08-05,,,2027-11-11,W-TV,TV,39
+TV.3.1.1,TV,base,TV.3.1,task,Works,Call for bids training venues,2027-08-05,8.0,56,2027-09-30,W-TV,TV,40
+TV.3.1.2,TV,base,TV.3.1,task,Works,TA + MYS evaluation,2027-09-30,2.0,14,2027-10-14,W-TV,TV,41
+TV.3.1.3,TV,base,TV.3.1,task,Works,AFD's NoN + contracts negociation,2027-10-14,4.0,28,2027-11-11,W-TV,TV,42
+TV.3.2,TV,base,TV.3,task,Works,Training venues works,2027-11-11,64.0,448,2029-02-01,W-TV,TV,43
+SC.1,SC-DB,design_build,,task,DESIGN & BUILD,Schematic design,2026-07-01,14.0,98,2026-10-07,,SC,15
+SC.2,SC-DB,design_build,,summary,DESIGN & BUILD,Detail Design,2026-09-01,,,2029-05-29,DB-SC,SC,22
+SC.2.1,SC-DB,design_build,SC.2,task,DESIGN & BUILD,Schematic design adjustments,2026-10-07,2.14,15,2026-10-22,,SC,23
+SC.2.2,SC-DB,design_build,SC.2,task,DESIGN & BUILD,Initial Selection,2026-09-01,3.0,21,2026-09-21,DB-SC,SC,24
+SC.2.3,SC-DB,design_build,SC.2,task,DESIGN & BUILD,TA + MYS validation,2026-09-21,2.14,15,2026-10-06,DB-SC,SC,25
+SC.2.4,SC-DB,design_build,SC.2,task,DESIGN & BUILD,AFD's NoN,2026-10-06,1.43,10,2026-10-16,DB-SC,SC,26
+SC.2.5,SC-DB,design_build,SC.2,task,DESIGN & BUILD,Proposal Preparation,2026-10-22,12.0,84,2027-01-14,DB-SC,SC,27
+SC.2.6,SC-DB,design_build,SC.2,task,DESIGN & BUILD,TA + MYS evaluation,2027-01-14,2.0,14,2027-01-28,DB-SC,SC,28
+SC.2.7,SC-DB,design_build,SC.2,task,DESIGN & BUILD,Contract negociation + AFD's NoNs,2027-01-28,4.29,30,2027-02-27,DB-SC,SC,29
+SC.2.8,SC-DB,design_build,SC.2,task,DESIGN & BUILD,Design and build,2027-02-27,117.43,822,2029-05-29,DB-SC,SC,30
+MS.1,TV,base,,milestone,,MG2030 buffer start (4 months buffer),2029-09-01,,,2029-09-01,,TV,AY6
+MS.2,TV,base,,milestone,,End of work,2030-01-01,,,2030-01-01,,TV,C5
