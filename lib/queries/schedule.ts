@@ -71,6 +71,9 @@ export interface TaskRow extends TaskInput {
   storedStart: string | null;
   storedEnd: string | null;
   progressPct: number | null;
+  ownerId: string | null;
+  validatorId: string | null;
+  planId: string;
   ownerName: string | null;
   /** Fenêtre recalculée par le moteur. */
   computed: TaskWindow | null;
@@ -96,10 +99,18 @@ export interface SchedulePayload {
  * donc soit une modification non persistée, soit une donnée touchée hors
  * application. Le mieux est de le voir, pas de le masquer.
  */
-export async function loadSchedule(scenarioCode: string): Promise<SchedulePayload> {
+export async function loadSchedule(
+  scenarioCode: string,
+  /**
+   * Scénarios déjà chargés par l'appelant. La page les lit pour son sélecteur ;
+   * les relire ici doublait la requête d'agrégat sur les tâches à chaque
+   * affichage. `undefined` = on les charge.
+   */
+  knownScenarios?: ScenarioRow[],
+): Promise<SchedulePayload> {
   const supabase = await createClient();
 
-  const scenarios = await listScenarios();
+  const scenarios = knownScenarios ?? (await listScenarios());
   const scenario = scenarios.find((s) => s.code === scenarioCode) ?? null;
 
   const { data: taskData, error: taskError } = await supabase
@@ -107,6 +118,7 @@ export async function loadSchedule(scenarioCode: string): Promise<SchedulePayloa
     .select(
       `id, wbs_code, task_type, parent_id, duration_days, start_date_input,
        start_date, end_date, group_label, activity, sort_order, progress_pct,
+       owner_id, validator_id, plan_id,
        mg2030_plan!inner ( plan_code ),
        mg2030_schedule_scenario!inner ( code ),
        mg2030_contract ( contract_code ),
@@ -197,6 +209,9 @@ export async function loadSchedule(scenarioCode: string): Promise<SchedulePayloa
       storedStart,
       storedEnd,
       progressPct: (r.progress_pct as number) ?? null,
+      ownerId: (r.owner_id as string) ?? null,
+      validatorId: (r.validator_id as string) ?? null,
+      planId: r.plan_id as string,
       ownerName: (r.owner as { full_name: string } | null)?.full_name ?? null,
       computed,
       drifted:

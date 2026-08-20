@@ -50,8 +50,7 @@ export const NAV: NavGroup[] = [
   {
     labelKey: "nav.planning",
     items: [
-      { href: "/schedule", labelKey: "nav.schedule", icon: "schedule", permission: null },
-      { href: "/gantt", labelKey: "nav.gantt", icon: "gantt", permission: null },
+      { href: "/schedule", labelKey: "nav.plan", icon: "gantt", permission: null },
       { href: "/deliverables", labelKey: "nav.deliverables", icon: "deliverables", permission: null },
     ],
   },

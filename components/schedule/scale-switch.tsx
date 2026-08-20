@@ -5,13 +5,13 @@ import { cn } from "@/lib/cn";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 
 /**
- * Barre d'outils du Gantt : échelle, filtre par marché, légende.
+ * Barre d'outils du plan de charge : échelle, filtre par marché, légende.
  *
  * Tout passe par l'URL, donc une vue se partage par un lien et survit à un
  * rechargement — ce qui compte pour un outil dont les captures finissent dans
  * les rapports mensuels envoyés à l'AFD.
  */
-export async function GanttToolbar({
+export async function ScaleSwitch({
   scale,
   scales,
   contractCodes,
@@ -31,7 +31,7 @@ export async function GanttToolbar({
     params.set("scale", next.scale ?? scale);
     const contract = next.contract === undefined ? currentContract : next.contract;
     if (contract) params.set("contract", contract);
-    return `/gantt?${params.toString()}`;
+    return `/schedule?${params.toString()}`;
   };
 
   const chip = "rounded px-2.5 py-1 text-xs font-medium transition-colors";

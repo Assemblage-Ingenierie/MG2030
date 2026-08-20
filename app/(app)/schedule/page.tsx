@@ -1,29 +1,36 @@
 import { getI18n } from "@/lib/i18n/server";
 import { listScenarios, loadSchedule } from "@/lib/queries/schedule";
+import { listPeople } from "@/lib/queries/people";
 import { Card, Section } from "@/components/ui/card";
-import { TaskGrid, type GridTask } from "@/components/schedule/task-grid";
 import { ScenarioSwitch } from "@/components/schedule/scenario-switch";
 import { UnschedulableNotice } from "@/components/schedule/unschedulable-notice";
+import { ScheduleBoard } from "@/components/schedule/schedule-board";
+import { ScaleSwitch } from "@/components/schedule/scale-switch";
 import { SourceNote } from "@/components/referential/source-note";
+import type { BoardTask } from "@/components/schedule/board-types";
+import type { ScaleUnit } from "@/lib/gantt/scale";
+
+const SCALES: ScaleUnit[] = ["day", "week", "month", "quarter"];
 
 /**
- * Planning.
+ * PLAN DE CHARGE — grille de saisie et Gantt sur la même page.
  *
  * Le calendrier global et le calendrier de passation sont LE MÊME OBJET
- * (brief §7) : il n'y a qu'un écran, et le filtre par marché en tient lieu.
+ * (brief §7) : un seul écran, et le filtre par marché en tient lieu. Le
+ * diagramme est le PROLONGEMENT des colonnes éditables, pas une seconde vue à
+ * tenir synchronisée.
  */
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ scenario?: string }>;
+  searchParams: Promise<{ scenario?: string; scale?: string; contract?: string }>;
 }) {
-  const { t } = await getI18n();
-  const { scenario: requested } = await searchParams;
+  const { t, locale } = await getI18n();
+  const params = await searchParams;
 
   const scenarios = await listScenarios();
-  // Par défaut, le scénario actif ; à défaut, le premier planifiable.
   const selected =
-    scenarios.find((s) => s.code === requested) ??
+    scenarios.find((s) => s.code === params.scenario) ??
     scenarios.find((s) => s.isActive && s.isSchedulable) ??
     scenarios.find((s) => s.isSchedulable) ??
     null;
@@ -49,51 +56,118 @@ export default async function SchedulePage({
     );
   }
 
-  const { tasks, scenario } = await loadSchedule(selected.code);
+  // `scenarios` est passé au chargeur : sans cela il les relisait, doublant la
+  // requête d'agrégat sur les tâches à chaque affichage.
+  const [{ tasks, dependencies, constraints, scenario }, people] = await Promise.all([
+    loadSchedule(selected.code, scenarios),
+    listPeople(),
+  ]);
 
-  const rows: GridTask[] = tasks.map((task) => ({
+  const scale: ScaleUnit = SCALES.includes(params.scale as ScaleUnit)
+    ? (params.scale as ScaleUnit)
+    : "month";
+
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const constraintByTask = new Map(constraints.map((c) => [c.taskId, c.date]));
+
+  const predecessorCodes = new Map<string, string[]>();
+  for (const dep of dependencies) {
+    const code = byId.get(dep.predecessorId)?.wbsCode;
+    if (!code) continue;
+    const list = predecessorCodes.get(dep.successorId);
+    if (list) list.push(code);
+    else predecessorCodes.set(dep.successorId, [code]);
+  }
+
+  // Filtre par marché : le calendrier de passation n'est pas un module séparé,
+  // c'est une VUE FILTRÉE du même planning (brief §7).
+  const visible = params.contract
+    ? tasks.filter((task) => task.contractCode === params.contract)
+    : tasks;
+
+  const board: BoardTask[] = visible.map((task) => ({
     id: task.id,
     wbsCode: task.wbsCode,
-    type: task.type,
     activity: task.activity,
+    type: task.type,
+    parentId: task.parentId,
+    depth: task.depth,
     durationDays: task.durationDays,
     start: task.computed?.start ?? task.storedStart,
     end: task.computed?.end ?? task.storedEnd,
+    startAnchor: task.startDateInput,
+    constraintDate: constraintByTask.get(task.id) ?? null,
     progressPct: task.progressPct,
+    ownerId: task.ownerId,
+    ownerName: task.ownerName,
     contractCode: task.contractCode,
-    depth: task.depth,
-    drifted: task.drifted,
+    predecessorCodes: (predecessorCodes.get(task.id) ?? []).sort(),
     driver: task.computed?.driver ?? null,
     drivingPredecessor: task.computed?.drivingPredecessor ?? null,
+    drifted: task.drifted,
   }));
 
-  const drifted = rows.filter((r) => r.drifted).length;
+  const visibleIds = new Set(board.map((task) => task.id));
+  // Une flèche dont une extrémité est filtrée n'a nulle part où aboutir.
+  const links = dependencies
+    .filter((d) => visibleIds.has(d.predecessorId) && visibleIds.has(d.successorId))
+    .map((d) => ({ predecessorId: d.predecessorId, successorId: d.successorId }));
+
+  const contractCodes = [
+    ...new Set(tasks.map((task) => task.contractCode).filter((c): c is string => Boolean(c))),
+  ].sort();
+
+  const drifted = board.filter((task) => task.drifted).length;
+  const unassigned = board.filter(
+    (task) => task.type === "task" && task.ownerId === null,
+  ).length;
+
+  // Le plan d'accueil des nouvelles tâches : celui du scénario affiché.
+  const planId = tasks[0]?.planId ?? "";
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="flex max-w-full flex-col gap-4">
       <Section
         title={t("schedule.title")}
         description={t("schedule.intro")}
         actions={<ScenarioSwitch scenarios={scenarios} current={selected.code} />}
       >
         {/* La marge terminale et l'échéance des Jeux sont le cadre dans lequel
-            tout le reste doit tenir : elles sont affichées avant la grille. */}
+            tout le reste doit tenir : affichées avant la grille. */}
         {scenario?.bufferStartDate && (
           <Card className="flex flex-wrap items-center gap-x-6 gap-y-2 p-3 text-sm">
             <Fact label={t("schedule.bufferStart")} value={scenario.bufferStartDate} />
-            <Fact
-              label={t("schedule.bufferMonths")}
-              value={String(scenario.bufferMonths ?? "—")}
-            />
+            <Fact label={t("schedule.bufferMonths")} value={String(scenario.bufferMonths ?? "—")} />
             <Fact label={t("schedule.deadline")} value={scenario.deadlineDate ?? "—"} />
           </Card>
         )}
 
         <Card className="overflow-hidden">
-          <TaskGrid tasks={rows} scenarioCode={selected.code} />
+          <ScaleSwitch
+            scale={scale}
+            scales={SCALES}
+            contractCodes={contractCodes}
+            currentContract={params.contract ?? null}
+            scenarioCode={selected.code}
+          />
+          <ScheduleBoard
+            tasks={board}
+            dependencies={links}
+            people={people}
+            scenarioCode={selected.code}
+            planId={planId}
+            scale={scale}
+            today={new Date().toISOString().slice(0, 10)}
+            bufferStart={scenario?.bufferStartDate ?? null}
+            deadline={scenario?.deadlineDate ?? null}
+            locale={locale}
+          />
         </Card>
 
         {drifted > 0 && <SourceNote>{t("schedule.driftNote")}</SourceNote>}
+        {unassigned > 0 && (
+          <SourceNote>{t("schedule.unassignedNote", { count: String(unassigned) })}</SourceNote>
+        )}
       </Section>
     </div>
   );
