@@ -646,6 +646,109 @@ Consignés pour éviter qu'ils ne soient rouverts.
 | 42 — devise | **HT uniquement** |
 | 44 — politique de reprise | **Recalcul** |
 
+### 55. 🔴 [NOUVEAU — corrigé le 20/08/2026] Le diagramme n'avait pas la place d'exister
+
+Constaté en chargeant la production dans un navigateur, à 1590 px : la grille
+de saisie occupait **986 px** et le diagramme **306**. Sur un portable de
+1440 px il ne restait que 160 px pour 2884 px de contenu. Le plan de charge
+« sur une même page » existait donc dans le code, pas à l'écran.
+
+**Corrigé** : jeu de colonnes réduit par défaut — activité, durée, début, fin —
+soit 616 px de grille et ~990 px de diagramme, avec un lien « toutes les
+colonnes » pour les séances de saisie. Le choix passe par l'URL.
+
+Deux défauts d'alignement sont tombés avec : les cellules de ligne
+rétrécissaient par débordement flex (la corbeille occupait 26 px que l'en-tête
+ne comptait pas), et les colonnes masquées restaient dans la navigation au
+clavier — Tab entrait dans une cellule invisible.
+
+**Vérifié après correction** : 0 ligne sur 17 en écart avec l'en-tête,
+en-tête à 44 px, pas de 28 px, barres du diagramme centrées ligne à ligne.
+
+### 56. 🔴 [NOUVEAU — corrigé le 20/08/2026] Un sélecteur ouvert sans focus ne se refermait plus
+
+En ouvrant la cellule « responsable » et en lisant `document.activeElement` :
+le sélecteur s'affichait mais restait **sans focus**. Ni Échap ni la sortie au
+clavier ne le fermaient — il fallait choisir quelqu'un pour s'en sortir.
+
+Cause : le champ texte recevait son focus explicitement par une ref, le
+sélecteur s'en remettait à `autoFocus`. Deux mécanismes pour un même rôle,
+dont un seul fiable.
+
+**Corrigé** : la cellule donne le focus au premier élément focalisable de son
+éditeur, et gère Échap et la sortie **au niveau du conteneur** — un éditeur qui
+oublierait de les traiter reste refermable.
+
+### 57. 🟠 [NOUVEAU — corrigé le 20/08/2026] L'ancre contractuelle calait le début, non la fin
+
+Défaut du moteur d'instanciation, trouvé en calculant à la main la chaîne de
+C-TA : une étape ancrée sur la date de **signature** commençait à la signature.
+« Négociation + avis AFD » démarrait donc le jour où le marché était déjà signé.
+
+**Corrigé** : les ancres sont typées. Un avis de publication ouvre une période
+(ancre de début) ; une ouverture des plis, une signature, un achèvement sont
+des événements **terminaux** (ancre de fin).
+
+Découverte au passage : le planning porte **deux** séquences réellement
+distinctes, pas une. Sélection de consultant (C-TV-DD : 21/14/10/42/14/28) et
+appel d'offres travaux, ouvert et sans avis préalable (TV.3.1 : 56/14/28).
+Deux gabarits sont donc proposés, durées **relevées** et non estimées.
+
+### 58. 🟠 [NOUVEAU — corrigé le 20/08/2026] L'accueil montrait le plan de développement
+
+La page d'accueil listait les lots de développement, « lot 1 en cours ». Juste
+le premier jour, faux ensuite : la PIU y lisait un état de projet là où
+figurait un plan de travail.
+
+**Corrigé** : les chiffres réels du projet, comptés en base, chacun cliquable
+vers son écran, avec l'échéance des Jeux en jours restants. Le tableau de bord
+consolidé reste hors périmètre de la version 1 (brief §9) — cette page compte,
+elle n'agrège pas.
+
+### 59. 🟠 [NOUVEAU — corrigé le 20/08/2026] Rôle et périmètre ne se réglaient que par SQL
+
+L'écran d'administration affichait le rôle fonctionnel et le périmètre sans
+permettre de les changer. Aucune action n'existait pour le rôle ;
+`setUserScope` était morte depuis le premier jour. Avec une trentaine de
+comptes à ouvrir, cela signifiait une trentaine de requêtes à la main.
+
+**Corrigé**. Un garde-fou ajouté : seuls les rôles de l'organisation du compte
+sont proposés, et l'action refuse les autres — la base les accepterait, mais le
+compte hériterait de permissions conçues pour un autre corps de métier.
+
+### 60. 🟠 [NOUVEAU — corrigé le 20/08/2026] La langue ne se choisissait qu'après connexion
+
+L'écran de connexion n'offrait aucune bascule de langue, et aucun logo
+institutionnel. Les utilisateurs sont une trentaine d'agents du ministère à
+Prishtina : leur demander de se connecter en anglais pour découvrir ensuite
+qu'un albanais existait prenait le problème à l'envers.
+
+**Corrigé**, ainsi que trois défauts de saisie mobile relevés au même audit :
+champs à 14 px (Safari iOS zoome sous 16 px et ne dézoome pas), cibles
+tactiles à 36–38 px contre 44 recommandés, et trois contrôles de filtre
+portant le même libellé « Whole project » pour trois sens différents.
+
+### 61. 🔴 [NOUVEAU — 20/08/2026] Le plan entier n'existe dans aucun scénario
+
+Relevé en base pendant l'audit : le scénario `base` porte les 15 tâches
+training venues et les 2 jalons transverses ; les 10 tâches du Student Center
+vivent dans `design_build`. Aucun scénario ne montre le projet entier, alors
+que le filtre affiche « Whole project ».
+
+Ce n'est pas un défaut de code mais une conséquence du chargement : les deux
+sous-projets ont été rangés dans deux scénarios. **Arbitrage à rendre** — faut-il
+un scénario de référence portant les deux sous-projets, les tâches de scénario
+restant les variantes ? Sans lui, personne ne verra jamais le calendrier
+complet sur un seul écran.
+
+### 62. 🟠 [NOUVEAU — 20/08/2026] Un seul compte existe
+
+L'affectation des responsables fonctionne — vérifié à l'écran, la liste se
+peuple — mais elle ne contient qu'un nom. Les 12 tâches sans responsable ne
+peuvent donc recevoir aucune alerte de retard, non par défaut technique mais
+faute de destinataires. Les quelques trente comptes de la PIU restent à ouvrir
+(docs/ADMIN.md).
+
 ### Reste ouvert, par ordre de blocage
 
 | # | Point | Pourquoi maintenant | Bloque |
@@ -658,6 +761,8 @@ Consignés pour éviter qu'ils ne soient rouverts.
 | 6 | **36** — mode d'invitation sans fournisseur d'e-mail | 30 comptes à ouvrir | Lot 4 |
 | 7 | **3** — composition des lots de training venues | Conditionne le périmètre des représentants sur site | Lot 6 |
 | 8 | **9** — décomposition en tâches de `design_bid_build` | Conditionne la voie de droit commun | Lot 9 |
+| 9 | **61** — un scénario portant les deux sous-projets | Sans lui, le calendrier complet n'est visible sur aucun écran | Exploitation |
+| 10 | **62** — ouverture des ~30 comptes PIU | Sans eux, aucune alerte de retard n'a de destinataire | Exploitation |
 
 > **Le point 52 n'attend aucun arbitrage** : c'est une contrainte technique
 > découlant de la décision 37, déjà intégrée au schéma. Il figure ici pour
