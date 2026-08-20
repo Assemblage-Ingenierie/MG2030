@@ -12,7 +12,14 @@ import { useT } from "@/components/i18n/i18n-context";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  /** Rendu côté serveur puis transmis : voir app/(app)/layout.tsx. */
+  bell,
+}: {
+  children: React.ReactNode;
+  bell?: React.ReactNode;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const close = useCallback(() => setMobileOpen(false), []);
   const t = useT();
@@ -31,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex min-h-screen min-w-0 flex-col">
-        <Header onMenu={() => setMobileOpen(true)} />
+        <Header onMenu={() => setMobileOpen(true)} bell={bell} />
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-6">{children}</main>
       </div>
     </div>

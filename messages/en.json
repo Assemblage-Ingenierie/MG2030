@@ -408,7 +408,21 @@
     "byContractIntro": "What is open, what is late, and what comes next for each of the 9 procedures.",
     "open": "Open",
     "pendingNon": "Pending NoN",
-    "nextDue": "Next due"
+    "nextDue": "Next due",
+    "editTitle": "Edit deliverable",
+    "createTitle": "Add a deliverable",
+    "comments": "Comments",
+    "issuerHint": "Consultant or contractor, in plain text: they are not users of this platform (brief §3).",
+    "markSubmitted": "Received",
+    "markSubmittedHint": "Record today as the submission date and move the status to submitted.",
+    "removeVisa": "Unvisa",
+    "visaHint": "Record that you validated this deliverable. Declarative, not a signature.",
+    "removeVisaHint": "Remove your visa.",
+    "confirmDelete": "Delete the deliverable « {title} »?",
+    "error_emptyTitle": "A title is required.",
+    "error_noOrigin": "A deliverable must be attached to a contract or a lot.",
+    "error_invalidDate": "Expected date format YYYY-MM-DD.",
+    "error_unauthenticated": "Session expired. Sign in again."
   },
   "org": {
     "title": "Org chart",
@@ -449,5 +463,21 @@
     "error_folder_not_found": "That folder does not exist, or you cannot access it.",
     "error_upload_failed": "The transfer to storage failed. Nothing was recorded.",
     "error_orphan": "The file reached storage but could not be recorded. Object key: {key} — pass it to an administrator so the orphan can be cleaned up."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "intro": "Applicative only — no email is sent in version 1 (brief §7). Event notifications come from triggers; state ones (lateness, upcoming deadlines) from the periodic evaluation, because nobody performs the act of missing a deadline.",
+    "empty": "No notification",
+    "emptyNote": "Nothing yet, and that is expected: no task carries an owner and no deliverable is recorded, so lateness notifications have no recipient (GAPS 8). They will appear once the PIU assigns tasks. The periodic evaluation also needs SUPABASE_SERVICE_ROLE_KEY and CRON_SECRET (GAPS 54).",
+    "markRead": "Mark read",
+    "markAllRead": "Mark all {count} read",
+    "bellWithCount": "Notifications — {count} unread",
+    "kind_document_uploaded": "Document",
+    "kind_milestone_reached": "Milestone",
+    "kind_task_late": "Late task",
+    "kind_deliverable_due": "Deliverable due",
+    "kind_deliverable_late": "Late deliverable",
+    "kind_no_objection_answered": "No-objection",
+    "kind_complaint_registered": "Complaint"
   }
 }

@@ -12,7 +12,7 @@ import { MenuIcon } from "@/components/ui/icons";
 import { BrandMark, FunderMark, KosovoEmblem } from "./brand-mark";
 import { LanguageSwitch } from "./language-switch";
 
-export function Header({ onMenu }: { onMenu: () => void }) {
+export function Header({ onMenu, bell }: { onMenu: () => void; bell?: React.ReactNode }) {
   const t = useT();
 
   return (
@@ -34,8 +34,9 @@ export function Header({ onMenu }: { onMenu: () => void }) {
         <span className="sr-only">{t("app.owner")}</span>
       </div>
 
-      <div className="ml-auto flex items-center gap-4">
+      <div className="ml-auto flex items-center gap-3">
         <BrandMark />
+        {bell}
         <LanguageSwitch />
       </div>
     </header>

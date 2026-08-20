@@ -1,5 +1,10 @@
 import { getI18n } from "@/lib/i18n/server";
 import { contractHealth, listDeliverables } from "@/lib/queries/deliverables";
+import { listContracts } from "@/lib/queries/referential";
+import {
+  AddDeliverableButton,
+  DeliverableRowActions,
+} from "@/components/deliverables/deliverable-form";
 import { formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
@@ -15,13 +20,27 @@ import { SourceNote } from "@/components/referential/source-note";
  */
 export default async function DeliverablesPage() {
   const { t } = await getI18n();
-  const [deliverables, health] = await Promise.all([listDeliverables(), contractHealth()]);
+  const [deliverables, health, contracts] = await Promise.all([
+    listDeliverables(),
+    contractHealth(),
+    listContracts(),
+  ]);
+
+  const contractOptions = contracts.map((c) => ({
+    id: c.id,
+    code: c.contractCode,
+    name: c.name,
+  }));
 
   const late = deliverables.filter((d) => d.isLate);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <Section title={t("deliverables.title")} description={t("deliverables.intro")}>
+      <Section
+        title={t("deliverables.title")}
+        description={t("deliverables.intro")}
+        actions={<AddDeliverableButton contracts={contractOptions} />}
+      >
         {late.length > 0 && (
           <Card
             className="p-4"
@@ -46,10 +65,11 @@ export default async function DeliverablesPage() {
               <Th align="right">{t("deliverables.submitted")}</Th>
               <Th align="center">{t("deliverables.status")}</Th>
               <Th>{t("deliverables.visa")}</Th>
+              <Th align="right">{t("common.edit")}</Th>
             </Thead>
             <tbody>
               {deliverables.length === 0 && (
-                <EmptyRow colSpan={7}>{t("deliverables.emptyRegister")}</EmptyRow>
+                <EmptyRow colSpan={8}>{t("deliverables.emptyRegister")}</EmptyRow>
               )}
               {deliverables.map((d) => (
                 <Tr key={d.id}>
@@ -94,6 +114,24 @@ export default async function DeliverablesPage() {
                   </Td>
                   <Td className="text-xs text-[var(--text-muted)]">
                     {d.visaByName ? `${d.visaByName} · ${formatPlanDate(d.visaDate)}` : "—"}
+                  </Td>
+                  <Td align="right">
+                    <DeliverableRowActions
+                      hasVisa={d.visaByName !== null}
+                      contracts={contractOptions}
+                      deliverable={{
+                        id: d.id,
+                        title: d.title,
+                        issuer: d.issuer,
+                        contractId:
+                          contracts.find((c) => c.contractCode === d.contractCode)?.id ?? null,
+                        lotId: null,
+                        contractualDate: d.contractualDate,
+                        actualSubmissionDate: d.actualSubmissionDate,
+                        status: d.status,
+                        comments: d.comments,
+                      }}
+                    />
                   </Td>
                 </Tr>
               ))}

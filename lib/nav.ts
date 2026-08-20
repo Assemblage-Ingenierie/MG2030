@@ -63,6 +63,7 @@ export const NAV: NavGroup[] = [
   {
     labelKey: "nav.administration",
     items: [
+      { href: "/notifications", labelKey: "nav.notifications", icon: "notifications", permission: null },
       { href: "/org-chart", labelKey: "nav.orgChart", icon: "orgChart", permission: null },
       { href: "/admin/users", labelKey: "nav.users", icon: "users", permission: "user.admin" },
       { href: "/design-system", labelKey: "nav.designSystem", icon: "admin", permission: null },
