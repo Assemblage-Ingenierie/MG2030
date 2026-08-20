@@ -278,9 +278,12 @@ export function InstantiatePanel({
                     color: "var(--danger)",
                   }}
                 >
-                  {t("procurement.conflictWarning", {
-                    count: String(newRows.filter((r) => r.conflictDays > 0).length),
-                  })}
+                  {t(
+                    newRows.filter((r) => r.conflictDays > 0).length === 1
+                      ? "procurement.conflictWarningOne"
+                      : "procurement.conflictWarning",
+                    { count: String(newRows.filter((r) => r.conflictDays > 0).length) },
+                  )}
                 </p>
               )}
 

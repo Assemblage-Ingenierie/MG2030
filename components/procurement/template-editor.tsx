@@ -309,10 +309,15 @@ function StepRow({
   return (
     <tr className="border-b border-[var(--border)]">
       <td className="px-2 py-1">
+        {/* Chaque champ porte son propre libellé : l'en-tête de colonne ne
+            nomme pas un champ pour un lecteur d'écran, et le texte d'invite
+            n'est pas un libellé. Constaté à l'audit : la colonne « Step » se
+            lisait « New step… ». */}
         <input
           type="number"
           min={1}
           disabled={!editable}
+          aria-label={t("procurement.stepNo")}
           className={input + " w-14 text-right tabular-nums"}
           value={draft.stepNo}
           onChange={(e) => setDraft({ ...draft, stepNo: Number(e.target.value) })}
@@ -322,6 +327,7 @@ function StepRow({
       <td className="px-2 py-1">
         <input
           disabled={!editable}
+          aria-label={t("procurement.stepName")}
           className={input + " w-full"}
           placeholder={t("procurement.stepNamePlaceholder")}
           value={draft.name}
@@ -334,6 +340,7 @@ function StepRow({
           type="number"
           min={0}
           disabled={!editable}
+          aria-label={t("procurement.duration")}
           className={input + " w-16 text-right tabular-nums"}
           value={draft.defaultDurationDays}
           onChange={(e) => setDraft({ ...draft, defaultDurationDays: Number(e.target.value) })}
@@ -343,6 +350,7 @@ function StepRow({
       <td className="px-2 py-1">
         <select
           disabled={!editable}
+          aria-label={t("procurement.anchor")}
           className={input + " w-44"}
           value={draft.contractDateAnchor ?? ""}
           onChange={(e) => {
@@ -363,6 +371,7 @@ function StepRow({
         <input
           type="checkbox"
           disabled={!editable}
+          aria-label={t("procurement.isNoObjectionLabel")}
           checked={draft.isAfdNoObjection}
           onChange={(e) => {
             const next = { ...draft, isAfdNoObjection: e.target.checked };

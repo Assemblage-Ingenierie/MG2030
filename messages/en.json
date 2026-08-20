@@ -546,7 +546,7 @@
   },
   "procurement": {
     "title": "Procurement templates",
-    "intro": "Creating a contract instantiates a template and generates its tasks (brief §7). No template is project data: the sources contain none. The proposed sequence is deduced from the labels of the real schedule and cross-checked with the AFD Directives of February 2024 — review every duration before activating it.",
+    "intro": "Creating a contract instantiates a template and generates its tasks (brief §7). No template is project data: the sources contain none. The two sequences offered have their durations READ OFF the real chains of the schedule — C-TV-DD for consultant selection, TV.3.1 for the works tender — not estimated. Review each one before activating it: a duration that was observed is still not a duration that was agreed.",
     "template": "Template",
     "templateName": "Name",
     "code": "Code",
@@ -603,6 +603,8 @@
     "slack": "+{days} d gap",
     "conflictTooltip": "The contract date makes this step start before the previous one ends. The contract date wins — it is the contractual document — but the two documents disagree here (GAPS 13).",
     "slackTooltip": "The contract date leaves idle time after the previous step ends.",
-    "conflictWarning": "{count} steps start before their predecessor ends, because the procurement plan and the chained durations disagree (GAPS 13). The contract dates win. Check them before applying — this is a real divergence between two source documents, not a calculation error."
+    "conflictWarning": "{count} steps start before their predecessor ends, because the procurement plan and the chained durations disagree (GAPS 13). The contract dates win. Check them before applying — this is a real divergence between two source documents, not a calculation error.",
+    "isNoObjectionLabel": "This step is an AFD no-objection",
+    "conflictWarningOne": "One step starts before its predecessor ends, because the procurement plan and the chained durations disagree (GAPS 13). The contract date wins. Check it before applying — this is a real divergence between two source documents, not a calculation error."
   }
 }
