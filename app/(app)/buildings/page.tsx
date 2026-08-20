@@ -1,11 +1,12 @@
 import { getI18n } from "@/lib/i18n/server";
-import { listBuildings } from "@/lib/queries/referential";
+import { listBuildings, listSiteOptions } from "@/lib/queries/referential";
 import { formatAmount, formatNumber } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Chip } from "@/components/ui/badge";
 import { SourceNote } from "@/components/referential/source-note";
 import { Pagination } from "@/components/ui/pagination";
+import { AddBuildingButton, BuildingRowEdit } from "@/components/referential/building-row-edit";
 
 /**
  * Liste des bâtiments.
@@ -21,11 +22,14 @@ export default async function BuildingsPage({
   const { t, locale } = await getI18n();
   const params = await searchParams;
 
-  const { rows, total, page, pageCount } = await listBuildings({
-    page: Number(params.page ?? 1),
-    siteCode: params.site,
-    intervention: params.intervention,
-  });
+  const [{ rows, total, page, pageCount }, sites] = await Promise.all([
+    listBuildings({
+      page: Number(params.page ?? 1),
+      siteCode: params.site,
+      intervention: params.intervention,
+    }),
+    listSiteOptions(),
+  ]);
 
   // Somme des estimations de la page courante. On indique explicitement qu'il
   // s'agit de la page, pas du total projet : additionner ce qu'on voit est le
@@ -35,7 +39,11 @@ export default async function BuildingsPage({
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <Section title={t("buildings.title")} description={t("buildings.intro")}>
+      <Section
+        title={t("buildings.title")}
+        description={t("buildings.intro")}
+        actions={<AddBuildingButton sites={sites} />}
+      >
         <Card className="overflow-hidden">
           <Table>
             <Thead>
@@ -48,9 +56,10 @@ export default async function BuildingsPage({
               <Th align="right">{t("buildings.grossArea")}</Th>
               <Th align="right">{t("buildings.estimate")}</Th>
               <Th align="right">{t("buildings.built")}</Th>
+              <Th align="right">{t("common.edit")}</Th>
             </Thead>
             <tbody>
-              {rows.length === 0 && <EmptyRow colSpan={9}>{t("common.empty")}</EmptyRow>}
+              {rows.length === 0 && <EmptyRow colSpan={10}>{t("common.empty")}</EmptyRow>}
               {rows.map((b) => {
                 // Écart net/brut marqué : les deux valeurs viennent des sources
                 // et aucune n'a été arbitrée (Tetori : 1 987 contre 3 934 m²).
@@ -102,6 +111,31 @@ export default async function BuildingsPage({
                     </Td>
                     <Td align="right" className="tabular-nums">
                       {b.yearOfConstruction ?? "—"}
+                    </Td>
+                    <Td align="right">
+                      <BuildingRowEdit
+                        building={{
+                          id: b.id,
+                          buildingCode: b.buildingCode,
+                          siteId: b.siteId,
+                          name: b.name,
+                          zone: b.zone as "residential" | "services_and_sports" | null,
+                          typology: b.typology,
+                          interventionType:
+                            b.interventionType as
+                              | "renovation"
+                              | "demolition"
+                              | "extension"
+                              | "new_construction",
+                          netAreaSqm: b.netArea,
+                          grossAreaSqm: b.grossArea,
+                          unitCostEurSqm: b.unitCost,
+                          worksEstimateEur: b.worksEstimate,
+                          yearOfConstruction: b.yearOfConstruction,
+                          constructionType: b.constructionType,
+                        }}
+                        sites={sites}
+                      />
                     </Td>
                   </Tr>
                 );

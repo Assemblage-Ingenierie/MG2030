@@ -46,6 +46,22 @@ export interface SiteRow {
   source: string | null;
 }
 
+/** Sites en options légères, pour les sélecteurs de formulaire. */
+export async function listSiteOptions(): Promise<{ id: string; siteCode: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mg2030_site")
+    .select("id, site_code, name")
+    .is("archived_at", null)
+    .order("site_code");
+  if (error) throw new Error(`Lecture des sites : ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    siteCode: r.site_code as string,
+    name: r.name as string,
+  }));
+}
+
 export async function listSites(subproject?: string): Promise<SiteRow[]> {
   const supabase = await createClient();
   let query = supabase
@@ -92,6 +108,7 @@ export interface BuildingRow {
   id: string;
   buildingCode: string;
   name: string;
+  siteId: string;
   siteCode: string;
   siteName: string;
   subproject: string;
@@ -122,7 +139,7 @@ export async function listBuildings(options: {
       `id, building_code, name, zone, typology, intervention_type, net_area_sqm,
        gross_area_sqm, unit_cost_eur_sqm, works_estimate_eur, year_of_construction,
        construction_type, source,
-       mg2030_site!inner ( site_code, name, subproject )`,
+       mg2030_site!inner ( id, site_code, name, subproject )`,
       { count: "exact" },
     )
     .is("archived_at", null)
@@ -137,12 +154,13 @@ export async function listBuildings(options: {
 
   const rows = (data ?? []).map((row) => {
     const r = row as unknown as Record<string, unknown> & {
-      mg2030_site: { site_code: string; name: string; subproject: string };
+      mg2030_site: { id: string; site_code: string; name: string; subproject: string };
     };
     return {
       id: r.id as string,
       buildingCode: r.building_code as string,
       name: r.name as string,
+      siteId: r.mg2030_site.id,
       siteCode: r.mg2030_site.site_code,
       siteName: r.mg2030_site.name,
       subproject: r.mg2030_site.subproject,
@@ -174,6 +192,7 @@ export interface ContractRow {
   procedure: string;
   selectionMethod: string | null;
   afdReview: string;
+  scenarioId: string;
   scenarioCode: string;
   estimatedAmount: number | null;
   contractedAmount: number | null;
@@ -195,7 +214,7 @@ export async function listContracts(scenarioCode?: string): Promise<ContractRow[
        procedure, selection_method, afd_review, estimated_amount_eur,
        contracted_amount_eur, contractor, spn_publication_date, bid_opening_date,
        signature_date, completion_date, source,
-       mg2030_schedule_scenario!inner ( code ),
+       mg2030_schedule_scenario!inner ( id, code ),
        mg2030_lot ( count )`,
     )
     .is("archived_at", null)
@@ -208,7 +227,7 @@ export async function listContracts(scenarioCode?: string): Promise<ContractRow[
 
   return (data ?? []).map((row) => {
     const r = row as unknown as Record<string, unknown> & {
-      mg2030_schedule_scenario: { code: string };
+      mg2030_schedule_scenario: { id: string; code: string };
       mg2030_lot: { count: number }[];
     };
     return {
@@ -221,6 +240,7 @@ export async function listContracts(scenarioCode?: string): Promise<ContractRow[
       procedure: r.procedure as string,
       selectionMethod: (r.selection_method as string) ?? null,
       afdReview: r.afd_review as string,
+      scenarioId: r.mg2030_schedule_scenario.id,
       scenarioCode: r.mg2030_schedule_scenario.code,
       estimatedAmount: (r.estimated_amount_eur as number) ?? null,
       contractedAmount: (r.contracted_amount_eur as number) ?? null,
@@ -242,6 +262,7 @@ export interface LotRow {
   lotCode: string;
   lotNumber: number;
   name: string;
+  contractId: string;
   contractCode: string;
   contractName: string;
   amountMin: number | null;
@@ -260,7 +281,7 @@ export async function listLots(contractCode?: string): Promise<LotRow[]> {
     .select(
       `id, lot_code, lot_number, name, amount_eur_min, amount_eur_max,
        min_turnover_eur_min, min_turnover_eur_max, contractor, source,
-       mg2030_contract!inner ( contract_code, name ),
+       mg2030_contract!inner ( id, contract_code, name ),
        mg2030_lot_building ( count )`,
     )
     .is("archived_at", null)
@@ -273,7 +294,7 @@ export async function listLots(contractCode?: string): Promise<LotRow[]> {
 
   return (data ?? []).map((row) => {
     const r = row as unknown as Record<string, unknown> & {
-      mg2030_contract: { contract_code: string; name: string };
+      mg2030_contract: { id: string; contract_code: string; name: string };
       mg2030_lot_building: { count: number }[];
     };
     return {
@@ -281,6 +302,7 @@ export async function listLots(contractCode?: string): Promise<LotRow[]> {
       lotCode: r.lot_code as string,
       lotNumber: r.lot_number as number,
       name: r.name as string,
+      contractId: r.mg2030_contract.id,
       contractCode: r.mg2030_contract.contract_code,
       contractName: r.mg2030_contract.name,
       amountMin: (r.amount_eur_min as number) ?? null,

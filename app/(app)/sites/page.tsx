@@ -5,6 +5,7 @@ import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Chip } from "@/components/ui/badge";
 import { SourceNote } from "@/components/referential/source-note";
+import { AddSiteButton, SiteRowEdit } from "@/components/referential/site-row-edit";
 
 /**
  * Liste des sites.
@@ -29,11 +30,16 @@ export default async function SitesPage({
       <Section
         title={t("sites.title")}
         description={t("sites.intro")}
-        actions={<SubprojectFilter current={subproject} labels={{
-          all: t("common.all"),
-          athletes_village: t("sites.athletes_village"),
-          training_venues: t("sites.training_venues"),
-        }} />}
+        actions={
+          <div className="flex items-center gap-3">
+            <SubprojectFilter current={subproject} labels={{
+              all: t("common.all"),
+              athletes_village: t("sites.athletes_village"),
+              training_venues: t("sites.training_venues"),
+            }} />
+            <AddSiteButton />
+          </div>
+        }
       >
         <Card className="overflow-hidden">
           <Table>
@@ -45,9 +51,10 @@ export default async function SitesPage({
               <Th align="right">{t("sites.area")}</Th>
               <Th align="right">{t("sites.built")}</Th>
               <Th>{t("sites.address")}</Th>
+              <Th align="right">{t("common.edit")}</Th>
             </Thead>
             <tbody>
-              {sites.length === 0 && <EmptyRow colSpan={7}>{t("common.empty")}</EmptyRow>}
+              {sites.length === 0 && <EmptyRow colSpan={8}>{t("common.empty")}</EmptyRow>}
               {sites.map((s) => (
                 <Tr key={s.id}>
                   <Td className="font-medium">{s.siteCode}</Td>
@@ -74,6 +81,24 @@ export default async function SitesPage({
                   {/* Une donnée absente s'affiche comme absente, jamais comme
                       une chaîne vide qui se lirait comme « rien à dire ». */}
                   <Td className="text-[var(--text-muted)]">{s.address ?? "—"}</Td>
+                  <Td align="right">
+                    <SiteRowEdit
+                      site={{
+                        id: s.id,
+                        siteCode: s.siteCode,
+                        subproject: s.subproject,
+                        name: s.name,
+                        beneficiaryInstitution: s.beneficiary,
+                        siteType: s.siteType,
+                        address: s.address,
+                        latitude: s.latitude,
+                        longitude: s.longitude,
+                        grossAreaSqm: s.grossArea,
+                        yearOfConstruction: s.yearOfConstruction,
+                        occupancyStatus: s.occupancyStatus,
+                      }}
+                    />
+                  </Td>
                 </Tr>
               ))}
             </tbody>

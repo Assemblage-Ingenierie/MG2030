@@ -52,31 +52,41 @@ Tableau de bord Supabase → **Authentication → Users → Add user**.
 - Choisir un mot de passe fort, et le transmettre **hors ligne** à l'intéressé,
   qui le changera à la première connexion.
 
-Relever l'**UID** du compte créé.
-
 ### Étape 2 — créer la ligne MG2030 (SQL Editor)
 
 C'est cette ligne, et elle seule, qui donne accès à MG2030.
+
+**Ne remplacez rien à la main.** La requête retrouve le compte par son
+**adresse e-mail** — celle saisie à l'étape 1, copiée telle quelle à la place
+des deux `'prenom.nom@exemple.org'` ci-dessous. Aucun UID à relever ni à coller :
+c'est justement la manipulation qui échoue silencieusement si l'un des deux
+copier-coller diverge, ou bruyamment (`invalid input syntax for type uuid`) si
+le texte d'exemple est laissé en place par erreur.
 
 ```sql
 insert into mg2030_app_user
   (id, email, full_name, job_title, organisation_id, functional_role_id, is_active, approved_at)
 select
-  '<UID-RELEVE-A-L-ETAPE-1>'::uuid,
-  'prenom.nom@exemple.org',
+  u.id,
+  u.email,
   'Prénom Nom',
   'Project Coordinator',
   r.organisation_id,
   r.id,
   true,
   now()
-from mg2030_functional_role r
-where r.code = 'ADMIN';   -- ADMIN porte is_platform_admin = true
+from auth.users u
+join mg2030_functional_role r on r.code = 'ADMIN'   -- ADMIN porte is_platform_admin = true
+where u.email = 'prenom.nom@exemple.org';
 
 -- Périmètre : l'administrateur voit tout le projet.
 insert into mg2030_app_user_scope (user_id, kind)
-values ('<UID-RELEVE-A-L-ETAPE-1>'::uuid, 'global');
+select u.id, 'global' from auth.users u where u.email = 'prenom.nom@exemple.org';
 ```
+
+Si la première requête insère 0 ligne, la cause la plus probable est une
+adresse mal recopiée : vérifier avec
+`select id, email from auth.users where email ilike '%prenom%';`.
 
 ### Étape 3 — vérifier
 

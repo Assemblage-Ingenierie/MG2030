@@ -1,10 +1,17 @@
 import { getI18n } from "@/lib/i18n/server";
 import { listContracts, listLots } from "@/lib/queries/referential";
+import { listScenarios } from "@/lib/queries/schedule";
 import { formatAmount, formatAmountRange, formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Chip } from "@/components/ui/badge";
 import { SourceNote } from "@/components/referential/source-note";
+import {
+  AddContractButton,
+  AddLotButton,
+  ContractRowEdit,
+  LotRowEdit,
+} from "@/components/referential/contract-row-edit";
 
 /**
  * Marchés et lots.
@@ -17,20 +24,28 @@ import { SourceNote } from "@/components/referential/source-note";
  */
 export default async function ContractsPage() {
   const { t, locale } = await getI18n();
-  const [contracts, lots] = await Promise.all([listContracts(), listLots()]);
-
-  const lotsByContract = new Map<string, typeof lots>();
-  for (const lot of lots) {
-    const list = lotsByContract.get(lot.contractCode);
-    if (list) list.push(lot);
-    else lotsByContract.set(lot.contractCode, [lot]);
-  }
+  const [contracts, lots, scenarios] = await Promise.all([
+    listContracts(),
+    listLots(),
+    listScenarios(),
+  ]);
 
   const unassignedLots = lots.filter((l) => l.buildingCount === 0);
 
+  const scenarioOptions = scenarios.map((s) => ({ id: s.id, code: s.code, name: s.name }));
+  const contractOptions = contracts.map((c) => ({
+    id: c.id,
+    contractCode: c.contractCode,
+    name: c.name,
+  }));
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <Section title={t("contracts.title")} description={t("contracts.intro")}>
+      <Section
+        title={t("contracts.title")}
+        description={t("contracts.intro")}
+        actions={<AddContractButton scenarios={scenarioOptions} />}
+      >
         <Card className="overflow-hidden">
           <Table>
             <Thead>
@@ -44,9 +59,10 @@ export default async function ContractsPage() {
               <Th align="right">{t("contracts.opening")}</Th>
               <Th align="right">{t("contracts.signature")}</Th>
               <Th align="right">{t("contracts.completion")}</Th>
+              <Th align="right">{t("common.edit")}</Th>
             </Thead>
             <tbody>
-              {contracts.length === 0 && <EmptyRow colSpan={10}>{t("common.empty")}</EmptyRow>}
+              {contracts.length === 0 && <EmptyRow colSpan={11}>{t("common.empty")}</EmptyRow>}
               {contracts.map((c) => {
                 // Gré à gré : l'absence d'avis est une conséquence de la
                 // procédure, pas un trou dans les données.
@@ -106,6 +122,45 @@ export default async function ContractsPage() {
                     <Td align="right" className="tabular-nums">
                       {formatPlanDate(c.completionDate)}
                     </Td>
+                    <Td align="right">
+                      <ContractRowEdit
+                        contract={{
+                          id: c.id,
+                          contractCode: c.contractCode,
+                          contractNumber: c.contractNumber,
+                          name: c.name,
+                          contractType: c.contractType as
+                            | "C"
+                            | "W"
+                            | "G"
+                            | "NC"
+                            | "DB",
+                          competitionType: c.competitionType as "NPC" | "IPC" | null,
+                          procedure: c.procedure as
+                            | "REOI"
+                            | "IB"
+                            | "PQL+IB"
+                            | "RQ"
+                            | "DC",
+                          selectionMethod: c.selectionMethod as
+                            | "QCBS"
+                            | "QBS"
+                            | "FBS"
+                            | "LCS"
+                            | "lowest_evaluated_compliant_bid"
+                            | null,
+                          afdReview: c.afdReview as "prior" | "post",
+                          scenarioId: c.scenarioId,
+                          estimatedAmountEur: c.estimatedAmount,
+                          contractor: c.contractor,
+                          spnPublicationDate: c.spnPublicationDate,
+                          bidOpeningDate: c.bidOpeningDate,
+                          signatureDate: c.signatureDate,
+                          completionDate: c.completionDate,
+                        }}
+                        scenarios={scenarioOptions}
+                      />
+                    </Td>
                   </Tr>
                 );
               })}
@@ -117,7 +172,11 @@ export default async function ContractsPage() {
         <SourceNote>{t("contracts.estimateNote")}</SourceNote>
       </Section>
 
-      <Section title={t("lots.title")} description={t("lots.intro")}>
+      <Section
+        title={t("lots.title")}
+        description={t("lots.intro")}
+        actions={<AddLotButton contracts={contractOptions} />}
+      >
         <Card className="overflow-hidden">
           <Table>
             <Thead>
@@ -128,9 +187,10 @@ export default async function ContractsPage() {
               <Th align="right">{t("lots.turnover")}</Th>
               <Th align="right">{t("lots.buildings")}</Th>
               <Th>{t("lots.contractor")}</Th>
+              <Th align="right">{t("common.edit")}</Th>
             </Thead>
             <tbody>
-              {lots.length === 0 && <EmptyRow colSpan={7}>{t("common.empty")}</EmptyRow>}
+              {lots.length === 0 && <EmptyRow colSpan={8}>{t("common.empty")}</EmptyRow>}
               {lots.map((l) => (
                 <Tr key={l.id}>
                   <Td className="font-medium whitespace-nowrap">{l.lotCode}</Td>
@@ -159,6 +219,23 @@ export default async function ContractsPage() {
                     )}
                   </Td>
                   <Td className="text-[var(--text-muted)]">{l.contractor ?? "—"}</Td>
+                  <Td align="right">
+                    <LotRowEdit
+                      lot={{
+                        id: l.id,
+                        lotCode: l.lotCode,
+                        contractId: l.contractId,
+                        lotNumber: l.lotNumber,
+                        name: l.name,
+                        amountEurMin: l.amountMin,
+                        amountEurMax: l.amountMax,
+                        minTurnoverEurMin: l.turnoverMin,
+                        minTurnoverEurMax: l.turnoverMax,
+                        contractor: l.contractor,
+                      }}
+                      contracts={contractOptions}
+                    />
+                  </Td>
                 </Tr>
               ))}
             </tbody>

@@ -207,7 +207,14 @@
     "coordinates": "Coordinates",
     "athletes_village": "Athletes' Village",
     "training_venues": "Training venues",
-    "missingGeo": "Addresses and GPS coordinates are absent from every source document. They are not omitted here — they do not exist yet (GAPS 1 and 2), and the map module needs them."
+    "missingGeo": "Addresses and GPS coordinates are absent from every source document. They are not omitted here — they do not exist yet (GAPS 1 and 2), and the map module needs them.",
+    "editTitle": "Edit site",
+    "createTitle": "Add a site",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "error_emptyName": "Name is required.",
+    "error_missingFields": "Code and name are required.",
+    "error_latLonTogether": "Latitude and longitude go together — fill both or neither."
   },
   "buildings": {
     "title": "Buildings",
@@ -231,7 +238,12 @@
     "new_construction": "New construction",
     "zoneNote": "Zone applies to the Student Center only. The 13 training venue halls have none.",
     "areaNote": "Where net and gross areas differ markedly, both come from the sources and neither has been arbitrated (GAPS 17).",
-    "totalEstimate": "Total works estimate"
+    "totalEstimate": "Total works estimate",
+    "editTitle": "Edit building",
+    "createTitle": "Add a building",
+    "constructionType": "Construction type",
+    "error_emptyName": "Name is required.",
+    "error_missingFields": "Code, name and site are required."
   },
   "contracts": {
     "title": "Contracts",
@@ -254,7 +266,16 @@
     "lots": "Lots",
     "notApplicableDirect": "Not applicable — direct contracting, so no notice is published",
     "numberNote": "The XX suffix is not yet assigned, so contract numbers are not unique. The functional key is the contract code (GAPS 19).",
-    "estimateNote": "8 of the 9 contracts are marked TBD in the procurement plan (GAPS 5)."
+    "estimateNote": "8 of the 9 contracts are marked TBD in the procurement plan (GAPS 5).",
+    "editTitle": "Edit contract",
+    "createTitle": "Add a contract",
+    "numberFormatHint": "Format: MYS/MG2030/{C|W|G|NC|DB}/{year}/XX. XX is accepted literally — the real suffix is not yet assigned.",
+    "estimateHint": "Euros, excluding tax.",
+    "error_emptyName": "Name is required.",
+    "error_missingFields": "Code is required.",
+    "error_invalidNumberFormat": "Contract number must match MYS/MG2030/{C|W|G|NC|DB}/{year}/XX (brief §7).",
+    "reviewPrior": "Prior",
+    "reviewPost": "Post"
   },
   "lots": {
     "title": "Lots",
@@ -268,7 +289,12 @@
     "contractor": "Contractor",
     "buildings": "Buildings",
     "unassigned": "Buildings not yet assigned",
-    "unassignedNote": "The split of the 13 training venue halls across the 4 works lots is not settled (GAPS 3). An unknown assignment is an absence of data, not an empty lot."
+    "unassignedNote": "The split of the 13 training venue halls across the 4 works lots is not settled (GAPS 3). An unknown assignment is an absence of data, not an empty lot.",
+    "editTitle": "Edit lot",
+    "createTitle": "Add a lot",
+    "error_emptyName": "Name is required.",
+    "error_missingFields": "Code and contract are required.",
+    "error_minAboveMax": "The minimum amount cannot be greater than the maximum."
   },
   "schedule": {
     "title": "Schedule",
