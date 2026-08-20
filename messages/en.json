@@ -359,7 +359,13 @@
     "unknownPredecessor": "Unknown WBS code",
     "selfPredecessor": "A task cannot be its own predecessor.",
     "cycle": "Dependency cycle refused",
-    "hierarchyCycle": "Hierarchy cycle refused"
+    "hierarchyCycle": "Hierarchy cycle refused",
+    "site": "Site",
+    "siteHint": "Empty is correct: the source schedule is written at sub-project level — « Training venues works » covers all 13 halls at once. Attach a site only once the task is broken down hall by hall.",
+    "allSites": "All sites of the sub-project",
+    "sub_training_venues": "Training venues",
+    "sub_athletes_village": "Athletes' village",
+    "filteredNote": "Filtered view: {shown} of {total} rows. Parent rows are kept so the indentation still reads. A dependency with one end filtered out draws no arrow."
   },
   "gantt": {
     "title": "Gantt",
@@ -380,7 +386,9 @@
     "noTasks": "No task to display for this scenario.",
     "filterAll": "Whole project",
     "filterContract": "Filter by contract",
-    "filterSite": "Filter by site"
+    "filterSite": "Site",
+    "filterScope": "Scope",
+    "filterWholeProject": "Whole project"
   },
   "deliverables": {
     "title": "Deliverables",

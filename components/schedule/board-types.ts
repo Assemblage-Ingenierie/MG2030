@@ -7,6 +7,19 @@
 // seule liste, une seule constante de hauteur.
 // ============================================================
 
+import { filterKeepingAncestors } from "@/lib/schedule/tree";
+
+/**
+ * Filtre le plan en conservant les ascendants des lignes retenues.
+ * L'implémentation est pure et testée dans lib/schedule/tree.ts.
+ */
+export function filterTree(
+  tasks: BoardTask[],
+  keep: (task: BoardTask) => boolean,
+): BoardTask[] {
+  return filterKeepingAncestors(tasks, keep);
+}
+
 export interface BoardTask {
   id: string;
   wbsCode: string;
@@ -26,6 +39,11 @@ export interface BoardTask {
   ownerId: string | null;
   ownerName: string | null;
   contractCode: string | null;
+  /** Sous-projet porté par la tâche. Nul pour les jalons transverses. */
+  subproject: "athletes_village" | "training_venues" | null;
+  /** Site précis, quand la PIU a affiné hall par hall. */
+  siteId: string | null;
+  siteCode: string | null;
   /** Codes WBS des prédécesseurs, tels qu'ils s'affichent et se saisissent. */
   predecessorCodes: string[];
   /** Ce qui détermine la date de début — sert à l'expliquer sans la déplier. */
@@ -40,6 +58,13 @@ export interface PersonOption {
   roleCode: string;
 }
 
+export interface SiteChoice {
+  id: string;
+  siteCode: string;
+  name: string;
+  subproject: "athletes_village" | "training_venues";
+}
+
 /** Colonnes de la grille, dans l'ordre de tabulation. */
 export type BoardColumn =
   | "activity"
@@ -47,6 +72,7 @@ export type BoardColumn =
   | "start"
   | "owner"
   | "predecessors"
+  | "site"
   | "progress";
 
 export const BOARD_COLUMNS: BoardColumn[] = [
@@ -55,6 +81,7 @@ export const BOARD_COLUMNS: BoardColumn[] = [
   "start",
   "owner",
   "predecessors",
+  "site",
   "progress",
 ];
 
@@ -66,8 +93,9 @@ export const COLUMN_WIDTH: Record<BoardColumn | "wbs" | "end", number> = {
   start: 92,
   end: 92,
   owner: 130,
-  predecessors: 108,
-  progress: 64,
+  predecessors: 100,
+  site: 104,
+  progress: 62,
 };
 
 export const GRID_WIDTH =
@@ -78,6 +106,7 @@ export const GRID_WIDTH =
   COLUMN_WIDTH.end +
   COLUMN_WIDTH.owner +
   COLUMN_WIDTH.predecessors +
+  COLUMN_WIDTH.site +
   COLUMN_WIDTH.progress;
 
 /**
@@ -90,9 +119,13 @@ export const GRID_WIDTH =
  */
 export function isCellEditable(task: BoardTask, column: BoardColumn): boolean {
   if (task.type === "group_header") return column === "activity";
-  if (task.type === "summary") return column === "activity" || column === "owner";
+  if (task.type === "summary") {
+    return column === "activity" || column === "owner" || column === "site";
+  }
   if (task.type === "milestone") {
-    return column === "activity" || column === "start" || column === "owner";
+    return (
+      column === "activity" || column === "start" || column === "owner" || column === "site"
+    );
   }
   return true;
 }

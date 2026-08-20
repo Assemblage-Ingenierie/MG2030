@@ -1,13 +1,14 @@
 import { getI18n } from "@/lib/i18n/server";
 import { listScenarios, loadSchedule } from "@/lib/queries/schedule";
 import { listPeople } from "@/lib/queries/people";
+import { listSiteOptions } from "@/lib/queries/referential";
 import { Card, Section } from "@/components/ui/card";
 import { ScenarioSwitch } from "@/components/schedule/scenario-switch";
 import { UnschedulableNotice } from "@/components/schedule/unschedulable-notice";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { ScaleSwitch } from "@/components/schedule/scale-switch";
 import { SourceNote } from "@/components/referential/source-note";
-import type { BoardTask } from "@/components/schedule/board-types";
+import { filterTree, type BoardTask } from "@/components/schedule/board-types";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 
 const SCALES: ScaleUnit[] = ["day", "week", "month", "quarter"];
@@ -23,7 +24,13 @@ const SCALES: ScaleUnit[] = ["day", "week", "month", "quarter"];
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ scenario?: string; scale?: string; contract?: string }>;
+  searchParams: Promise<{
+    scenario?: string;
+    scale?: string;
+    contract?: string;
+    site?: string;
+    subproject?: string;
+  }>;
 }) {
   const { t, locale } = await getI18n();
   const params = await searchParams;
@@ -58,9 +65,10 @@ export default async function SchedulePage({
 
   // `scenarios` est passé au chargeur : sans cela il les relisait, doublant la
   // requête d'agrégat sur les tâches à chaque affichage.
-  const [{ tasks, dependencies, constraints, scenario }, people] = await Promise.all([
+  const [{ tasks, dependencies, constraints, scenario }, people, sites] = await Promise.all([
     loadSchedule(selected.code, scenarios),
     listPeople(),
+    listSiteOptions(),
   ]);
 
   const scale: ScaleUnit = SCALES.includes(params.scale as ScaleUnit)
@@ -79,13 +87,7 @@ export default async function SchedulePage({
     else predecessorCodes.set(dep.successorId, [code]);
   }
 
-  // Filtre par marché : le calendrier de passation n'est pas un module séparé,
-  // c'est une VUE FILTRÉE du même planning (brief §7).
-  const visible = params.contract
-    ? tasks.filter((task) => task.contractCode === params.contract)
-    : tasks;
-
-  const board: BoardTask[] = visible.map((task) => ({
+  const all: BoardTask[] = tasks.map((task) => ({
     id: task.id,
     wbsCode: task.wbsCode,
     activity: task.activity,
@@ -101,11 +103,44 @@ export default async function SchedulePage({
     ownerId: task.ownerId,
     ownerName: task.ownerName,
     contractCode: task.contractCode,
+    subproject: task.subproject,
+    siteId: task.siteId,
+    siteCode: task.siteCode,
     predecessorCodes: (predecessorCodes.get(task.id) ?? []).sort(),
     driver: task.computed?.driver ?? null,
     drivingPredecessor: task.computed?.drivingPredecessor ?? null,
     drifted: task.drifted,
   }));
+
+  // ── Vues filtrées (brief §9.4) ───────────────────────────────────────────
+  //
+  // Le calendrier de passation n'est pas un module séparé : c'est une VUE
+  // FILTRÉE du même planning (brief §7). D'où trois filtres sur un seul écran.
+  //
+  // `filterTree` conserve les ASCENDANTS des lignes retenues. Sans cela, un
+  // filtre laissait des enfants indentés sous un parent disparu, et faisait
+  // s'évanouir les récapitulatifs — qui ne portent ni marché ni site alors
+  // qu'ils donnent le total. C'était un défaut du filtre par marché.
+  const selectedSite = params.site
+    ? sites.find((s) => s.siteCode === params.site) ?? null
+    : null;
+
+  const board = filterTree(all, (task) => {
+    if (params.contract && task.contractCode !== params.contract) return false;
+
+    // Un site précis : les tâches explicitement rattachées à ce hall, UNION
+    // celles de son sous-projet qui n'en désignent aucun. Car « Training
+    // venues works » couvre les 13 halls à la fois — l'exclure de la vue d'un
+    // hall cacherait le travail qui s'y déroule vraiment.
+    if (selectedSite) {
+      const attached = task.siteId !== null;
+      if (attached) return task.siteCode === selectedSite.siteCode;
+      return task.subproject === selectedSite.subproject;
+    }
+
+    if (params.subproject && task.subproject !== params.subproject) return false;
+    return true;
+  });
 
   const visibleIds = new Set(board.map((task) => task.id));
   // Une flèche dont une extrémité est filtrée n'a nulle part où aboutir.
@@ -115,6 +150,12 @@ export default async function SchedulePage({
 
   const contractCodes = [
     ...new Set(tasks.map((task) => task.contractCode).filter((c): c is string => Boolean(c))),
+  ].sort();
+
+  // Sous-projets réellement présents dans ce scénario : on ne propose pas un
+  // filtre qui ne retiendrait rien.
+  const subprojects = [
+    ...new Set(tasks.map((task) => task.subproject).filter((s): s is NonNullable<typeof s> => Boolean(s))),
   ].sort();
 
   const drifted = board.filter((task) => task.drifted).length;
@@ -148,12 +189,17 @@ export default async function SchedulePage({
             scales={SCALES}
             contractCodes={contractCodes}
             currentContract={params.contract ?? null}
+            sites={sites}
+            currentSite={params.site ?? null}
+            subprojects={subprojects}
+            currentSubproject={params.subproject ?? null}
             scenarioCode={selected.code}
           />
           <ScheduleBoard
             tasks={board}
             dependencies={links}
             people={people}
+            sites={sites}
             scenarioCode={selected.code}
             planId={planId}
             scale={scale}
@@ -164,6 +210,14 @@ export default async function SchedulePage({
           />
         </Card>
 
+        {board.length < all.length && (
+          <SourceNote>
+            {t("schedule.filteredNote", {
+              shown: String(board.length),
+              total: String(all.length),
+            })}
+          </SourceNote>
+        )}
         {drifted > 0 && <SourceNote>{t("schedule.driftNote")}</SourceNote>}
         {unassigned > 0 && (
           <SourceNote>{t("schedule.unassignedNote", { count: String(unassigned) })}</SourceNote>

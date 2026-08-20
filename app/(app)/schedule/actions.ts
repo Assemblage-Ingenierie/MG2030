@@ -194,6 +194,30 @@ export async function setTaskAssignment(
   return { ok: true };
 }
 
+/**
+ * Rattache une tâche à un site précis.
+ *
+ * Nul au chargement sur les 27 tâches, et c'est CORRECT : le planning source
+ * est au niveau sous-projet — « Training venues works » couvre les 13 halls à
+ * la fois. Renseigner un site ici n'a de sens que si la PIU décompose la
+ * tâche hall par hall. La colonne existe donc pour cet affinement, pas pour
+ * être remplie d'office.
+ */
+export async function setTaskSite(
+  taskId: string,
+  siteId: string | null,
+): Promise<WriteResult> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mg2030_task")
+    .update({ site_id: siteId })
+    .eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
 // ── Précédences ─────────────────────────────────────────────────────────────
 
 /**

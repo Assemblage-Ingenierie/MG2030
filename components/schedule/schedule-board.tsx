@@ -35,6 +35,7 @@ import {
   setTaskDuration,
   setTaskPredecessors,
   setTaskProgress,
+  setTaskSite,
   setTaskStartAnchor,
   type WriteResult,
 } from "@/app/(app)/schedule/actions";
@@ -46,6 +47,7 @@ import {
   type BoardColumn,
   type BoardTask,
   type PersonOption,
+  type SiteChoice,
 } from "./board-types";
 import { BoardCell, type CommitDirection } from "./board-cell";
 import { GanttPane, HEAD_H } from "./gantt-pane";
@@ -60,6 +62,7 @@ export function ScheduleBoard({
   tasks,
   dependencies,
   people,
+  sites,
   scenarioCode,
   planId,
   scale,
@@ -71,6 +74,7 @@ export function ScheduleBoard({
   tasks: BoardTask[];
   dependencies: { predecessorId: string; successorId: string }[];
   people: PersonOption[];
+  sites: SiteChoice[];
   scenarioCode: string;
   planId: string;
   scale: ScaleUnit;
@@ -228,6 +232,17 @@ export function ScheduleBoard({
     [handle, setSavingId],
   );
 
+  const attachSite = useCallback(
+    (task: BoardTask, siteId: string | null) => {
+      startTransition(async () => {
+        setSavingId(task.id);
+        handle(await setTaskSite(task.id, siteId));
+        setActive(null);
+      });
+    },
+    [handle, setSavingId],
+  );
+
   const remove = useCallback(
     (task: BoardTask) => {
       startTransition(async () => {
@@ -284,10 +299,12 @@ export function ScheduleBoard({
               active={active}
               editable={editable}
               people={people}
+              sites={sites}
               saving={savingId === task.id}
               onActivate={setActive}
               onCommit={commit}
               onAssign={assign}
+              onAttachSite={attachSite}
               onDelete={remove}
               t={t}
             />
@@ -350,6 +367,7 @@ function GridHeader({ t }: { t: (k: string) => string }) {
       <div className={cn(cell, "justify-end")} style={{ width: COLUMN_WIDTH.end }}>{t("schedule.end")}</div>
       <div className={cell} style={{ width: COLUMN_WIDTH.owner }}>{t("schedule.owner")}</div>
       <div className={cell} style={{ width: COLUMN_WIDTH.predecessors }}>{t("schedule.predecessors")}</div>
+      <div className={cell} style={{ width: COLUMN_WIDTH.site }}>{t("schedule.site")}</div>
       <div className={cn(cell, "justify-end")} style={{ width: COLUMN_WIDTH.progress }}>{t("schedule.progress")}</div>
     </div>
   );
@@ -363,10 +381,12 @@ function GridRow({
   active,
   editable,
   people,
+  sites,
   saving,
   onActivate,
   onCommit,
   onAssign,
+  onAttachSite,
   onDelete,
   t,
 }: {
@@ -375,10 +395,12 @@ function GridRow({
   active: Cell | null;
   editable: boolean;
   people: PersonOption[];
+  sites: SiteChoice[];
   saving: boolean;
   onActivate: (cell: Cell) => void;
   onCommit: (row: number, column: BoardColumn, value: string | null, direction: CommitDirection) => void;
   onAssign: (task: BoardTask, userId: string | null) => void;
+  onAttachSite: (task: BoardTask, siteId: string | null) => void;
   onDelete: (task: BoardTask) => void;
   t: (key: string, values?: Record<string, string>) => string;
 }) {
@@ -539,6 +561,50 @@ function GridRow({
         }
         onActivate={() => onActivate({ row, column: "predecessors" })}
         onCommit={(v, d) => onCommit(row, "predecessors", v, d)}
+      />
+
+      {/* Site — VIDE au chargement, et c'est correct : le planning source est
+          au niveau sous-projet. On n'offre que les sites du sous-projet de la
+          tâche, sinon on proposerait de rattacher un hall à l'autre projet. */}
+      <BoardCell
+        width={COLUMN_WIDTH.site}
+        editable={cellEditable("site")}
+        active={isActive("site")}
+        raw={task.siteId ?? ""}
+        title={task.siteCode === null ? t("schedule.siteHint") : undefined}
+        display={
+          task.siteCode ? (
+            <span className="truncate font-mono text-[11px]">{task.siteCode}</span>
+          ) : (
+            <span className="text-[11px] text-[var(--text-muted)]">
+              {task.subproject ? t(`schedule.sub_${task.subproject}`) : "—"}
+            </span>
+          )
+        }
+        onActivate={() => onActivate({ row, column: "site" })}
+        onCommit={() => onActivate({ row, column: "site" })}
+        renderEditor={({ close }) => (
+          <select
+            autoFocus
+            className="h-full w-full rounded-sm border bg-[var(--surface)] px-1 text-xs outline-none"
+            style={{ borderColor: "var(--focus)" }}
+            value={task.siteId ?? ""}
+            onChange={(e) => onAttachSite(task, e.target.value || null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") close("none");
+            }}
+            onBlur={() => close("none")}
+          >
+            <option value="">{t("schedule.allSites")}</option>
+            {sites
+              .filter((s) => task.subproject === null || s.subproject === task.subproject)
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.siteCode} — {s.name}
+                </option>
+              ))}
+          </select>
+        )}
       />
 
       <div className="flex items-center" style={{ width: COLUMN_WIDTH.progress }}>

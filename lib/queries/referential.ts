@@ -46,12 +46,23 @@ export interface SiteRow {
   source: string | null;
 }
 
+export interface SiteOption {
+  id: string;
+  siteCode: string;
+  name: string;
+  /**
+   * Indispensable au filtre du plan de charge : le planning est au niveau
+   * sous-projet, donc filtrer par site se ramène à son sous-projet.
+   */
+  subproject: "athletes_village" | "training_venues";
+}
+
 /** Sites en options légères, pour les sélecteurs de formulaire. */
-export async function listSiteOptions(): Promise<{ id: string; siteCode: string; name: string }[]> {
+export async function listSiteOptions(): Promise<SiteOption[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("mg2030_site")
-    .select("id, site_code, name")
+    .select("id, site_code, name, subproject")
     .is("archived_at", null)
     .order("site_code");
   if (error) throw new Error(`Lecture des sites : ${error.message}`);
@@ -59,6 +70,7 @@ export async function listSiteOptions(): Promise<{ id: string; siteCode: string;
     id: r.id as string,
     siteCode: r.site_code as string,
     name: r.name as string,
+    subproject: r.subproject as SiteOption["subproject"],
   }));
 }
 

@@ -68,6 +68,14 @@ export interface TaskRow extends TaskInput {
   planCode: string;
   scenarioCode: string;
   contractCode: string | null;
+  /**
+   * Sous-projet : la dimension que le planning source porte réellement. Nul
+   * pour les jalons transverses (MS.1, MS.2).
+   */
+  subproject: "athletes_village" | "training_venues" | null;
+  /** Site précis, quand la PIU a affiné hall par hall. Nul au chargement. */
+  siteId: string | null;
+  siteCode: string | null;
   storedStart: string | null;
   storedEnd: string | null;
   progressPct: number | null;
@@ -118,10 +126,11 @@ export async function loadSchedule(
     .select(
       `id, wbs_code, task_type, parent_id, duration_days, start_date_input,
        start_date, end_date, group_label, activity, sort_order, progress_pct,
-       owner_id, validator_id, plan_id,
+       owner_id, validator_id, plan_id, subproject, site_id,
        mg2030_plan!inner ( plan_code ),
        mg2030_schedule_scenario!inner ( code ),
        mg2030_contract ( contract_code ),
+       mg2030_site ( site_code, name ),
        owner:mg2030_app_user!mg2030_task_owner_id_fkey ( full_name )`,
     )
     .eq("mg2030_schedule_scenario.code", scenarioCode)
@@ -206,6 +215,9 @@ export async function loadSchedule(
       planCode: (r.mg2030_plan as { plan_code: string }).plan_code,
       scenarioCode: (r.mg2030_schedule_scenario as { code: string }).code,
       contractCode: (r.mg2030_contract as { contract_code: string } | null)?.contract_code ?? null,
+      subproject: (r.subproject as TaskRow["subproject"]) ?? null,
+      siteId: (r.site_id as string) ?? null,
+      siteCode: (r.mg2030_site as { site_code: string } | null)?.site_code ?? null,
       storedStart,
       storedEnd,
       progressPct: (r.progress_pct as number) ?? null,
