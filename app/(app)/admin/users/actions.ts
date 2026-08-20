@@ -42,6 +42,41 @@ export async function setUserActive(userId: string, active: boolean): Promise<vo
   revalidatePath("/admin/users");
 }
 
+/**
+ * Affecte le role fonctionnel.
+ *
+ * Deuxieme dimension des droits (brief §8) : l'organisation dit en lecture ou
+ * en contribution, le role dit QUOI. Il ne se reglait que par SQL — un ecran
+ * d'administration des comptes qui affiche le role sans permettre de le
+ * changer n'administre rien.
+ *
+ * Le role appartient a une organisation. On refuse un role d'une autre
+ * organisation que celle du compte : la base l'accepterait, mais l'utilisateur
+ * heriterait de permissions concues pour un autre corps de metier.
+ */
+export async function setUserRole(userId: string, roleId: string): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const [{ data: user }, { data: role }] = await Promise.all([
+    supabase.from("mg2030_app_user").select("organisation_id").eq("id", userId).single(),
+    supabase.from("mg2030_functional_role").select("organisation_id").eq("id", roleId).single(),
+  ]);
+
+  if (!user || !role) throw new Error("Compte ou role introuvable.");
+  if (user.organisation_id !== role.organisation_id) {
+    throw new Error("Ce role appartient a une autre organisation.");
+  }
+
+  const { error } = await supabase
+    .from("mg2030_app_user")
+    .update({ functional_role_id: roleId })
+    .eq("id", userId);
+  if (error) throw new Error(`Role : ${error.message}`);
+
+  revalidatePath("/admin/users");
+}
+
 export async function setUserScope(
   userId: string,
   kind: "global" | "subproject" | "site" | "lot",

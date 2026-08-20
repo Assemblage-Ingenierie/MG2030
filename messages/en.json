@@ -198,7 +198,17 @@
     "activate": "Activate",
     "deactivate": "Deactivate",
     "sharedAuthWarning": "Warning — the authentication pool is shared with another application on the same Supabase project. Being signed in does not grant access to MG2030: only a row in this table does.",
-    "cannotDeactivateSelf": "You cannot deactivate your own account."
+    "cannotDeactivateSelf": "You cannot deactivate your own account.",
+    "editAccess": "Access",
+    "accessTitle": "Access for {name}",
+    "roleHint": "Only roles of organisation {org} are offered: a role from another organisation would grant permissions designed for a different line of work.",
+    "subprojectScope": "Sub-project",
+    "siteScope": "One site",
+    "lotScope": "One lot",
+    "chooseTarget": "Choose…",
+    "scopeReplacedNote": "The scope is REPLACED, not added to. A user carries one scope, not a collection of forgotten ones.",
+    "error_targetRequired": "Choose what the scope applies to.",
+    "error_writeFailed": "The write was refused."
   },
   "sites": {
     "title": "Sites",

@@ -2,18 +2,24 @@ import { getI18n } from "@/lib/i18n/server";
 import { getCurrentUser } from "@/lib/auth/server";
 import { isPlatformAdmin } from "@/lib/auth/types";
 import { listRoles, listUsers } from "@/lib/queries/users";
+import { listLots, listSiteOptions } from "@/lib/queries/referential";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Badge, Chip } from "@/components/ui/badge";
 import { AlertIcon } from "@/components/ui/icons";
 import { UserRowActions } from "./user-row-actions";
+import { UserAccessEditor, type ScopeKind } from "./user-access-editor";
 
 /**
  * Administration des comptes.
  *
  * Cette page ne CRÉE aucun compte : la création d'identifiants relève de
- * l'administrateur humain, via Supabase Auth (voir docs/ADMIN.md). Elle active,
- * désactive et affecte un périmètre.
+ * l'administrateur humain, via Supabase Auth (voir docs/ADMIN.md).
+ *
+ * Elle règle en revanche les DEUX dimensions de droits qui ne dépendent pas de
+ * l'authentification : le rôle fonctionnel et le périmètre (brief §8). Elles ne
+ * se réglaient jusqu'ici que par SQL — donc, avec une trentaine de comptes à
+ * ouvrir, une trentaine de requêtes écrites à la main.
  */
 export default async function UsersPage() {
   const { t } = await getI18n();
@@ -28,7 +34,21 @@ export default async function UsersPage() {
     );
   }
 
-  const [users, roles] = await Promise.all([listUsers(), listRoles()]);
+  const [users, roles, sites, lots] = await Promise.all([
+    listUsers(),
+    listRoles(),
+    listSiteOptions(),
+    listLots(),
+  ]);
+
+  const roleChoices = roles.map((r) => ({
+    id: r.id,
+    code: r.code,
+    title: r.title,
+    organisationCode: r.organisation.code,
+  }));
+  const siteTargets = sites.map((s) => ({ id: s.id, code: s.siteCode, name: s.name }));
+  const lotTargets = lots.map((l) => ({ id: l.id, code: l.lotCode, name: l.name }));
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -93,11 +113,23 @@ export default async function UsersPage() {
                     </Badge>
                   </Td>
                   <Td align="right">
-                    <UserRowActions
-                      userId={u.id}
-                      isActive={u.isActive}
-                      isSelf={u.id === me!.id}
-                    />
+                    <span className="flex items-center justify-end gap-1">
+                      <UserAccessEditor
+                        userId={u.id}
+                        userName={u.fullName}
+                        organisationCode={u.organisation.code}
+                        currentRoleId={u.role.id}
+                        currentScopeKind={(u.scopes[0]?.kind as ScopeKind) ?? null}
+                        roles={roleChoices}
+                        sites={siteTargets}
+                        lots={lotTargets}
+                      />
+                      <UserRowActions
+                        userId={u.id}
+                        isActive={u.isActive}
+                        isSelf={u.id === me!.id}
+                      />
+                    </span>
                   </Td>
                 </Tr>
               ))}
