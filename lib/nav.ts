@@ -36,7 +36,7 @@ export const NAV: NavGroup[] = [
   {
     labelKey: null,
     items: [
-      { href: "/", labelKey: "nav.dashboard", icon: "dashboard", permission: null, upcoming: true },
+      { href: "/", labelKey: "nav.dashboard", icon: "dashboard", permission: null },
     ],
   },
   {
