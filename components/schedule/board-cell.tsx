@@ -70,7 +70,10 @@ export const BoardCell = memo(function BoardCell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
-  const base = "border-r border-b border-[var(--border)] text-sm";
+  // `shrink-0` est INDISPENSABLE : la ligne est un conteneur flex, et sans lui
+  // une cellule de trop faisait rétrécir toutes les autres — la grille ne
+  // s'alignait alors plus sur son propre en-tête.
+  const base = "shrink-0 border-r border-b border-[var(--border)] text-sm";
 
   if (active && renderEditor) {
     return (

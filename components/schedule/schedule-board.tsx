@@ -106,7 +106,15 @@ export function ScheduleBoard({
   // Les colonnes masquées sont exclues de la NAVIGATION aussi : sans cela, Tab
   // sautait dans une cellule invisible et le focus disparaissait.
   const columns = useMemo(() => visibleColumns(compact), [compact]);
-  const paneWidth = useMemo(() => gridWidth(columns), [columns]);
+
+  // La corbeille partage la cellule d'avancement en jeu complet ; en jeu
+  // réduit elle occupe ses 26 px à part. L'oublier ici faisait rétrécir toutes
+  // les colonnes par débordement flex, et l'en-tête ne s'alignait plus.
+  const actionsWidth = !columns.includes("progress") && editable ? 26 : 0;
+  const paneWidth = useMemo(
+    () => gridWidth(columns) + actionsWidth,
+    [columns, actionsWidth],
+  );
 
   const handle = useCallback(
     (result: WriteResult) => {
@@ -294,7 +302,7 @@ export function ScheduleBoard({
         {/* Volet gauche : la grille. `sticky` le maintient visible quand on
             fait défiler le diagramme horizontalement. */}
         <div className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]" style={{ width: paneWidth }}>
-          <GridHeader t={t} columns={columns} />
+          <GridHeader t={t} columns={columns} actionsWidth={actionsWidth} />
           {tasks.map((task, row) => (
             <GridRow
               key={task.id}
@@ -379,9 +387,11 @@ const RIGHT_ALIGNED = new Set(["duration", "start", "end", "progress"]);
 function GridHeader({
   t,
   columns,
+  actionsWidth,
 }: {
   t: (k: string) => string;
   columns: BoardColumn[];
+  actionsWidth: number;
 }) {
   const cell =
     "flex items-center border-r border-b border-[var(--border)] px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
@@ -397,6 +407,9 @@ function GridHeader({
           {t(`schedule.${column}`)}
         </div>
       ))}
+      {actionsWidth > 0 && (
+        <div className={cell} style={{ width: actionsWidth }} aria-hidden="true" />
+      )}
     </div>
   );
 }
@@ -451,7 +464,7 @@ function GridRow({
     >
       {/* WBS — lecture seule, c'est la clé fonctionnelle */}
       <div
-        className="flex items-center border-r border-b border-[var(--border)] px-2 font-mono text-[11px] text-[var(--text-muted)]"
+        className="flex shrink-0 items-center border-r border-b border-[var(--border)] px-2 font-mono text-[11px] text-[var(--text-muted)]"
         style={{ width: COLUMN_WIDTH.wbs }}
       >
         <span className="truncate">{task.wbsCode}</span>
@@ -534,7 +547,7 @@ function GridRow({
 
       {/* Fin — jamais éditable : c'est début + durée, un résultat. */}
       <div
-        className="flex items-center justify-end border-r border-b border-[var(--border)] px-2 text-sm tabular-nums"
+        className="flex shrink-0 items-center justify-end border-r border-b border-[var(--border)] px-2 text-sm tabular-nums"
         style={{ width: COLUMN_WIDTH.end }}
       >
         {formatPlanDate(task.end)}
@@ -649,8 +662,8 @@ function GridRow({
           corbeille doit rester atteignable même en jeu de colonnes réduit,
           d'où son rattachement à une colonne toujours visible. */}
       <div
-        className="flex items-center"
-        style={{ width: shown("progress") ? COLUMN_WIDTH.progress : 26 }}
+        className="flex shrink-0 items-center"
+        style={{ width: shown("progress") ? COLUMN_WIDTH.progress : editable ? 26 : 0 }}
       >
         {shown("progress") && (
         <BoardCell
