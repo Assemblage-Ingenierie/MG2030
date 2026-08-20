@@ -568,17 +568,15 @@ function GridRow({
         }
         onActivate={() => onActivate({ row, column: "owner" })}
         onCommit={() => onActivate({ row, column: "owner" })}
-        renderEditor={({ close }) => (
+        /* Focus, Échap et sortie sont gérés par le conteneur de la cellule
+           (board-cell.tsx) : les redoubler ici refermait la liste avant qu'on
+           puisse choisir. */
+        renderEditor={() => (
           <select
-            autoFocus
             className="h-full w-full rounded-sm border bg-[var(--surface)] px-1 text-sm outline-none"
             style={{ borderColor: "var(--focus)" }}
             value={task.ownerId ?? ""}
             onChange={(e) => onAssign(task, e.target.value || null)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") close("none");
-            }}
-            onBlur={() => close("none")}
           >
             <option value="">{t("schedule.unassigned")}</option>
             {people.map((p) => (
@@ -633,17 +631,12 @@ function GridRow({
         }
         onActivate={() => onActivate({ row, column: "site" })}
         onCommit={() => onActivate({ row, column: "site" })}
-        renderEditor={({ close }) => (
+        renderEditor={() => (
           <select
-            autoFocus
             className="h-full w-full rounded-sm border bg-[var(--surface)] px-1 text-xs outline-none"
             style={{ borderColor: "var(--focus)" }}
             value={task.siteId ?? ""}
             onChange={(e) => onAttachSite(task, e.target.value || null)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") close("none");
-            }}
-            onBlur={() => close("none")}
           >
             <option value="">{t("schedule.allSites")}</option>
             {sites

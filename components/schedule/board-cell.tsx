@@ -57,13 +57,24 @@ export const BoardCell = memo(function BoardCell({
 }: CellProps) {
   const [draft, setDraft] = useState(raw);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // À l'activation, on repart de la valeur courante et on sélectionne tout :
   // remplacer est le geste le plus fréquent, corriger vient après.
   useEffect(() => {
     if (!active) return;
     setDraft(raw);
-    const frame = requestAnimationFrame(() => inputRef.current?.select());
+    const frame = requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.select();
+        return;
+      }
+      // Éditeur personnalisé : on met le focus sur son premier élément
+      // focalisable, quel qu'il soit.
+      editorRef.current
+        ?.querySelector<HTMLElement>("select, input, button, textarea, [tabindex]")
+        ?.focus();
+    });
     return () => cancelAnimationFrame(frame);
     // `raw` volontairement hors dépendances : un re-rendu du parent pendant la
     // saisie ne doit pas écraser ce que l'utilisateur est en train de taper.
@@ -77,7 +88,37 @@ export const BoardCell = memo(function BoardCell({
 
   if (active && renderEditor) {
     return (
-      <div className={cn(base, "bg-[var(--surface)] px-1")} style={{ width }}>
+      /**
+       * L'éditeur fourni par l'appelant — un sélecteur, en pratique.
+       *
+       * Le focus est donné ICI, explicitement, et non laissé à `autoFocus`.
+       * Constaté en production : le sélecteur s'ouvrait SANS focus, donc ni
+       * Échap ni la sortie au clavier ne le fermaient — un clic malencontreux
+       * sur la cellule « responsable » laissait la liste ouverte pour de bon.
+       *
+       * `onKeyDown` et `onBlur` sont doublés au niveau du conteneur : même un
+       * éditeur qui oublierait de les gérer reste refermable. Une cellule dont
+       * on ne peut pas sortir est pire qu'une cellule non éditable.
+       */
+      <div
+        ref={editorRef}
+        className={cn(base, "bg-[var(--surface)] px-1")}
+        style={{ width }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onCommit(null, "none");
+          }
+        }}
+        onBlur={(event) => {
+          // Le focus reste-t-il dans l'éditeur ? Un sélecteur natif déclenche
+          // un blur en s'ouvrant sur certains navigateurs : sans ce test, la
+          // liste se refermait avant qu'on puisse choisir.
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            onCommit(null, "none");
+          }
+        }}
+      >
         {renderEditor({ close: (direction) => onCommit(null, direction) })}
       </div>
     );
