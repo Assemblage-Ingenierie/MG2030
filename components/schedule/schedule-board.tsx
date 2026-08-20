@@ -40,10 +40,10 @@ import {
   type WriteResult,
 } from "@/app/(app)/schedule/actions";
 import {
-  BOARD_COLUMNS,
   COLUMN_WIDTH,
-  GRID_WIDTH,
+  gridWidth,
   isCellEditable,
+  visibleColumns,
   type BoardColumn,
   type BoardTask,
   type PersonOption,
@@ -70,6 +70,7 @@ export function ScheduleBoard({
   bufferStart,
   deadline,
   locale,
+  compact,
 }: {
   tasks: BoardTask[];
   dependencies: { predecessorId: string; successorId: string }[];
@@ -82,6 +83,8 @@ export function ScheduleBoard({
   bufferStart: string | null;
   deadline: string | null;
   locale: "en" | "sq";
+  /** Jeu de colonnes réduit : laisse la place au diagramme. */
+  compact: boolean;
 }) {
   const t = useT();
   const { can } = usePermissions();
@@ -100,7 +103,10 @@ export function ScheduleBoard({
     (_, next) => next,
   );
 
-  const byCode = useMemo(() => new Map(tasks.map((task) => [task.wbsCode, task])), [tasks]);
+  // Les colonnes masquées sont exclues de la NAVIGATION aussi : sans cela, Tab
+  // sautait dans une cellule invisible et le focus disparaissait.
+  const columns = useMemo(() => visibleColumns(compact), [compact]);
+  const paneWidth = useMemo(() => gridWidth(columns), [columns]);
 
   const handle = useCallback(
     (result: WriteResult) => {
@@ -136,16 +142,14 @@ export function ScheduleBoard({
         setActive(null);
         return;
       }
-      const index = BOARD_COLUMNS.indexOf(from.column);
-      const next = BOARD_COLUMNS.slice(index + 1).find((c) =>
-        isCellEditable(tasks[from.row], c),
-      );
+      const index = columns.indexOf(from.column);
+      const next = columns.slice(index + 1).find((c) => isCellEditable(tasks[from.row], c));
       if (next) {
         setActive({ row: from.row, column: next });
         return;
       }
       for (let i = from.row + 1; i < tasks.length; i++) {
-        const first = BOARD_COLUMNS.find((c) => isCellEditable(tasks[i], c));
+        const first = columns.find((c) => isCellEditable(tasks[i], c));
         if (first) {
           setActive({ row: i, column: first });
           return;
@@ -153,7 +157,7 @@ export function ScheduleBoard({
       }
       setActive(null);
     },
-    [tasks],
+    [tasks, columns],
   );
 
   const commit = useCallback(
@@ -289,8 +293,8 @@ export function ScheduleBoard({
       <div ref={scrollRef} className="flex max-h-[72vh] overflow-y-auto">
         {/* Volet gauche : la grille. `sticky` le maintient visible quand on
             fait défiler le diagramme horizontalement. */}
-        <div className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]" style={{ width: GRID_WIDTH }}>
-          <GridHeader t={t} />
+        <div className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]" style={{ width: paneWidth }}>
+          <GridHeader t={t} columns={columns} />
           {tasks.map((task, row) => (
             <GridRow
               key={task.id}
@@ -300,6 +304,7 @@ export function ScheduleBoard({
               editable={editable}
               people={people}
               sites={sites}
+              columns={columns}
               saving={savingId === task.id}
               onActivate={setActive}
               onCommit={commit}
@@ -352,23 +357,46 @@ export function ScheduleBoard({
 
 // ── En-tête de la grille ────────────────────────────────────────────────────
 
-function GridHeader({ t }: { t: (k: string) => string }) {
+/**
+ * Ordre de rendu, en-tête et lignes CONFONDUS.
+ *
+ * « Fin » s'insère juste après « Début » et non en queue : c'est la colonne
+ * qu'on vient lire, et l'éloigner de son début casse la lecture. Les deux
+ * volets dérivent de cette même liste — sans quoi masquer une colonne les
+ * décalait l'un par rapport à l'autre.
+ */
+function renderOrder(columns: BoardColumn[]): (BoardColumn | "end")[] {
+  const out: (BoardColumn | "end")[] = [];
+  for (const column of columns) {
+    out.push(column);
+    if (column === "start") out.push("end");
+  }
+  return out;
+}
+
+const RIGHT_ALIGNED = new Set(["duration", "start", "end", "progress"]);
+
+function GridHeader({
+  t,
+  columns,
+}: {
+  t: (k: string) => string;
+  columns: BoardColumn[];
+}) {
   const cell =
     "flex items-center border-r border-b border-[var(--border)] px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
   return (
-    <div
-      className="sticky top-0 z-20 flex bg-[var(--app-bg)]"
-      style={{ height: HEAD_H }}
-    >
+    <div className="sticky top-0 z-20 flex bg-[var(--app-bg)]" style={{ height: HEAD_H }}>
       <div className={cell} style={{ width: COLUMN_WIDTH.wbs }}>{t("schedule.wbs")}</div>
-      <div className={cell} style={{ width: COLUMN_WIDTH.activity }}>{t("schedule.activity")}</div>
-      <div className={cn(cell, "justify-end")} style={{ width: COLUMN_WIDTH.duration }}>{t("schedule.duration")}</div>
-      <div className={cn(cell, "justify-end")} style={{ width: COLUMN_WIDTH.start }}>{t("schedule.start")}</div>
-      <div className={cn(cell, "justify-end")} style={{ width: COLUMN_WIDTH.end }}>{t("schedule.end")}</div>
-      <div className={cell} style={{ width: COLUMN_WIDTH.owner }}>{t("schedule.owner")}</div>
-      <div className={cell} style={{ width: COLUMN_WIDTH.predecessors }}>{t("schedule.predecessors")}</div>
-      <div className={cell} style={{ width: COLUMN_WIDTH.site }}>{t("schedule.site")}</div>
-      <div className={cn(cell, "justify-end")} style={{ width: COLUMN_WIDTH.progress }}>{t("schedule.progress")}</div>
+      {renderOrder(columns).map((column) => (
+        <div
+          key={column}
+          className={cn(cell, RIGHT_ALIGNED.has(column) && "justify-end")}
+          style={{ width: COLUMN_WIDTH[column] }}
+        >
+          {t(`schedule.${column}`)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -382,6 +410,7 @@ function GridRow({
   editable,
   people,
   sites,
+  columns,
   saving,
   onActivate,
   onCommit,
@@ -396,6 +425,8 @@ function GridRow({
   editable: boolean;
   people: PersonOption[];
   sites: SiteChoice[];
+  /** Colonnes rendues : le même jeu que l'en-tête, sinon les volets se décalent. */
+  columns: BoardColumn[];
   saving: boolean;
   onActivate: (cell: Cell) => void;
   onCommit: (row: number, column: BoardColumn, value: string | null, direction: CommitDirection) => void;
@@ -406,6 +437,7 @@ function GridRow({
 }) {
   const isActive = (column: BoardColumn) => active?.row === row && active.column === column;
   const cellEditable = (column: BoardColumn) => editable && isCellEditable(task, column);
+  const shown = (column: BoardColumn) => columns.includes(column);
 
   return (
     <div
@@ -508,6 +540,7 @@ function GridRow({
         {formatPlanDate(task.end)}
       </div>
 
+      {shown("owner") && (
       <BoardCell
         width={COLUMN_WIDTH.owner}
         editable={cellEditable("owner")}
@@ -543,7 +576,9 @@ function GridRow({
           </select>
         )}
       />
+      )}
 
+      {shown("predecessors") && (
       <BoardCell
         width={COLUMN_WIDTH.predecessors}
         editable={cellEditable("predecessors")}
@@ -562,10 +597,12 @@ function GridRow({
         onActivate={() => onActivate({ row, column: "predecessors" })}
         onCommit={(v, d) => onCommit(row, "predecessors", v, d)}
       />
+      )}
 
       {/* Site — VIDE au chargement, et c'est correct : le planning source est
           au niveau sous-projet. On n'offre que les sites du sous-projet de la
           tâche, sinon on proposerait de rattacher un hall à l'autre projet. */}
+      {shown("site") && (
       <BoardCell
         width={COLUMN_WIDTH.site}
         editable={cellEditable("site")}
@@ -606,8 +643,16 @@ function GridRow({
           </select>
         )}
       />
+      )}
 
-      <div className="flex items-center" style={{ width: COLUMN_WIDTH.progress }}>
+      {/* L'avancement et la suppression partagent la dernière cellule : la
+          corbeille doit rester atteignable même en jeu de colonnes réduit,
+          d'où son rattachement à une colonne toujours visible. */}
+      <div
+        className="flex items-center"
+        style={{ width: shown("progress") ? COLUMN_WIDTH.progress : 26 }}
+      >
+        {shown("progress") && (
         <BoardCell
           width={COLUMN_WIDTH.progress - 26}
           align="right"
@@ -625,6 +670,7 @@ function GridRow({
           onActivate={() => onActivate({ row, column: "progress" })}
           onCommit={(v, d) => onCommit(row, "progress", v, d)}
         />
+        )}
         {editable && (
           <IconButton
             label={t("schedule.deleteTask")}

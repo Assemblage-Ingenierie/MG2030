@@ -30,6 +30,7 @@ export default async function SchedulePage({
     contract?: string;
     site?: string;
     subproject?: string;
+    cols?: string;
   }>;
 }) {
   const { t, locale } = await getI18n();
@@ -70,6 +71,10 @@ export default async function SchedulePage({
     listPeople(),
     listSiteOptions(),
   ]);
+
+  // Jeu de colonnes réduit PAR DÉFAUT : toutes colonnes affichées, la grille
+  // prend 986 px et il ne reste que 160 px de diagramme sur un portable.
+  const compact = params.cols !== "all";
 
   const scale: ScaleUnit = SCALES.includes(params.scale as ScaleUnit)
     ? (params.scale as ScaleUnit)
@@ -193,6 +198,7 @@ export default async function SchedulePage({
             currentSite={params.site ?? null}
             subprojects={subprojects}
             currentSubproject={params.subproject ?? null}
+            compact={compact}
             scenarioCode={selected.code}
           />
           <ScheduleBoard
@@ -207,6 +213,7 @@ export default async function SchedulePage({
             bufferStart={scenario?.bufferStartDate ?? null}
             deadline={scenario?.deadlineDate ?? null}
             locale={locale}
+            compact={compact}
           />
         </Card>
 

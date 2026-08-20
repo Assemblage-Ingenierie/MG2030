@@ -392,7 +392,13 @@
     "filterContract": "Filter by contract",
     "filterSite": "Site",
     "filterScope": "Scope",
-    "filterWholeProject": "Whole project"
+    "filterWholeProject": "Whole project",
+    "filterAllContracts": "All contracts",
+    "filterAllSites": "All sites",
+    "showAllColumns": "All columns",
+    "showAllColumnsHint": "Show owner, predecessors, site and progress. The grid widens, so the diagram narrows.",
+    "showFewerColumns": "Fewer columns",
+    "showFewerColumnsHint": "Keep only activity, duration and dates, to give the diagram room."
   },
   "deliverables": {
     "title": "Deliverables",

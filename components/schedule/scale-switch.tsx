@@ -25,6 +25,7 @@ export async function ScaleSwitch({
   currentSite,
   subprojects,
   currentSubproject,
+  compact,
   scenarioCode,
 }: {
   scale: ScaleUnit;
@@ -35,6 +36,7 @@ export async function ScaleSwitch({
   currentSite: string | null;
   subprojects: string[];
   currentSubproject: string | null;
+  compact: boolean;
   scenarioCode: string;
 }) {
   const { t } = await getI18n();
@@ -48,6 +50,7 @@ export async function ScaleSwitch({
     contract?: string | null;
     site?: string | null;
     subproject?: string | null;
+    cols?: "compact" | "all";
   }) => {
     const params = new URLSearchParams({ scenario: scenarioCode });
     params.set("scale", next.scale ?? scale);
@@ -57,6 +60,8 @@ export async function ScaleSwitch({
     if (site) params.set("site", site);
     const sub = next.subproject === undefined ? currentSubproject : next.subproject;
     if (sub) params.set("subproject", sub);
+    const cols = next.cols ?? (compact ? "compact" : "all");
+    if (cols === "all") params.set("cols", "all");
     return `/schedule?${params.toString()}`;
   };
 
@@ -92,6 +97,11 @@ export async function ScaleSwitch({
       >
         <Link
           href={href({ contract: null, site: null, subproject: null })}
+          aria-current={
+            currentContract === null && currentSite === null && currentSubproject === null
+              ? "true"
+              : undefined
+          }
           className={cn(
             chip,
             currentContract === null && currentSite === null && currentSubproject === null
@@ -105,6 +115,7 @@ export async function ScaleSwitch({
           <Link
             key={code}
             href={href({ subproject: code, site: null })}
+            aria-current={code === currentSubproject && !currentSite ? "true" : undefined}
             className={cn(chip, code === currentSubproject && !currentSite ? activeChip : idleChip)}
           >
             {t(`schedule.sub_${code}`)}
@@ -117,7 +128,12 @@ export async function ScaleSwitch({
           {t("gantt.filterSite")}
           {/* Une liste déroulante et non des puces : 14 sites feraient 14
               puces, qui repousseraient la légende hors de l'écran. */}
-          <SiteSelect sites={sites} current={currentSite} href={href} allLabel={t("gantt.filterAll")} />
+          <SiteSelect
+            sites={sites}
+            current={currentSite}
+            href={href}
+            allLabel={t("gantt.filterAllSites")}
+          />
         </label>
       )}
 
@@ -127,16 +143,20 @@ export async function ScaleSwitch({
           aria-label={t("gantt.filterContract")}
           className="inline-flex flex-wrap items-center gap-0.5 rounded-md bg-[var(--app-bg)] p-0.5"
         >
+          {/* « Tous les marchés », et non « projet entier » : trois contrôles
+              portaient le même mot pour trois sens différents. */}
           <Link
             href={href({ contract: null })}
+            aria-current={currentContract === null ? "true" : undefined}
             className={cn(chip, currentContract === null ? activeChip : idleChip)}
           >
-            {t("gantt.filterAll")}
+            {t("gantt.filterAllContracts")}
           </Link>
           {contractCodes.map((code) => (
             <Link
               key={code}
               href={href({ contract: code })}
+              aria-current={code === currentContract ? "true" : undefined}
               className={cn(chip, code === currentContract ? activeChip : idleChip)}
             >
               {code}
@@ -144,6 +164,19 @@ export async function ScaleSwitch({
           ))}
         </div>
       )}
+
+      {/* Colonnes. Le jeu réduit est le défaut : sinon la grille prend 986 px
+          et le diagramme n'a plus de place pour exister. */}
+      <Link
+        href={href({ cols: compact ? "all" : "compact" })}
+        className={
+          "rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 " +
+          "text-xs font-medium text-[var(--text)]"
+        }
+        title={t(compact ? "gantt.showAllColumnsHint" : "gantt.showFewerColumnsHint")}
+      >
+        {t(compact ? "gantt.showAllColumns" : "gantt.showFewerColumns")}
+      </Link>
 
       <div className="ml-auto flex flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">
         <LegendItem color="var(--accent)" label={t("gantt.task")} />

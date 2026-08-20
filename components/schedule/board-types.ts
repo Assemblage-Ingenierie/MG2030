@@ -98,16 +98,33 @@ export const COLUMN_WIDTH: Record<BoardColumn | "wbs" | "end", number> = {
   progress: 62,
 };
 
-export const GRID_WIDTH =
-  COLUMN_WIDTH.wbs +
-  COLUMN_WIDTH.activity +
-  COLUMN_WIDTH.duration +
-  COLUMN_WIDTH.start +
-  COLUMN_WIDTH.end +
-  COLUMN_WIDTH.owner +
-  COLUMN_WIDTH.predecessors +
-  COLUMN_WIDTH.site +
-  COLUMN_WIDTH.progress;
+/**
+ * Deux jeux de colonnes, parce qu'un seul ne peut pas servir les deux usages.
+ *
+ * Toutes colonnes affichées, la grille prend 986 px : sur un portable de
+ * 1440 px il ne reste que 160 px de diagramme, ce qui vide de son sens
+ * l'idée d'un Gantt « en prolongement des colonnes ». MS Project répond à cela
+ * par une séparation déplaçable et une table réduite à cinq colonnes ; on
+ * retient le principe sans le poids d'un glisser-déposer.
+ *
+ * COMPACT est donc le défaut — les cinq colonnes qui portent le calendrier —
+ * et le passage en jeu complet se fait d'un clic, pour les séances de saisie.
+ */
+export const COMPACT_COLUMNS: BoardColumn[] = ["activity", "duration", "start"];
+
+/** Colonnes réellement rendues, `end` et `wbs` étant toujours présentes. */
+export function visibleColumns(compact: boolean): BoardColumn[] {
+  return compact ? COMPACT_COLUMNS : BOARD_COLUMNS;
+}
+
+/** Largeur du volet de gauche pour un jeu de colonnes donné. */
+export function gridWidth(columns: BoardColumn[]): number {
+  return (
+    COLUMN_WIDTH.wbs +
+    COLUMN_WIDTH.end +
+    columns.reduce((sum, column) => sum + COLUMN_WIDTH[column], 0)
+  );
+}
 
 /**
  * Une cellule est éditable selon le TYPE de la tâche.
