@@ -53,6 +53,7 @@ export const NAV: NavGroup[] = [
       { href: "/schedule", labelKey: "nav.plan", icon: "gantt", permission: null },
       { href: "/deliverables", labelKey: "nav.deliverables", icon: "deliverables", permission: null },
       { href: "/no-objections", labelKey: "nav.noObjections", icon: "contracts", permission: null },
+      { href: "/procurement", labelKey: "nav.procurement", icon: "admin", permission: "procurement.admin" },
     ],
   },
   {
