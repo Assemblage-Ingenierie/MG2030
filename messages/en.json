@@ -31,7 +31,8 @@
     "upcoming": "Coming soon",
     "brandAria": "MG2030 — go to dashboard",
     "account": "My account",
-    "plan": "Plan"
+    "plan": "Plan",
+    "noObjections": "No-objections"
   },
   "common": {
     "search": "Search",
@@ -61,7 +62,9 @@
     "language": "Language",
     "signOut": "Sign out",
     "myAccount": "My account",
-    "fallbackNotice": "Albanian is not populated yet — showing English."
+    "fallbackNotice": "Albanian is not populated yet — showing English.",
+    "actions": "Actions",
+    "none": "None"
   },
   "status": {
     "running": "In progress",
@@ -487,5 +490,51 @@
     "kind_deliverable_late": "Late deliverable",
     "kind_no_objection_answered": "No-objection",
     "kind_complaint_registered": "Complaint"
+  },
+  "noObjections": {
+    "title": "AFD no-objections",
+    "intro": "Nothing gets signed without an AFD no-objection, which makes this the main source of procurement delay. Lateness is measured against the duration the schedule allows for the task the request carries — never against an invented standard turnaround.",
+    "add": "New request",
+    "createTitle": "New no-objection request",
+    "editTitle": "Edit request",
+    "subject": "Subject",
+    "reference": "Reference",
+    "referenceHint": "AFD reference, once assigned.",
+    "target": "Attached to",
+    "contract": "Contract",
+    "task": "Schedule task",
+    "taskHint": "Without a linked task there is no allowed duration, so no lateness can be stated — only elapsed time.",
+    "taskLinked": "The schedule allows {days} days for this task. Beyond that the request shows as overdue.",
+    "taskSourceNote": "{count} schedule tasks are AFD no-objections. Linking a request to one of them is what turns elapsed time into a verdict.",
+    "status": "Status",
+    "sentDate": "Sent",
+    "sentDateHint": "Leave empty to keep the request as a draft. Filling it marks the request as sent.",
+    "responseDate": "Answered",
+    "elapsed": "Elapsed",
+    "daysShort": "{days} d",
+    "awaiting": "Awaiting answer",
+    "overdue": "Overdue",
+    "meanTurnaround": "Observed mean turnaround",
+    "overdueTooltip": "{allowed} days allowed by task {wbs}.",
+    "noReferenceTooltip": "No linked task, so no allowed duration: elapsed time only, no verdict.",
+    "markSent": "Sent",
+    "markSentHint": "Record today as the send date. Nothing can be counted before it.",
+    "recordAnswer": "Record answer…",
+    "cancelRequest": "Withdraw",
+    "cancelHint": "A withdrawn request is kept, not erased: AFD holds its own trace of it.",
+    "status_draft": "Draft",
+    "status_sent": "Sent",
+    "status_no_objection": "No objection",
+    "status_no_objection_with_comments": "No objection with comments",
+    "status_rejected": "Rejected",
+    "status_cancelled": "Withdrawn",
+    "empty": "No request recorded",
+    "emptyNote": "Nothing yet, and that is expected: the source documents record no no-objection request (GAPS 8). The schedule already carries the AFD steps as tasks — TV.2.3, SC.2.4 and the negotiation steps. Record a request against one of them and the delay becomes measurable.",
+    "confirmDelete": "Delete the request « {subject} »? Withdrawing is usually the right move — it keeps the trace.",
+    "error_emptySubject": "A subject is required.",
+    "error_noTarget": "A request must be attached to a contract, a lot or a task.",
+    "error_invalidDate": "Expected date format YYYY-MM-DD.",
+    "error_unauthenticated": "Session expired. Sign in again.",
+    "error_writeFailed": "The database refused the write."
   }
 }
