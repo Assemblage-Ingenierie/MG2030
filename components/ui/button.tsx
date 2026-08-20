@@ -29,9 +29,14 @@ const VARIANT: Record<ButtonVariant, string> = {
     "bg-[var(--danger)] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60",
 };
 
+/**
+ * Hauteur minimale de 44 px sur mobile : cible tactile recommandée. Relâchée
+ * dès `sm:` pour ne pas gonfler les barres d'outils denses (grille du plan de
+ * charge, tableaux d'étapes) là où l'on pointe à la souris.
+ */
 const SIZE: Record<ButtonSize, string> = {
-  md: "px-4 py-2 text-sm",
-  sm: "px-3 py-1.5 text-sm",
+  md: "px-4 py-2 text-sm min-h-11 sm:min-h-0",
+  sm: "px-3 py-1.5 text-sm min-h-11 sm:min-h-0",
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

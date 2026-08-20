@@ -15,8 +15,18 @@
 import { useId } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * `text-base sm:text-sm` n'est pas une coquetterie : Safari iOS ZOOME
+ * automatiquement sur un champ dont la taille de police descend sous 16 px, et
+ * ne dézoome pas ensuite. La saisie sur téléphone devenait donc un
+ * va-et-vient. 16 px sur mobile, 14 px dès l'écran large où la densité compte.
+ *
+ * `min-h-11` (44 px) est la cible tactile recommandée ; on la relâche à partir
+ * de `sm:` pour retrouver la compacité au clavier et à la souris.
+ */
 export const FIELD_BASE =
-  "w-full rounded-md border bg-[var(--app-bg)] px-3 py-2 text-sm text-[var(--text)] " +
+  "w-full rounded-md border bg-[var(--app-bg)] px-3 py-2 text-base sm:text-sm " +
+  "min-h-11 sm:min-h-0 text-[var(--text)] " +
   "outline-none transition-colors " +
   "disabled:cursor-not-allowed disabled:bg-[var(--app-bg)] disabled:text-[var(--text-muted)] " +
   "placeholder:text-[var(--text-muted)]";
