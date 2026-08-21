@@ -5,52 +5,16 @@
 //
 // L'alignement ligne à ligne des deux volets tient entièrement à cela : une
 // seule liste, une seule constante de hauteur.
+//
+// Le MODÈLE lui-même vit dans lib/schedule/board-model.ts : il est pur, donc
+// testé. Ce fichier ne porte que la géométrie et les règles d'affichage.
 // ============================================================
 
 import { filterKeepingAncestors } from "@/lib/schedule/tree";
+import type { ModelTask } from "@/lib/schedule/board-model";
 
-/**
- * Filtre le plan en conservant les ascendants des lignes retenues.
- * L'implémentation est pure et testée dans lib/schedule/tree.ts.
- */
-export function filterTree(
-  tasks: BoardTask[],
-  keep: (task: BoardTask) => boolean,
-): BoardTask[] {
-  return filterKeepingAncestors(tasks, keep);
-}
-
-export interface BoardTask {
-  id: string;
-  wbsCode: string;
-  activity: string;
-  type: "task" | "summary" | "milestone" | "group_header";
-  parentId: string | null;
-  depth: number;
-  durationDays: number | null;
-  /** Date calculée par le moteur. */
-  start: string | null;
-  end: string | null;
-  /** Ancre saisie à la main : la date est figée, elle ne suit plus les précédences. */
-  startAnchor: string | null;
-  /** Contrainte « pas avant ». */
-  constraintDate: string | null;
-  progressPct: number | null;
-  ownerId: string | null;
-  ownerName: string | null;
-  contractCode: string | null;
-  /** Sous-projet porté par la tâche. Nul pour les jalons transverses. */
-  subproject: "athletes_village" | "training_venues" | null;
-  /** Site précis, quand la PIU a affiné hall par hall. */
-  siteId: string | null;
-  siteCode: string | null;
-  /** Codes WBS des prédécesseurs, tels qu'ils s'affichent et se saisissent. */
-  predecessorCodes: string[];
-  /** Ce qui détermine la date de début — sert à l'expliquer sans la déplier. */
-  driver: string | null;
-  drivingPredecessor: string | null;
-  drifted: boolean;
-}
+/** La ligne de la grille EST la tâche du modèle : aucune traduction entre les deux. */
+export type BoardTask = ModelTask;
 
 export interface PersonOption {
   id: string;
@@ -65,13 +29,31 @@ export interface SiteChoice {
   subproject: "athletes_village" | "training_venues";
 }
 
+export interface ContractChoice {
+  id: string;
+  contractCode: string;
+  name: string;
+}
+
+/**
+ * Filtre le plan en conservant les ascendants des lignes retenues.
+ * L'implémentation est pure et testée dans lib/schedule/tree.ts.
+ */
+export function filterTree(
+  tasks: BoardTask[],
+  keep: (task: BoardTask) => boolean,
+): BoardTask[] {
+  return filterKeepingAncestors(tasks, keep);
+}
+
 /** Colonnes de la grille, dans l'ordre de tabulation. */
 export type BoardColumn =
   | "activity"
   | "duration"
   | "start"
-  | "owner"
   | "predecessors"
+  | "owner"
+  | "contract"
   | "site"
   | "progress";
 
@@ -79,52 +61,79 @@ export const BOARD_COLUMNS: BoardColumn[] = [
   "activity",
   "duration",
   "start",
-  "owner",
   "predecessors",
+  "owner",
+  "contract",
   "site",
   "progress",
 ];
 
-/** Largeurs en pixels. Le total fixe la largeur du volet de gauche. */
-export const COLUMN_WIDTH: Record<BoardColumn | "wbs" | "end", number> = {
-  wbs: 72,
-  activity: 260,
-  duration: 74,
-  start: 92,
-  end: 92,
-  owner: 130,
-  predecessors: 100,
-  site: 104,
-  progress: 62,
-};
-
 /**
- * Deux jeux de colonnes, parce qu'un seul ne peut pas servir les deux usages.
+ * Jeu réduit : les quatre colonnes qui portent le CALENDRIER.
  *
- * Toutes colonnes affichées, la grille prend 986 px : sur un portable de
- * 1440 px il ne reste que 160 px de diagramme, ce qui vide de son sens
- * l'idée d'un Gantt « en prolongement des colonnes ». MS Project répond à cela
- * par une séparation déplaçable et une table réduite à cinq colonnes ; on
- * retient le principe sans le poids d'un glisser-déposer.
- *
- * COMPACT est donc le défaut — les cinq colonnes qui portent le calendrier —
- * et le passage en jeu complet se fait d'un clic, pour les séances de saisie.
+ * Les précédences en font partie et non le responsable : c'est la précédence
+ * qui explique une date, et l'écran sert d'abord à comprendre pourquoi une
+ * tâche tombe là.
  */
-export const COMPACT_COLUMNS: BoardColumn[] = ["activity", "duration", "start"];
+export const COMPACT_COLUMNS: BoardColumn[] = [
+  "activity",
+  "duration",
+  "start",
+  "predecessors",
+];
 
-/** Colonnes réellement rendues, `end` et `wbs` étant toujours présentes. */
 export function visibleColumns(compact: boolean): BoardColumn[] {
   return compact ? COMPACT_COLUMNS : BOARD_COLUMNS;
 }
 
-/** Largeur du volet de gauche pour un jeu de colonnes donné. */
-export function gridWidth(columns: BoardColumn[]): number {
+/** Largeurs en pixels. Le total fixe la largeur du volet de gauche. */
+export const COLUMN_WIDTH: Record<BoardColumn | "rowNo" | "end", number> = {
+  /** Numéro de ligne : la clé que l'utilisateur manipule pour les précédences. */
+  rowNo: 40,
+  activity: 250,
+  duration: 62,
+  start: 90,
+  end: 90,
+  predecessors: 88,
+  owner: 120,
+  contract: 88,
+  site: 92,
+  progress: 58,
+};
+
+/** Largeur du volet de gauche : numéro, colonnes visibles, fin, actions. */
+export function gridWidth(columns: BoardColumn[], actionsWidth: number): number {
   return (
-    COLUMN_WIDTH.wbs +
+    COLUMN_WIDTH.rowNo +
     COLUMN_WIDTH.end +
-    columns.reduce((sum, column) => sum + COLUMN_WIDTH[column], 0)
+    columns.reduce((sum, column) => sum + COLUMN_WIDTH[column], 0) +
+    actionsWidth
   );
 }
+
+/**
+ * Ordre de rendu, en-tête et lignes CONFONDUS.
+ *
+ * « Fin » s'insère juste après « Début » et non en queue : c'est la colonne
+ * qu'on vient lire, et l'éloigner de son début casse la lecture. Les deux
+ * volets dérivent de cette même liste — sans quoi masquer une colonne les
+ * décalait l'un par rapport à l'autre.
+ */
+export function renderOrder(columns: BoardColumn[]): (BoardColumn | "end")[] {
+  const out: (BoardColumn | "end")[] = [];
+  for (const column of columns) {
+    out.push(column);
+    if (column === "start") out.push("end");
+  }
+  return out;
+}
+
+export const RIGHT_ALIGNED = new Set<BoardColumn | "end">([
+  "duration",
+  "start",
+  "end",
+  "progress",
+]);
 
 /**
  * Une cellule est éditable selon le TYPE de la tâche.
@@ -137,12 +146,38 @@ export function gridWidth(columns: BoardColumn[]): number {
 export function isCellEditable(task: BoardTask, column: BoardColumn): boolean {
   if (task.type === "group_header") return column === "activity";
   if (task.type === "summary") {
-    return column === "activity" || column === "owner" || column === "site";
+    return (
+      column === "activity" ||
+      column === "owner" ||
+      column === "site" ||
+      column === "contract"
+    );
   }
   if (task.type === "milestone") {
     return (
-      column === "activity" || column === "start" || column === "owner" || column === "site"
+      column === "activity" ||
+      column === "start" ||
+      column === "predecessors" ||
+      column === "owner" ||
+      column === "site" ||
+      column === "contract"
     );
   }
   return true;
+}
+
+/**
+ * La date de début est-elle SAISISSABLE, ou bien résulte-t-elle du calcul ?
+ *
+ * Dès qu'une tâche a un prédécesseur, son début vaut la fin de celui-ci : c'est
+ * la définition de fin-début. Laisser le champ ouvert permettait d'avancer le
+ * début sans que le prédécesseur bouge — le lien affiché à l'écran ne
+ * correspondait alors plus à rien, et la « logique fin-début » n'était vraie
+ * qu'aussi longtemps qu'on n'y touchait pas.
+ *
+ * Pour détacher une tâche, on vide sa colonne de précédences. C'est explicite,
+ * visible, et réversible.
+ */
+export function isStartEditable(task: BoardTask, hasPredecessor: boolean): boolean {
+  return !hasPredecessor && isCellEditable(task, "start");
 }

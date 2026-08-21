@@ -39,6 +39,18 @@ export interface Bar {
   /** Largeur de la part réalisée, en pixels. 0 si l'avancement est inconnu. */
   progressWidth: number;
   depth: number;
+  /**
+   * État vis-à-vis d'aujourd'hui.
+   *
+   * La distinction qui compte est entre RETARD et NON RENSEIGNÉ. Une tâche dont
+   * la fin est passée et dont l'avancement est INCONNU n'est pas en retard :
+   * on n'en sait rien. L'ancienne règle les confondait — avec un avancement vide
+   * sur tout le plan, toute tâche finissant avant aujourd'hui s'affichait en
+   * rose. Une plateforme de suivi ne peut pas affirmer un retard que personne
+   * n'a constaté ; c'est le genre de chiffre qui remonte à l'AFD.
+   */
+  status: "normal" | "done" | "late" | "unreported";
+  /** Conservé pour compatibilité : vrai seulement si `status === "late"`. */
   isLate: boolean;
   /** Un jalon est rendu en losange, pas en barre. */
   diamond: boolean;
@@ -50,6 +62,8 @@ export interface Link {
   from: string;
   to: string;
   points: [number, number][];
+  /** Par le flanc gauche de la barre, ou par son dessus. */
+  end: LinkEnd;
 }
 
 export interface GanttLayout {
@@ -119,11 +133,8 @@ export function buildLayout(options: LayoutOptions): GanttLayout {
       progressWidth:
         task.progressPct === null ? 0 : Math.round((width * task.progressPct) / 100),
       depth: task.depth,
-      isLate:
-        today !== undefined &&
-        task.end < today &&
-        (task.progressPct ?? 0) < 100 &&
-        task.type === "task",
+      status: barStatus(task, today),
+      isLate: barStatus(task, today) === "late",
       diamond: isMilestone,
       rowIndex: index,
     };
@@ -137,7 +148,13 @@ export function buildLayout(options: LayoutOptions): GanttLayout {
     const from = barById.get(dep.predecessorId);
     const to = barById.get(dep.successorId);
     if (!from || !to) continue;
-    links.push({ from: dep.predecessorId, to: dep.successorId, points: routeLink(from, to) });
+    const route = routeLink(from, to);
+    links.push({
+      from: dep.predecessorId,
+      to: dep.successorId,
+      points: route.points,
+      end: route.end,
+    });
   }
 
   return {
@@ -157,41 +174,110 @@ export function buildLayout(options: LayoutOptions): GanttLayout {
 }
 
 /**
+ * Où en est la tâche par rapport à aujourd'hui.
+ *
+ * Quatre états, et la nuance décisive est la dernière :
+ *
+ *   • `done`       — avancement à 100 %, quelle que soit la date.
+ *   • `late`       — la fin est passée, du travail a été fait, il n'est pas
+ *                    fini. C'est un retard CONSTATÉ.
+ *   • `unreported` — la fin est passée et personne n'a renseigné
+ *                    l'avancement. On n'en sait rien, et le dire est plus
+ *                    utile que d'affirmer un retard.
+ *   • `normal`     — tout le reste.
+ *
+ * Seules les vraies tâches sont jugées : un récapitulatif hérite des dates de
+ * ses enfants, et un intertitre n'a pas de date du tout.
+ */
+function barStatus(task: GanttTask, today: IsoDate | undefined): Bar["status"] {
+  if (task.progressPct !== null && task.progressPct >= 100) return "done";
+  if (task.type !== "task") return "normal";
+  if (today === undefined || task.end === null || task.end >= today) return "normal";
+  return task.progressPct === null ? "unreported" : "late";
+}
+
+/** Où la flèche aboutit : dans le flanc gauche de la barre, ou sur son dessus. */
+export type LinkEnd = "side" | "top";
+
+/**
  * Trace une flèche de la fin du prédécesseur au début du successeur.
  *
- * Deux cas seulement, ce qui suffit à un graphe fin-début :
- *   • le successeur commence APRÈS la fin du prédécesseur → coude en L ;
- *   • il commence avant ou au même point → contournement en Z, par-dessous,
- *     sinon la flèche traverserait les deux barres.
+ * Le tracé PRÉCÉDENT contournait systématiquement par la gouttière : un coude
+ * en L quand il y avait de la place, un Z par-dessous sinon. Résultat, sur un
+ * enchaînement fin-début sans battement — c'est-à-dire le cas NORMAL, celui de
+ * presque tout le plan — la flèche partait à droite, redescendait, revenait à
+ * gauche. Elle faisait le tour pour relier deux points superposés.
+ *
+ * Trois cas désormais, du plus fréquent au plus rare :
+ *
+ *  1. FIN-DÉBUT SANS BATTEMENT (le cas normal) — la fin du prédécesseur et le
+ *     début du successeur sont au même x. On descend tout droit et on entre par
+ *     le DESSUS de la barre. C'est ce que dessine MS Project, et c'est le tracé
+ *     le plus court possible : un segment.
+ *
+ *  2. AVEC BATTEMENT — il y a de la place à droite : on descend au niveau du
+ *     successeur puis on entre par son FLANC gauche. Deux segments, aucun
+ *     détour.
+ *
+ *  3. CHEVAUCHEMENT — le successeur commence AVANT la fin du prédécesseur, ce
+ *     qui n'arrive qu'avec une ancre contractuelle contradictoire. Là seulement
+ *     on contourne par la gouttière : aller tout droit traverserait les deux
+ *     barres.
  */
-function routeLink(from: Bar, to: Bar): [number, number][] {
+export function routeLink(
+  from: Bar,
+  to: Bar,
+): { points: [number, number][]; end: LinkEnd } {
   const startX = from.x + from.width;
   const startY = from.y + from.height / 2;
   const endX = to.x;
   const endY = to.y + to.height / 2;
-  const gap = 8;
 
-  if (endX >= startX + gap) {
-    const midX = endX - gap;
-    return [
-      [startX, startY],
-      [midX, startY],
-      [midX, endY],
-      [endX, endY],
-    ];
+  // En deçà, un segment horizontal serait plus court que sa propre pointe de
+  // flèche : on entre par le dessus.
+  const MIN_RUN = 10;
+  const gap = endX - startX;
+
+  if (gap >= MIN_RUN) {
+    return {
+      points: [
+        [startX, startY],
+        [startX, endY],
+        [endX, endY],
+      ],
+      end: "side",
+    };
   }
 
-  // Contournement : on descend sous la ligne du prédécesseur, on recule, on
-  // remonte. `+ ROW_H / 2` place le retour dans la gouttière entre deux lignes.
+  if (gap >= 0) {
+    // Descente droite dans le dessus de la barre. On vise `to.x + 3` pour que
+    // la pointe tombe dans la barre et non sur son coin exact.
+    const x = to.x + 3;
+    return {
+      points: [
+        [startX, startY],
+        [startX, startY + (to.y - startY) / 2],
+        [x, startY + (to.y - startY) / 2],
+        [x, to.y],
+      ],
+      end: "top",
+    };
+  }
+
+  // Contournement par la gouttière entre deux lignes.
   const detourY = Math.max(from.y + from.height, to.y + to.height) + ROW_H / 2 - 4;
-  return [
-    [startX, startY],
-    [startX + gap, startY],
-    [startX + gap, detourY],
-    [endX - gap, detourY],
-    [endX - gap, endY],
-    [endX, endY],
-  ];
+  const stub = 8;
+  return {
+    points: [
+      [startX, startY],
+      [startX + stub, startY],
+      [startX + stub, detourY],
+      [endX - stub, detourY],
+      [endX - stub, endY],
+      [endX, endY],
+    ],
+    end: "side",
+  };
 }
 
 /** Plage temporelle couverte, avec une marge d'une période de chaque côté. */

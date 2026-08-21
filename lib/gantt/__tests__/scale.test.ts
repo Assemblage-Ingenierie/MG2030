@@ -132,7 +132,7 @@ describe("mise en page du Gantt", () => {
     expect(layout.bars[0].width).toBe(0);
   });
 
-  it("trace une fleche en L quand le successeur suit", () => {
+  it("trace une fleche en DEUX SEGMENTS quand le successeur suit", () => {
     const layout = buildLayout({
       tasks: [
         task({ id: "A", start: "2026-07-01", end: "2026-07-15" }),
@@ -144,10 +144,14 @@ describe("mise en page du Gantt", () => {
 
     expect(layout.links).toHaveLength(1);
     const pts = layout.links[0].points;
-    expect(pts).toHaveLength(4);
-    // Depart a la fin de A, arrivee au debut de B.
+    // Trois points, donc deux segments : le coude est a la FIN de A, et non
+    // juste avant B. L'ancien trace en comptait quatre et partait a droite
+    // avant de revenir a gauche — il faisait le tour (voir lib/gantt/layout.ts).
+    expect(pts).toHaveLength(3);
+    expect(layout.links[0].end).toBe("side");
     expect(pts[0][0]).toBeCloseTo(layout.bars[0].x + layout.bars[0].width, 5);
-    expect(pts[3][0]).toBeCloseTo(layout.bars[1].x, 5);
+    expect(pts[1][0]).toBeCloseTo(layout.bars[0].x + layout.bars[0].width, 5);
+    expect(pts[2][0]).toBeCloseTo(layout.bars[1].x, 5);
   });
 
   it("contourne par-dessous quand le successeur chevauche", () => {

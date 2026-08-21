@@ -183,6 +183,7 @@ export async function ScaleSwitch({
         <LegendItem color={GANTT.text} label={t("gantt.summary")} />
         <LegendItem color={GANTT.milestone} label={t("gantt.milestone")} diamond />
         <LegendItem color="#ea9999" label={t("gantt.late")} />
+        <LegendItem color="var(--accent-2)" label={t("gantt.unreported")} hollow />
         <LegendItem color={GANTT.today} label={t("gantt.today")} />
       </div>
     </div>
@@ -250,10 +251,13 @@ function LegendItem({
   color,
   label,
   diamond = false,
+  hollow = false,
 }: {
   color: string;
   label: string;
   diamond?: boolean;
+  /** Barre creuse à contour tireté : « on n'en sait rien », pas « c'est fini ». */
+  hollow?: boolean;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -261,7 +265,8 @@ function LegendItem({
         aria-hidden="true"
         className="inline-block h-2.5 w-2.5"
         style={{
-          backgroundColor: color,
+          backgroundColor: hollow ? "transparent" : color,
+          border: hollow ? `1.2px dashed ${color}` : undefined,
           borderRadius: diamond ? 0 : 2,
           transform: diamond ? "rotate(45deg)" : undefined,
         }}

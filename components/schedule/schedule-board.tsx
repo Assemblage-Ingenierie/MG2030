@@ -9,49 +9,51 @@
 //
 // « Si la saisie est plus lente que sous Excel, la PIU retournera à Excel. »
 // — brief §2. D'où :
-//   • navigation entièrement au clavier ;
+//   • le MODÈLE VIT DANS LE NAVIGATEUR (use-board.ts) : un geste s'affiche
+//     immédiatement, l'écriture suit sans qu'on l'attende ;
+//   • annuler et rétablir au clavier, comme dans un tableur ;
+//   • les précédences se saisissent en NUMÉROS DE LIGNE, renumérotés
+//     automatiquement — comme sous MS Project ;
 //   • pas de bouton « enregistrer » : valider une cellule écrit ;
 //   • le brouillon de saisie vit DANS la cellule (board-cell.tsx), donc taper
-//     ne redessine ni les autres lignes ni le SVG ;
-//   • les précédences se saisissent en CODES WBS séparés par des virgules,
-//     comme sous MS Project — plus rapide que n'importe quel sélecteur.
+//     ne redessine ni les autres lignes ni le SVG.
 // ============================================================
 
-import { useCallback, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { Button, IconButton } from "@/components/ui/button";
 import { formatPlanDate } from "@/lib/i18n/format";
 import { daysToWeeks } from "@/lib/schedule/dates";
 import { ROW_H } from "@/lib/gantt/layout";
+import {
+  descendantCount,
+  isCollapsible,
+  visibleTasks,
+  type BoardModel,
+} from "@/lib/schedule/board-model";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 import { cn } from "@/lib/cn";
-import {
-  createTask,
-  deleteTask,
-  setTaskActivity,
-  setTaskAssignment,
-  setTaskConstraint,
-  setTaskDuration,
-  setTaskPredecessors,
-  setTaskProgress,
-  setTaskSite,
-  setTaskStartAnchor,
-  type WriteResult,
-} from "@/app/(app)/schedule/actions";
+import { createTask } from "@/app/(app)/schedule/actions";
 import {
   COLUMN_WIDTH,
   gridWidth,
   isCellEditable,
+  isStartEditable,
+  renderOrder,
+  RIGHT_ALIGNED,
   visibleColumns,
   type BoardColumn,
   type BoardTask,
+  type ContractChoice,
   type PersonOption,
   type SiteChoice,
 } from "./board-types";
 import { BoardCell, type CommitDirection } from "./board-cell";
 import { GanttPane, HEAD_H } from "./gantt-pane";
 import { NewTaskModal } from "./new-task-modal";
+import { TaskForm } from "./task-form";
+import { useBoard } from "./use-board";
 
 interface Cell {
   row: number;
@@ -59,10 +61,10 @@ interface Cell {
 }
 
 export function ScheduleBoard({
-  tasks,
-  dependencies,
+  initial,
   people,
   sites,
+  contracts,
   scenarioCode,
   planId,
   scale,
@@ -71,11 +73,12 @@ export function ScheduleBoard({
   deadline,
   locale,
   compact,
+  visibleIds,
 }: {
-  tasks: BoardTask[];
-  dependencies: { predecessorId: string; successorId: string }[];
+  initial: BoardModel;
   people: PersonOption[];
   sites: SiteChoice[];
+  contracts: ContractChoice[];
   scenarioCode: string;
   planId: string;
   scale: ScaleUnit;
@@ -83,66 +86,80 @@ export function ScheduleBoard({
   bufferStart: string | null;
   deadline: string | null;
   locale: "en" | "sq";
-  /** Jeu de colonnes réduit : laisse la place au diagramme. */
   compact: boolean;
+  /**
+   * Identifiants retenus par les filtres de la barre d'outils, ou `null` si
+   * aucun filtre n'est posé.
+   *
+   * Le filtre est une affaire d'AFFICHAGE, pas de modèle : le modèle porte
+   * toujours le plan entier. Sinon les numéros de ligne se renuméroteraient
+   * selon le filtre — le numéro 3 ne désignerait plus la même tâche d'une vue
+   * à l'autre — et les précédences pointant hors du filtre disparaîtraient de
+   * la saisie.
+   */
+  visibleIds: string[] | null;
 }) {
   const t = useT();
   const { can } = usePermissions();
   const editable = can("task.write");
 
+  const board = useBoard({ initial, scenarioCode, editable });
+
   const [active, setActive] = useState<Cell | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [dragging, setDragging] = useState<string | null>(null);
 
-  // Retour immédiat : la ligne touchée est marquée pendant l'aller-retour
-  // serveur, sans attendre le recalcul complet.
-  const [savingId, setSavingId] = useOptimistic<string | null, string | null>(
-    null,
-    (_, next) => next,
-  );
-
-  // Les colonnes masquées sont exclues de la NAVIGATION aussi : sans cela, Tab
-  // sautait dans une cellule invisible et le focus disparaissait.
   const columns = useMemo(() => visibleColumns(compact), [compact]);
 
-  // La corbeille partage la cellule d'avancement en jeu complet ; en jeu
-  // réduit elle occupe ses 26 px à part. L'oublier ici faisait rétrécir toutes
-  // les colonnes par débordement flex, et l'en-tête ne s'alignait plus.
-  const actionsWidth = !columns.includes("progress") && editable ? 26 : 0;
-  const paneWidth = useMemo(
-    () => gridWidth(columns) + actionsWidth,
-    [columns, actionsWidth],
-  );
+  // La corbeille et le crayon vivent dans une colonne d'actions propre : les
+  // glisser dans la colonne d'avancement les faisait disparaître avec elle.
+  const actionsWidth = editable ? 52 : 0;
+  const paneWidth = useMemo(() => gridWidth(columns, actionsWidth), [columns, actionsWidth]);
 
-  const handle = useCallback(
-    (result: WriteResult) => {
-      if (result.ok) {
-        setError(null);
-        return true;
-      }
-      const message = t(`schedule.${result.error}`);
-      setError(
-        result.detail
-          ? `${message === `schedule.${result.error}` ? result.error : message} — ${result.detail}`
-          : message,
-      );
-      return false;
-    },
-    [t],
-  );
+  /** Lignes affichées : l'ordre du modèle, moins le replié, moins le filtré. */
+  const tasks = useMemo(() => {
+    const open = visibleTasks(board.model.tasks, collapsed);
+    if (visibleIds === null) return open;
+    const keep = new Set(visibleIds);
+    return open.filter((task) => keep.has(task.id));
+  }, [board.model.tasks, collapsed, visibleIds]);
 
-  /** Déplace le focus après validation. */
+  const toggleCollapse = useCallback((taskId: string) => {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  }, []);
+
+  const collapseAll = useCallback(() => {
+    setCollapsed(
+      new Set(
+        board.model.tasks
+          .filter((task) => isCollapsible(board.model.tasks, task))
+          .map((task) => task.id),
+      ),
+    );
+  }, [board.model.tasks]);
+
+  /** Déplace le focus après validation, en sautant les cellules non éditables. */
   const move = useCallback(
     (from: Cell, direction: CommitDirection) => {
       if (direction === "none") {
         setActive(null);
         return;
       }
+      const editableAt = (row: number, column: BoardColumn) =>
+        column === "start"
+          ? isStartEditable(tasks[row], board.hasPredecessor(tasks[row].id))
+          : isCellEditable(tasks[row], column);
+
       if (direction === "down") {
         for (let i = from.row + 1; i < tasks.length; i++) {
-          if (isCellEditable(tasks[i], from.column)) {
+          if (editableAt(i, from.column)) {
             setActive({ row: i, column: from.column });
             return;
           }
@@ -151,13 +168,13 @@ export function ScheduleBoard({
         return;
       }
       const index = columns.indexOf(from.column);
-      const next = columns.slice(index + 1).find((c) => isCellEditable(tasks[from.row], c));
+      const next = columns.slice(index + 1).find((c) => editableAt(from.row, c));
       if (next) {
         setActive({ row: from.row, column: next });
         return;
       }
       for (let i = from.row + 1; i < tasks.length; i++) {
-        const first = columns.find((c) => isCellEditable(tasks[i], c));
+        const first = columns.find((c) => editableAt(i, c));
         if (first) {
           setActive({ row: i, column: first });
           return;
@@ -165,105 +182,40 @@ export function ScheduleBoard({
       }
       setActive(null);
     },
-    [tasks, columns],
+    [tasks, columns, board],
   );
 
-  const commit = useCallback(
+  const commitCell = useCallback(
     (row: number, column: BoardColumn, value: string | null, direction: CommitDirection) => {
       const task = tasks[row];
-      // Annulation : on ne touche à rien.
       if (value === null) {
         if (direction === "none") setActive(null);
         else move({ row, column }, direction);
         return;
       }
-
-      const raw = value.trim();
-      const num = raw === "" ? null : Number(raw);
-
-      // Valeur inchangée : ni écriture ni recalcul. Traverser la grille au
-      // clavier pour la relire ne doit rien coûter.
-      const unchanged =
-        (column === "activity" && raw === task.activity) ||
-        (column === "duration" && num === task.durationDays) ||
-        (column === "progress" && num === task.progressPct) ||
-        (column === "start" && (raw || null) === task.startAnchor) ||
-        (column === "predecessors" && raw === task.predecessorCodes.join(", "));
-
-      if (unchanged) {
-        move({ row, column }, direction);
-        return;
-      }
-
-      startTransition(async () => {
-        setSavingId(task.id);
-        let result: WriteResult;
-
-        switch (column) {
-          case "activity":
-            result = await setTaskActivity(task.id, raw);
-            break;
-          case "duration":
-            if (num !== null && !Number.isInteger(num)) {
-              setError(t("schedule.invalidDuration"));
-              return;
-            }
-            result = await setTaskDuration(task.id, scenarioCode, num);
-            break;
-          case "progress":
-            result = await setTaskProgress(task.id, num);
-            break;
-          case "start":
-            result = await setTaskStartAnchor(task.id, scenarioCode, raw || null);
-            break;
-          case "predecessors":
-            result = await setTaskPredecessors(
-              task.id,
-              scenarioCode,
-              raw === "" ? [] : raw.split(/[,;\s]+/),
-            );
-            break;
-          default:
-            return;
-        }
-
-        if (handle(result)) move({ row, column }, direction);
-      });
+      if (board.editCell(task.id, column, value)) move({ row, column }, direction);
     },
-    [tasks, scenarioCode, move, handle, t, setSavingId],
+    [tasks, board, move],
   );
 
-  const assign = useCallback(
-    (task: BoardTask, userId: string | null) => {
-      startTransition(async () => {
-        setSavingId(task.id);
-        handle(await setTaskAssignment(task.id, "owner", userId));
-        setActive(null);
-      });
-    },
-    [handle, setSavingId],
-  );
+  const errorText = board.error
+    ? (() => {
+        const label = t(`schedule.${board.error.code}`);
+        const text = label === `schedule.${board.error.code}` ? board.error.code : label;
+        return board.error.detail ? `${text} — ${board.error.detail}` : text;
+      })()
+    : null;
 
-  const attachSite = useCallback(
-    (task: BoardTask, siteId: string | null) => {
-      startTransition(async () => {
-        setSavingId(task.id);
-        handle(await setTaskSite(task.id, siteId));
-        setActive(null);
-      });
-    },
-    [handle, setSavingId],
-  );
+  const editingTask = editing ? board.model.tasks.find((task) => task.id === editing) : null;
 
-  const remove = useCallback(
-    (task: BoardTask) => {
-      startTransition(async () => {
-        setSavingId(task.id);
-        handle(await deleteTask(task.id, scenarioCode));
-      });
-    },
-    [scenarioCode, handle, setSavingId],
-  );
+  // Une flèche dont une extrémité est repliée ou filtrée n'a nulle part où
+  // aboutir : on ne la dessine pas plutôt que de la faire pointer dans le vide.
+  const links = useMemo(() => {
+    const shownIds = new Set(tasks.map((task) => task.id));
+    return board.model.dependencies.filter(
+      (d) => shownIds.has(d.predecessorId) && shownIds.has(d.successorId),
+    );
+  }, [tasks, board.model.dependencies]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -274,17 +226,57 @@ export function ScheduleBoard({
             {t("schedule.addTask")}
           </Button>
         )}
-        <span className="text-xs text-[var(--text-muted)]">
-          {t("schedule.rowCount", { count: String(tasks.length) })}
+
+        {editable && (
+          <span className="inline-flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!board.canUndo}
+              title={t("schedule.undoHint")}
+              onClick={board.undo}
+            >
+              {t("schedule.undo")}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!board.canRedo}
+              title={t("schedule.redoHint")}
+              onClick={board.redo}
+            >
+              {t("schedule.redo")}
+            </Button>
+          </span>
+        )}
+
+        <span className="inline-flex items-center gap-1">
+          <Button size="sm" variant="quiet" onClick={collapseAll}>
+            {t("schedule.collapseAll")}
+          </Button>
+          <Button size="sm" variant="quiet" onClick={() => setCollapsed(new Set())}>
+            {t("schedule.expandAll")}
+          </Button>
         </span>
-        {pending && (
+
+        <span className="text-xs text-[var(--text-muted)]">
+          {tasks.length === board.model.tasks.length
+            ? t("schedule.rowCount", { count: String(tasks.length) })
+            : t("schedule.rowCountPartial", {
+                count: String(tasks.length),
+                total: String(board.model.tasks.length),
+              })}
+        </span>
+
+        {board.pending && (
           <span className="text-xs" style={{ color: "var(--accent)" }}>
             {t("common.saving")}
           </span>
         )}
       </div>
 
-      {error && (
+      {/* Un cycle rend le planning incalculable : on le dit, on ne vide pas. */}
+      {board.model.cycle !== null && (
         <p
           role="alert"
           className="mx-2 rounded-md px-3 py-2 text-sm"
@@ -293,42 +285,76 @@ export function ScheduleBoard({
             color: "var(--danger)",
           }}
         >
-          {error}
+          {t("schedule.cycleNotice")}
+        </p>
+      )}
+
+      {errorText && (
+        <p
+          role="alert"
+          className="mx-2 flex items-start justify-between gap-3 rounded-md px-3 py-2 text-sm"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--danger) 10%, transparent)",
+            color: "var(--danger)",
+          }}
+        >
+          <span>{errorText}</span>
+          <button type="button" onClick={board.clearError} className="shrink-0 underline">
+            {t("common.close")}
+          </button>
         </p>
       )}
 
       {/* ── Les deux volets, un seul défilement vertical ──────────────── */}
-      <div ref={scrollRef} className="flex max-h-[72vh] overflow-y-auto">
-        {/* Volet gauche : la grille. `sticky` le maintient visible quand on
-            fait défiler le diagramme horizontalement. */}
-        <div className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]" style={{ width: paneWidth }}>
+      <div className="flex max-h-[72vh] overflow-y-auto">
+        <div
+          className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]"
+          style={{ width: paneWidth }}
+        >
           <GridHeader t={t} columns={columns} actionsWidth={actionsWidth} />
           {tasks.map((task, row) => (
             <GridRow
               key={task.id}
               task={task}
               row={row}
+              rowNumber={board.rows.get(task.id) ?? row + 1}
               active={active}
               editable={editable}
+              columns={columns}
+              actionsWidth={actionsWidth}
               people={people}
               sites={sites}
-              columns={columns}
-              saving={savingId === task.id}
+              contracts={contracts}
+              predecessorLabel={board.predecessorLabel(task.id)}
+              hasPredecessor={board.hasPredecessor(task.id)}
+              collapsible={isCollapsible(board.model.tasks, task)}
+              collapsed={collapsed.has(task.id)}
+              hiddenCount={
+                collapsed.has(task.id) ? descendantCount(board.model.tasks, task.id) : 0
+              }
+              saving={board.savingId === task.id}
+              dragging={dragging === task.id}
+              onToggleCollapse={toggleCollapse}
               onActivate={setActive}
-              onCommit={commit}
-              onAssign={assign}
-              onAttachSite={attachSite}
-              onDelete={remove}
+              onCommit={commitCell}
+              onAssign={board.assign}
+              onMove={board.move}
+              onDragStart={setDragging}
+              onDragEnd={() => setDragging(null)}
+              onDrop={(beforeId) => {
+                if (dragging && dragging !== beforeId) board.dropOn(dragging, beforeId);
+                setDragging(null);
+              }}
+              onEdit={setEditing}
               t={t}
             />
           ))}
         </div>
 
-        {/* Volet droit : le diagramme, prolongement des colonnes. */}
         <div className="min-w-0 flex-1 overflow-x-auto">
           <GanttPane
             tasks={tasks}
-            dependencies={dependencies}
+            dependencies={links}
             scale={scale}
             today={today}
             bufferStart={bufferStart}
@@ -338,6 +364,8 @@ export function ScheduleBoard({
               buffer: t("gantt.buffer"),
               deadline: t("gantt.deadline"),
               today: t("gantt.today"),
+              unreported: t("gantt.unreported"),
+              late: t("gantt.late"),
             }}
           />
         </div>
@@ -351,12 +379,25 @@ export function ScheduleBoard({
           onClose={() => setAdding(false)}
           scenarioCode={scenarioCode}
           planId={planId}
-          tasks={tasks}
+          tasks={board.model.tasks}
           onCreate={async (input) => {
             const result = await createTask(input);
-            handle(result);
             return result.ok;
           }}
+        />
+      )}
+
+      {editingTask && (
+        <TaskForm
+          task={editingTask}
+          rowNumber={board.rows.get(editingTask.id) ?? 0}
+          predecessorLabel={board.predecessorLabel(editingTask.id)}
+          hasPredecessor={board.hasPredecessor(editingTask.id)}
+          people={people}
+          sites={sites}
+          contracts={contracts}
+          onClose={() => setEditing(null)}
+          onSave={(fields) => board.saveFields(editingTask.id, fields)}
         />
       )}
     </div>
@@ -364,25 +405,6 @@ export function ScheduleBoard({
 }
 
 // ── En-tête de la grille ────────────────────────────────────────────────────
-
-/**
- * Ordre de rendu, en-tête et lignes CONFONDUS.
- *
- * « Fin » s'insère juste après « Début » et non en queue : c'est la colonne
- * qu'on vient lire, et l'éloigner de son début casse la lecture. Les deux
- * volets dérivent de cette même liste — sans quoi masquer une colonne les
- * décalait l'un par rapport à l'autre.
- */
-function renderOrder(columns: BoardColumn[]): (BoardColumn | "end")[] {
-  const out: (BoardColumn | "end")[] = [];
-  for (const column of columns) {
-    out.push(column);
-    if (column === "start") out.push("end");
-  }
-  return out;
-}
-
-const RIGHT_ALIGNED = new Set(["duration", "start", "end", "progress"]);
 
 function GridHeader({
   t,
@@ -394,10 +416,16 @@ function GridHeader({
   actionsWidth: number;
 }) {
   const cell =
-    "flex items-center border-r border-b border-[var(--border)] px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+    "flex shrink-0 items-center border-r border-b border-[var(--border)] px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
   return (
     <div className="sticky top-0 z-20 flex bg-[var(--app-bg)]" style={{ height: HEAD_H }}>
-      <div className={cell} style={{ width: COLUMN_WIDTH.wbs }}>{t("schedule.wbs")}</div>
+      <div
+        className={cn(cell, "justify-end")}
+        style={{ width: COLUMN_WIDTH.rowNo }}
+        title={t("schedule.rowNoHint")}
+      >
+        #
+      </div>
       {renderOrder(columns).map((column) => (
         <div
           key={column}
@@ -416,41 +444,108 @@ function GridHeader({
 
 // ── Une ligne ───────────────────────────────────────────────────────────────
 
-function GridRow({
-  task,
-  row,
-  active,
-  editable,
-  people,
-  sites,
-  columns,
-  saving,
-  onActivate,
-  onCommit,
-  onAssign,
-  onAttachSite,
-  onDelete,
-  t,
-}: {
+interface RowProps {
   task: BoardTask;
   row: number;
+  rowNumber: number;
   active: Cell | null;
   editable: boolean;
+  columns: BoardColumn[];
+  actionsWidth: number;
   people: PersonOption[];
   sites: SiteChoice[];
-  /** Colonnes rendues : le même jeu que l'en-tête, sinon les volets se décalent. */
-  columns: BoardColumn[];
+  contracts: ContractChoice[];
+  predecessorLabel: string;
+  hasPredecessor: boolean;
+  collapsible: boolean;
+  collapsed: boolean;
+  hiddenCount: number;
   saving: boolean;
+  dragging: boolean;
+  onToggleCollapse: (taskId: string) => void;
   onActivate: (cell: Cell) => void;
-  onCommit: (row: number, column: BoardColumn, value: string | null, direction: CommitDirection) => void;
-  onAssign: (task: BoardTask, userId: string | null) => void;
-  onAttachSite: (task: BoardTask, siteId: string | null) => void;
-  onDelete: (task: BoardTask) => void;
+  onCommit: (
+    row: number,
+    column: BoardColumn,
+    value: string | null,
+    direction: CommitDirection,
+  ) => void;
+  onAssign: (
+    taskId: string,
+    field: "ownerId" | "siteId" | "contractId",
+    value: string | null,
+  ) => void;
+  onMove: (taskId: string, direction: -1 | 1) => void;
+  onDragStart: (taskId: string) => void;
+  onDragEnd: () => void;
+  onDrop: (beforeTaskId: string) => void;
+  onEdit: (taskId: string) => void;
   t: (key: string, values?: Record<string, string>) => string;
-}) {
+}
+
+function GridRow(props: RowProps) {
+  const {
+    task,
+    row,
+    rowNumber,
+    active,
+    editable,
+    columns,
+    actionsWidth,
+    people,
+    sites,
+    contracts,
+    predecessorLabel,
+    hasPredecessor,
+    collapsible,
+    collapsed,
+    hiddenCount,
+    saving,
+    dragging,
+    onToggleCollapse,
+    onActivate,
+    onCommit,
+    onAssign,
+    onMove,
+    onDragStart,
+    onDragEnd,
+    onDrop,
+    onEdit,
+    t,
+  } = props;
+
   const isActive = (column: BoardColumn) => active?.row === row && active.column === column;
-  const cellEditable = (column: BoardColumn) => editable && isCellEditable(task, column);
   const shown = (column: BoardColumn) => columns.includes(column);
+  const cellEditable = (column: BoardColumn) =>
+    editable &&
+    (column === "start"
+      ? isStartEditable(task, hasPredecessor)
+      : isCellEditable(task, column));
+
+  const selectEditor = (
+    value: string | null,
+    field: "ownerId" | "siteId" | "contractId",
+    options: { id: string; label: string }[],
+    emptyLabel: string,
+    small = false,
+  ) => (
+    <select
+      className={cn(
+        "h-full w-full rounded-sm border bg-[var(--surface)] px-1 outline-none",
+        small ? "text-xs" : "text-sm",
+      )}
+      style={{ borderColor: "var(--focus)" }}
+      value={value ?? ""}
+      onChange={(e) => onAssign(task.id, field, e.target.value || null)}
+    >
+      <option value="">{emptyLabel}</option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
 
   return (
     <div
@@ -459,15 +554,33 @@ function GridRow({
         task.type === "group_header" && "bg-[var(--app-bg)]",
         row % 2 === 1 && task.type !== "group_header" && "bg-[color-mix(in_srgb,var(--app-bg)_45%,transparent)]",
         saving && "opacity-60",
+        dragging && "opacity-40",
       )}
       style={{ height: ROW_H }}
+      /* Glisser-déposer natif : aucune dépendance, et le clavier garde ses
+         propres boutons de déplacement pour ceux qui ne peuvent pas glisser. */
+      draggable={editable}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart(task.id);
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => {
+        if (editable) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop(task.id);
+      }}
     >
-      {/* WBS — lecture seule, c'est la clé fonctionnelle */}
+      {/* Numéro de ligne — renuméroté automatiquement, c'est la clé des
+          précédences. Lecture seule : il DÉRIVE de l'ordre. */}
       <div
-        className="flex shrink-0 items-center border-r border-b border-[var(--border)] px-2 font-mono text-[11px] text-[var(--text-muted)]"
-        style={{ width: COLUMN_WIDTH.wbs }}
+        className="flex shrink-0 items-center justify-end border-r border-b border-[var(--border)] px-2 text-[11px] tabular-nums text-[var(--text-muted)]"
+        style={{ width: COLUMN_WIDTH.rowNo }}
+        title={task.wbsCode}
       >
-        <span className="truncate">{task.wbsCode}</span>
+        {rowNumber}
       </div>
 
       <BoardCell
@@ -477,16 +590,52 @@ function GridRow({
         raw={task.activity}
         display={
           <span
-            /* L'indentation rend la hiérarchie lisible sans colonne dédiée. */
-            style={{ paddingLeft: task.depth * 14 }}
-            className={cn(
-              "block truncate",
-              (task.type === "summary" || task.type === "group_header") && "font-semibold",
-              task.type === "group_header" &&
-                "text-[11px] uppercase tracking-wide text-[var(--text-muted)]",
-            )}
+            className="flex items-center gap-1"
+            style={{ paddingLeft: task.depth * 12 }}
           >
-            {task.activity}
+            {/* Chevron de repliement : seulement là où il masque quelque chose. */}
+            {collapsible ? (
+              <button
+                type="button"
+                aria-expanded={!collapsed}
+                aria-label={t(collapsed ? "schedule.expandRow" : "schedule.collapseRow")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCollapse(task.id);
+                }}
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--border)]"
+              >
+                <svg
+                  width="9"
+                  height="9"
+                  viewBox="0 0 10 10"
+                  aria-hidden="true"
+                  style={{
+                    transform: collapsed ? "rotate(-90deg)" : undefined,
+                    transition: "transform 120ms",
+                  }}
+                >
+                  <path d="M1 3 L5 7 L9 3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              </button>
+            ) : (
+              <span className="w-4 shrink-0" aria-hidden="true" />
+            )}
+            <span
+              className={cn(
+                "truncate",
+                (task.type === "summary" || task.type === "group_header") && "font-semibold",
+                task.type === "group_header" &&
+                  "text-[11px] uppercase tracking-wide text-[var(--text-muted)]",
+              )}
+            >
+              {task.activity}
+            </span>
+            {hiddenCount > 0 && (
+              <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
+                {t("schedule.hiddenCount", { count: String(hiddenCount) })}
+              </span>
+            )}
           </span>
         }
         onActivate={() => onActivate({ row, column: "activity" })}
@@ -516,8 +665,9 @@ function GridRow({
         onCommit={(v, d) => onCommit(row, "duration", v, d)}
       />
 
-      {/* Début — éditable en tant qu'ANCRE. Une valeur figée porte une épingle ;
-          la vider rend la tâche à ses précédences. */}
+      {/* Début — éditable SEULEMENT sans prédécesseur. Avec un lien fin-début,
+          la date est un résultat : la maillon suivant commence où le précédent
+          finit, automatiquement. */}
       <BoardCell
         width={COLUMN_WIDTH.start}
         align="right"
@@ -525,20 +675,24 @@ function GridRow({
         editable={cellEditable("start")}
         active={isActive("start")}
         raw={task.startAnchor ?? task.start ?? ""}
-        title={driverHint(task, t)}
+        title={
+          hasPredecessor
+            ? t("schedule.startDrivenBy", { rows: predecessorLabel })
+            : driverHint(task, t)
+        }
         display={
           <span className="tabular-nums">
-            {task.startAnchor && (
+            {hasPredecessor && (
+              <span className="text-[var(--text-muted)]" aria-hidden="true">
+                ⇥{" "}
+              </span>
+            )}
+            {task.startAnchor && !hasPredecessor && (
               <span style={{ color: "var(--accent-2)" }} title={t("schedule.driverInput")}>
                 ⚲{" "}
               </span>
             )}
             {formatPlanDate(task.start)}
-            {task.drifted && (
-              <span style={{ color: "var(--accent-2)" }} title={t("schedule.driftNote")}>
-                {" "}●
-              </span>
-            )}
           </span>
         }
         onActivate={() => onActivate({ row, column: "start" })}
@@ -553,119 +707,120 @@ function GridRow({
         {formatPlanDate(task.end)}
       </div>
 
-      {shown("owner") && (
-      <BoardCell
-        width={COLUMN_WIDTH.owner}
-        editable={cellEditable("owner")}
-        active={isActive("owner")}
-        raw={task.ownerId ?? ""}
-        display={
-          task.ownerName ? (
-            <span className="truncate">{task.ownerName}</span>
-          ) : (
-            <span className="text-[var(--text-muted)]">{t("schedule.unassigned")}</span>
-          )
-        }
-        onActivate={() => onActivate({ row, column: "owner" })}
-        onCommit={() => onActivate({ row, column: "owner" })}
-        /* Focus, Échap et sortie sont gérés par le conteneur de la cellule
-           (board-cell.tsx) : les redoubler ici refermait la liste avant qu'on
-           puisse choisir. */
-        renderEditor={() => (
-          <select
-            className="h-full w-full rounded-sm border bg-[var(--surface)] px-1 text-sm outline-none"
-            style={{ borderColor: "var(--focus)" }}
-            value={task.ownerId ?? ""}
-            onChange={(e) => onAssign(task, e.target.value || null)}
-          >
-            <option value="">{t("schedule.unassigned")}</option>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.fullName} — {p.roleCode}
-              </option>
-            ))}
-          </select>
-        )}
-      />
-      )}
-
       {shown("predecessors") && (
-      <BoardCell
-        width={COLUMN_WIDTH.predecessors}
-        editable={cellEditable("predecessors")}
-        active={isActive("predecessors")}
-        raw={task.predecessorCodes.join(", ")}
-        title={t("schedule.predecessorsHint")}
-        display={
-          task.predecessorCodes.length === 0 ? (
-            <span className="text-[var(--text-muted)]">—</span>
-          ) : (
-            <span className="truncate font-mono text-[11px]">
-              {task.predecessorCodes.join(", ")}
-            </span>
-          )
-        }
-        onActivate={() => onActivate({ row, column: "predecessors" })}
-        onCommit={(v, d) => onCommit(row, "predecessors", v, d)}
-      />
-      )}
-
-      {/* Site — VIDE au chargement, et c'est correct : le planning source est
-          au niveau sous-projet. On n'offre que les sites du sous-projet de la
-          tâche, sinon on proposerait de rattacher un hall à l'autre projet. */}
-      {shown("site") && (
-      <BoardCell
-        width={COLUMN_WIDTH.site}
-        editable={cellEditable("site")}
-        active={isActive("site")}
-        raw={task.siteId ?? ""}
-        title={task.siteCode === null ? t("schedule.siteHint") : undefined}
-        display={
-          task.siteCode ? (
-            <span className="truncate font-mono text-[11px]">{task.siteCode}</span>
-          ) : (
-            <span className="text-[11px] text-[var(--text-muted)]">
-              {task.subproject ? t(`schedule.sub_${task.subproject}`) : "—"}
-            </span>
-          )
-        }
-        onActivate={() => onActivate({ row, column: "site" })}
-        onCommit={() => onActivate({ row, column: "site" })}
-        renderEditor={() => (
-          <select
-            className="h-full w-full rounded-sm border bg-[var(--surface)] px-1 text-xs outline-none"
-            style={{ borderColor: "var(--focus)" }}
-            value={task.siteId ?? ""}
-            onChange={(e) => onAttachSite(task, e.target.value || null)}
-          >
-            <option value="">{t("schedule.allSites")}</option>
-            {sites
-              .filter((s) => task.subproject === null || s.subproject === task.subproject)
-              .map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.siteCode} — {s.name}
-                </option>
-              ))}
-          </select>
-        )}
-      />
-      )}
-
-      {/* L'avancement et la suppression partagent la dernière cellule : la
-          corbeille doit rester atteignable même en jeu de colonnes réduit,
-          d'où son rattachement à une colonne toujours visible. */}
-      <div
-        className="flex shrink-0 items-center"
-        style={{ width: shown("progress") ? COLUMN_WIDTH.progress : editable ? 26 : 0 }}
-      >
-        {shown("progress") && (
         <BoardCell
-          width={COLUMN_WIDTH.progress - 26}
+          width={COLUMN_WIDTH.predecessors}
+          editable={cellEditable("predecessors")}
+          active={isActive("predecessors")}
+          raw={predecessorLabel}
+          title={t("schedule.predecessorsHint")}
+          display={
+            predecessorLabel === "" ? (
+              <span className="text-[var(--text-muted)]">—</span>
+            ) : (
+              <span className="truncate tabular-nums text-[12px]">{predecessorLabel}</span>
+            )
+          }
+          onActivate={() => onActivate({ row, column: "predecessors" })}
+          onCommit={(v, d) => onCommit(row, "predecessors", v, d)}
+        />
+      )}
+
+      {shown("owner") && (
+        <BoardCell
+          width={COLUMN_WIDTH.owner}
+          editable={cellEditable("owner")}
+          active={isActive("owner")}
+          raw={task.ownerId ?? ""}
+          display={
+            task.ownerName ? (
+              <span className="truncate">{task.ownerName}</span>
+            ) : (
+              <span className="text-[var(--text-muted)]">{t("schedule.unassigned")}</span>
+            )
+          }
+          onActivate={() => onActivate({ row, column: "owner" })}
+          onCommit={() => onActivate({ row, column: "owner" })}
+          renderEditor={() =>
+            selectEditor(
+              task.ownerId,
+              "ownerId",
+              people.map((p) => ({ id: p.id, label: `${p.fullName} — ${p.roleCode}` })),
+              t("schedule.unassigned"),
+            )
+          }
+        />
+      )}
+
+      {shown("contract") && (
+        <BoardCell
+          width={COLUMN_WIDTH.contract}
+          editable={cellEditable("contract")}
+          active={isActive("contract")}
+          raw={task.contractId ?? ""}
+          title={t("schedule.contractHint")}
+          display={
+            task.contractCode ? (
+              <span className="truncate font-mono text-[11px]">{task.contractCode}</span>
+            ) : (
+              <span className="text-[var(--text-muted)]">—</span>
+            )
+          }
+          onActivate={() => onActivate({ row, column: "contract" })}
+          onCommit={() => onActivate({ row, column: "contract" })}
+          renderEditor={() =>
+            selectEditor(
+              task.contractId,
+              "contractId",
+              contracts.map((c) => ({ id: c.id, label: `${c.contractCode} — ${c.name}` })),
+              t("common.none"),
+              true,
+            )
+          }
+        />
+      )}
+
+      {shown("site") && (
+        <BoardCell
+          width={COLUMN_WIDTH.site}
+          editable={cellEditable("site")}
+          active={isActive("site")}
+          raw={task.siteId ?? ""}
+          title={task.siteCode === null ? t("schedule.siteHint") : undefined}
+          display={
+            task.siteCode ? (
+              <span className="truncate font-mono text-[11px]">{task.siteCode}</span>
+            ) : (
+              <span className="text-[11px] text-[var(--text-muted)]">
+                {task.subproject ? t(`schedule.sub_${task.subproject}`) : "—"}
+              </span>
+            )
+          }
+          onActivate={() => onActivate({ row, column: "site" })}
+          onCommit={() => onActivate({ row, column: "site" })}
+          renderEditor={() =>
+            selectEditor(
+              task.siteId,
+              "siteId",
+              sites
+                .filter((s) => task.subproject === null || s.subproject === task.subproject)
+                .map((s) => ({ id: s.id, label: `${s.siteCode} — ${s.name}` })),
+              t("schedule.allSites"),
+              true,
+            )
+          }
+        />
+      )}
+
+      {shown("progress") && (
+        <BoardCell
+          width={COLUMN_WIDTH.progress}
           align="right"
           inputMode="numeric"
           editable={cellEditable("progress")}
           active={isActive("progress")}
           raw={task.progressPct === null ? "" : String(task.progressPct)}
+          title={t("schedule.progressHint")}
           display={
             task.progressPct === null ? (
               <span className="text-[var(--text-muted)]">—</span>
@@ -676,23 +831,47 @@ function GridRow({
           onActivate={() => onActivate({ row, column: "progress" })}
           onCommit={(v, d) => onCommit(row, "progress", v, d)}
         />
-        )}
-        {editable && (
+      )}
+
+      {/* Actions : monter, descendre, ouvrir le formulaire. */}
+      {actionsWidth > 0 && (
+        <div
+          className="flex shrink-0 items-center border-b border-[var(--border)]"
+          style={{ width: actionsWidth }}
+        >
+          <span className="flex flex-col">
+            <button
+              type="button"
+              aria-label={t("schedule.moveUp")}
+              onClick={() => onMove(task.id, -1)}
+              className="flex h-[13px] w-4 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)]"
+            >
+              <svg width="8" height="6" viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 5 L5 1 L9 5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label={t("schedule.moveDown")}
+              onClick={() => onMove(task.id, 1)}
+              className="flex h-[13px] w-4 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)]"
+            >
+              <svg width="8" height="6" viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 1 L5 5 L9 1" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+            </button>
+          </span>
           <IconButton
-            label={t("schedule.deleteTask")}
-            className="h-6 w-6 shrink-0 border-b border-[var(--border)]"
-            onClick={() => {
-              if (window.confirm(t("schedule.confirmDelete", { wbs: task.wbsCode }))) {
-                onDelete(task);
-              }
-            }}
+            label={t("schedule.editTaskLabel")}
+            className="h-6 w-6 shrink-0"
+            onClick={() => onEdit(task.id)}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+              <path d="M4 20h4l10-10-4-4L4 16v4z" />
             </svg>
           </IconButton>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,7 +37,7 @@ export const GanttPane = memo(function GanttPane({
   bufferStart: string | null;
   deadline: string | null;
   locale: "en" | "sq";
-  labels: { buffer: string; deadline: string; today: string };
+  labels: { buffer: string; deadline: string; today: string; unreported: string; late: string };
 }) {
   const layout = useMemo(
     () =>
@@ -192,8 +192,22 @@ export const GanttPane = memo(function GanttPane({
           );
         }
 
+        // Quatre états, et la nuance décisive est « non renseigné » : une
+        // tâche dont la fin est passée sans avancement saisi n'est PAS en
+        // retard — on n'en sait rien. La dire en rose serait affirmer un fait
+        // que personne n'a constaté.
         const fill =
-          bar.isLate ? "#ea9999" : bar.type === "summary" ? GANTT.text : "var(--accent)";
+          bar.status === "late"
+            ? "#ea9999"
+            : bar.type === "summary"
+              ? GANTT.text
+              : "var(--accent)";
+
+        const unreported = bar.status === "unreported";
+        const tip =
+          `${bar.wbsCode} — ${bar.label}` +
+          (unreported ? ` · ${labels.unreported}` : "") +
+          (bar.status === "late" ? ` · ${labels.late}` : "");
 
         return (
           <g key={bar.taskId}>
@@ -203,21 +217,30 @@ export const GanttPane = memo(function GanttPane({
               width={bar.width}
               height={bar.height}
               rx={bar.type === "summary" ? 1 : 3}
-              fill={fill}
+              fill={unreported ? "var(--surface)" : fill}
+              /* Non renseigné : contour tireté, barre creuse. On voit qu'il y a
+                 une tâche, et qu'il n'y a pas d'information. */
+              stroke={unreported ? "var(--accent-2)" : undefined}
+              strokeWidth={unreported ? 1.2 : 0}
+              strokeDasharray={unreported ? "3 2" : undefined}
               opacity={bar.type === "summary" ? 0.85 : 1}
             >
-              <title>{`${bar.wbsCode} — ${bar.label}`}</title>
+              <title>{tip}</title>
             </rect>
+            {/* Avancement : remplissage INTÉRIEUR, comme sous MS Project. Une
+                bande de 4 px au bas de la barre se lisait comme une ombre. */}
             {bar.progressWidth > 0 && (
               <rect
                 x={bar.x}
-                y={y + bar.height - 4}
+                y={y + 3}
                 width={bar.progressWidth}
-                height={4}
+                height={bar.height - 6}
                 rx={1}
                 fill={GANTT.text}
-                opacity={0.55}
-              />
+                opacity={0.5}
+              >
+                <title>{tip}</title>
+              </rect>
             )}
           </g>
         );

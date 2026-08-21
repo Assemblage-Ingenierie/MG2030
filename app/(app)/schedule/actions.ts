@@ -36,7 +36,16 @@ export interface WriteResult {
  * Paris, soit près d'une seconde de latence pure pour une frappe. Dans l'écran
  * dont le brief §2 dit qu'il décide du sort du projet, c'était rédhibitoire.
  */
-async function recomputeAndPersist(scenarioCode: string): Promise<WriteResult> {
+export async function recomputeAndPersist(
+  scenarioCode: string,
+  /**
+   * `false` pour le plan de charge interactif : il tient son propre modèle à
+   * jour et a DÉJÀ affiché le résultat. Revalider le referait remplacer par
+   * une version identique venue du serveur — un re-rendu complet de la page
+   * pour rien, et surtout un écrasement de la saisie en cours.
+   */
+  revalidate = true,
+): Promise<WriteResult> {
   const supabase = await createClient();
   const { tasks, dependencies, constraints } = await loadSchedule(scenarioCode);
 
@@ -84,11 +93,11 @@ async function recomputeAndPersist(scenarioCode: string): Promise<WriteResult> {
       p_dates: payload,
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/schedule");
+    if (revalidate) revalidatePath("/schedule");
     return { ok: true, changed: (data as number) ?? payload.length };
   }
 
-  revalidatePath("/schedule");
+  if (revalidate) revalidatePath("/schedule");
   return { ok: true, changed: 0 };
 }
 
@@ -422,21 +431,24 @@ export async function setTaskParent(
   return recomputeAndPersist(scenarioCode);
 }
 
-/** Réordonnancement : nouvelle position de rang pour un lot de tâches. */
+/**
+ * Réordonnancement : nouvelle position de rang pour un lot de tâches.
+ *
+ * ⚠ UNE SEULE requête, via `mg2030_apply_task_order`. La version précédente
+ * bouclait un `UPDATE` par ligne en `await` séquentiel : déplacer une tâche
+ * dans une fratrie de huit produisait huit allers-retours vers Paris.
+ */
 export async function reorderTasks(
   scenarioCode: string,
   order: { id: string; sortOrder: number }[],
+  revalidate = true,
 ): Promise<WriteResult> {
+  if (order.length === 0) return { ok: true, changed: 0 };
   const supabase = await createClient();
-  for (const row of order) {
-    const { error } = await supabase
-      .from("mg2030_task")
-      .update({ sort_order: row.sortOrder })
-      .eq("id", row.id);
-    if (error) return { ok: false, error: error.message };
-  }
-  revalidatePath("/schedule");
-  return { ok: true };
+  const { data, error } = await supabase.rpc("mg2030_apply_task_order", { p_order: order });
+  if (error) return { ok: false, error: error.message };
+  if (revalidate) revalidatePath("/schedule");
+  return { ok: true, changed: (data as number) ?? order.length };
 }
 
 /** Recalcul manuel, sans modification préalable. Sert à résorber une dérive. */
