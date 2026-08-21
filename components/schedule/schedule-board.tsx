@@ -398,6 +398,7 @@ export function ScheduleBoard({
           contracts={contracts}
           onClose={() => setEditing(null)}
           onSave={(fields) => board.saveFields(editingTask.id, fields)}
+          onDelete={() => board.remove(editingTask.id)}
         />
       )}
     </div>

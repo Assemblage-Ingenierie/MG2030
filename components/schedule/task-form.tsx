@@ -31,6 +31,7 @@ export function TaskForm({
   contracts,
   onClose,
   onSave,
+  onDelete,
 }: {
   task: ModelTask;
   rowNumber: number;
@@ -41,6 +42,7 @@ export function TaskForm({
   contracts: ContractChoice[];
   onClose: () => void;
   onSave: (fields: Partial<ModelTask>) => boolean;
+  onDelete: () => void;
 }) {
   const t = useT();
   const [draft, setDraft] = useState({
@@ -207,13 +209,32 @@ export function TaskForm({
           <p className="mt-1 text-xs text-[var(--text-muted)]">{t("schedule.siteHint")}</p>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="secondary" type="button" onClick={onClose}>
-            {t("common.cancel")}
+        <div className="flex items-center gap-2 border-t border-[var(--border)] pt-4">
+          {/* La suppression vit ICI et non en icône dans la ligne : à côté des
+              flèches de déplacement, une corbeille se clique par erreur. Elle
+              archive plutôt qu'elle n'efface, et Ctrl+Z la ramène. */}
+          <Button
+            variant="danger"
+            size="sm"
+            type="button"
+            title={t("schedule.deleteTaskHint")}
+            onClick={() => {
+              if (window.confirm(t("schedule.confirmDelete", { wbs: task.activity }))) {
+                onDelete();
+                onClose();
+              }
+            }}
+          >
+            {t("schedule.deleteTask")}
           </Button>
-          <Button variant="primary" type="submit">
-            {t("common.save")}
-          </Button>
+          <span className="ml-auto flex gap-2">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" type="submit">
+              {t("common.save")}
+            </Button>
+          </span>
         </div>
       </form>
     </Modal>

@@ -353,7 +353,7 @@
     "unassignedNote": "{count} task(s) have no owner. Lateness notifications have no recipient until one is set — the source spreadsheet contained none (GAPS 8).",
     "addTask": "Add a task",
     "deleteTask": "Delete this task",
-    "confirmDelete": "Delete {wbs}? Its child tasks and its dependency links go with it.",
+    "confirmDelete": "Delete « {wbs} » and everything under it?",
     "rowCount": "{count} rows",
     "taskType": "Type",
     "type_task": "task",
@@ -412,7 +412,8 @@
     "startAnchorHint": "Pins the start. Leave empty to let the task follow its predecessors or the project start.",
     "endHint": "Always start + duration. Never entered: it is a result.",
     "progressHint": "Percent complete, entered by hand. It draws the dark band inside the bar, and a task past its end date with less than 100% shows as late.",
-    "writeFailed": "The database refused the write. Your change was rolled back."
+    "writeFailed": "The database refused the write. Your change was rolled back.",
+    "deleteTaskHint": "Archives the task and its children. It is not erased — Ctrl+Z brings it back, and the change log keeps the trace."
   },
   "gantt": {
     "title": "Gantt",
