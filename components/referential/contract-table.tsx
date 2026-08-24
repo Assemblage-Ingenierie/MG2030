@@ -139,7 +139,7 @@ export function ContractTable({
       return next;
     });
 
-  const active = filters !== EMPTY && Object.values(filters).some((v) => v !== "");
+  const active = Object.values(filters).some((value) => value !== "");
   const shownLots = visible.reduce(
     (sum, c) => sum + (collapsed.has(c.id) ? 0 : (lotsByContract.get(c.id) ?? []).length),
     0,

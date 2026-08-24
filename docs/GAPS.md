@@ -749,6 +749,58 @@ peuvent donc recevoir aucune alerte de retard, non par défaut technique mais
 faute de destinataires. Les quelques trente comptes de la PIU restent à ouvrir
 (docs/ADMIN.md).
 
+### 63. 🔴 [NOUVEAU — décidé le 21/08/2026] Inscription libre, contre le brief §3
+
+Le brief §3 prévoyait des comptes créés à la main par un administrateur, sans
+inscription libre. **Décision du 21/08/2026 : l'inscription est ouverte.** Ouvrir
+une trentaine de comptes à la main s'est révélé impraticable, et le point 36
+— « mode d'invitation sans fournisseur d'e-mail » — n'avait pas d'autre réponse.
+
+**La sûreté ne change pas.** S'inscrire crée un compte d'AUTHENTIFICATION,
+jamais un membre. Toute la RLS passe par `mg2030_private.is_member()`, qui
+interroge `mg2030_app_user` : sans ligne dans cette table, un compte lit zéro
+ligne sur les 30 tables. Le test [1] de la campagne RLS le vérifie déjà avec un
+compte réel de l'autre application.
+
+**Conséquence à surveiller.** `auth.users` est partagé (point 52), et la page
+d'inscription est publique : n'importe qui peut créer un compte
+d'authentification dans le projet Supabase commun. Aucune donnée n'est
+atteignable, mais la table `auth.users` se remplit. **Deux garde-fous à régler
+dans Supabase** : exiger la confirmation par e-mail, et restreindre les domaines
+autorisés si l'AFD ou le MYS l'exigent.
+
+### 64. 🟠 [NOUVEAU — 21/08/2026] Brevo n'est pas configuré
+
+L'envoi vers `louis@assemblage.net` et `clement@assemblage.net` est écrit et
+appelé, mais `BREVO_API_KEY` et `BREVO_SENDER_EMAIL` ne sont pas renseignés sur
+Vercel — seules les deux variables Supabase le sont.
+
+**Aucun blocage** : un échec d'envoi ne fait pas échouer l'inscription. La
+demande est écrite en base d'abord, et se lit dans l'écran des comptes ;
+l'e-mail n'est qu'une notification. Tant que la clé manque, il faut ouvrir
+l'écran des comptes pour voir qui attend.
+
+### 65. 🟠 [NOUVEAU — corrigé le 21/08/2026] Une dépendance ne déplaçait pas le successeur
+
+L'ancre saisie à la main prime sur les prédécesseurs dans le moteur — c'est sa
+raison d'être. Conséquence non vue : relier deux tâches dont la seconde portait
+déjà une date épinglée faisait apparaître la flèche **sans rien déplacer**. Le
+fin-début n'était vrai qu'en apparence.
+
+**Corrigé** : poser une précédence libère l'épingle. Détacher ne la remet pas.
+Trois tests couvrent la règle, dont celui qui vérifie qu'on ne touche pas à
+l'ancre des autres tâches.
+
+### 66. 🟡 [NOUVEAU — corrigé le 21/08/2026] Le filtre par site ne discriminait rien
+
+Ajouté le 20/08, retiré le 21/08. Aucune tâche ne désigne de hall précis
+(`site_id` nul sur toutes), si bien que le filtre ne pouvait rien retenir que
+son sous-projet ne retienne déjà. La colonne éditable partait avec lui.
+
+Le rattachement d'une tâche à un site reste possible en base ; il redeviendra
+utile le jour où la PIU décomposera hall par hall. C'est alors qu'il faudra
+remettre la colonne, pas avant.
+
 ### Reste ouvert, par ordre de blocage
 
 | # | Point | Pourquoi maintenant | Bloque |
@@ -758,7 +810,7 @@ faute de destinataires. Les quelques trente comptes de la PIU restent à ouvrir
 | 3 | **50** — arbitrage Gantt | À rendre avant toute installation (brief §10) | Lot 1, puis 10 |
 | 4 | **11** — matrice rôle × permission | Sans elle, seul l'administrateur peut écrire | Lot 3 |
 | 5 | **33** — tags : union ou intersection | Conditionne la RLS documentaire | Lot 3, puis 11 |
-| 6 | **36** — mode d'invitation sans fournisseur d'e-mail | 30 comptes à ouvrir | Lot 4 |
+| ~~6~~ | ~~**36** — mode d'invitation~~ | **Réglé le 21/08/2026** par l'inscription libre (point 63) | — |
 | 7 | **3** — composition des lots de training venues | Conditionne le périmètre des représentants sur site | Lot 6 |
 | 8 | **9** — décomposition en tâches de `design_bid_build` | Conditionne la voie de droit commun | Lot 9 |
 | 9 | **61** — un scénario portant les deux sous-projets | Sans lui, le calendrier complet n'est visible sur aucun écran | Exploitation |
