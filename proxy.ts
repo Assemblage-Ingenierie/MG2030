@@ -23,6 +23,7 @@ const PUBLIC_PATHS = [
   // compte cree n'est membre d'aucun projet tant qu'un administrateur ne l'a
   // pas rattache (voir app/signup/page.tsx).
   "/signup",
+  "/forgot-password",
   "/auth/callback",
   "/auth/error",
   // Revue de charte : aucune donnée projet, et son propre layout exige une

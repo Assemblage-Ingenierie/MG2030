@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/i18n-context";
@@ -57,6 +58,14 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+
+      <Link
+        href="/forgot-password"
+        className="block text-right text-xs underline"
+        style={{ color: "var(--accent)" }}
+      >
+        {t("auth.forgotPassword")}
+      </Link>
 
       {error && (
         <p

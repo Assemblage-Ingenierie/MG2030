@@ -106,7 +106,20 @@
     "error_unauthenticated": "Session expired. Sign in again.",
     "error_alreadyMember": "This account is already a member of the project.",
     "error_writeFailed": "The request could not be recorded.",
-    "existingAccount": "This email address already has an account in the project. Supabase does not send a confirmation email in that case — creating a new one is not possible. Sign in with your existing password instead; if you don't have access to MG2030 yet, the next screen will let you request it."
+    "existingAccount": "This email address already has an account in the project. Supabase does not send a confirmation email in that case — creating a new one is not possible. Sign in with your existing password instead; if you don't have access to MG2030 yet, the next screen will let you request it.",
+    "forgotPassword": "Forgot your password?",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordIntro": "Enter the email address of your account. If it exists, we'll send a link to set a new password.",
+    "backToSignIn": "Back to sign in",
+    "sending": "Sending…",
+    "sendResetLink": "Send reset link",
+    "resetLinkSent": "If that address has an account, a reset link is on its way. Check your inbox — the link expires after a while, so use it soon.",
+    "resetPasswordTitle": "Set a new password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "setNewPassword": "Set new password",
+    "saving": "Saving…",
+    "error_passwordMismatch": "The two passwords do not match."
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
