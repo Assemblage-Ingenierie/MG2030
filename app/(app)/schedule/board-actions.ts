@@ -129,6 +129,17 @@ export async function applyBoardChange(
     }
 
     case "predecessors": {
+      // Poser une précédence LIBÈRE la date épinglée : l'ancre prime sur les
+      // prédécesseurs dans le moteur, donc la garder rendrait le lien sans
+      // effet. Même règle que côté client (lib/schedule/board-model.ts).
+      if (change.predecessorIds.length > 0) {
+        const { error } = await supabase
+          .from("mg2030_task")
+          .update({ start_date_input: null })
+          .eq("id", change.taskId);
+        if (error) return { ok: false, error: error.message };
+      }
+
       // Remplacement complet : on supprime puis on repose. Un différentiel
       // demanderait de lire l'état actuel — un aller-retour de plus pour un
       // gain nul à ce volume.

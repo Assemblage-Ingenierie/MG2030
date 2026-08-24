@@ -324,7 +324,6 @@ export async function setTaskConstraint(
 export interface CreateTaskInput {
   scenarioCode: string;
   planId: string;
-  wbsCode: string;
   activity: string;
   taskType: "task" | "summary" | "milestone" | "group_header";
   parentId: string | null;
@@ -334,8 +333,37 @@ export interface CreateTaskInput {
   contractId?: string | null;
 }
 
+/**
+ * Numéro interne d'une nouvelle tâche.
+ *
+ * `wbs_code` reste NOT NULL et unique par plan : les codes du fichier source
+ * (TV.2.1, SC.2.8…) servent aux rapports et aux recoupements avec le plan de
+ * passation. Mais on ne les DEMANDE plus à la saisie — personne ne veut
+ * inventer un code hiérarchique pour ajouter une ligne, et les dépendances se
+ * désignent désormais par numéro de ligne.
+ *
+ * Les nouvelles tâches reçoivent donc `T-0001`, `T-0002`… Le préfixe les
+ * distingue à l'œil des codes d'origine, ce qui reste utile quand on relit le
+ * plan à côté du fichier Excel.
+ */
+async function nextTaskCode(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  planId: string,
+): Promise<string> {
+  const { data } = await supabase
+    .from("mg2030_task")
+    .select("wbs_code")
+    .eq("plan_id", planId)
+    .like("wbs_code", "T-%")
+    .order("wbs_code", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const last = Number((data?.wbs_code as string | undefined)?.slice(2) ?? 0);
+  return `T-${String((Number.isFinite(last) ? last : 0) + 1).padStart(4, "0")}`;
+}
+
 export async function createTask(input: CreateTaskInput): Promise<WriteResult> {
-  if (!input.wbsCode.trim()) return { ok: false, error: "emptyWbs" };
   if (!input.activity.trim()) return { ok: false, error: "emptyActivity" };
 
   const supabase = await createClient();
@@ -358,7 +386,7 @@ export async function createTask(input: CreateTaskInput): Promise<WriteResult> {
       : (input.durationDays ?? 0);
 
   const { error } = await supabase.from("mg2030_task").insert({
-    wbs_code: input.wbsCode.trim(),
+    wbs_code: await nextTaskCode(supabase, input.planId),
     plan_id: input.planId,
     scenario_id: scenario.id,
     parent_id: input.parentId,
@@ -370,9 +398,9 @@ export async function createTask(input: CreateTaskInput): Promise<WriteResult> {
   });
 
   if (error) {
-    // (plan_id, wbs_code) est unique : un code repris est le cas le plus
-    // fréquent, et mérite un message précis.
-    if (error.code === "23505") return { ok: false, error: "duplicateWbs", detail: input.wbsCode };
+    // (plan_id, wbs_code) est unique. Le numéro étant calculé, un doublon ne
+    // peut venir que d'une création simultanée : on le dit sans jargon.
+    if (error.code === "23505") return { ok: false, error: "codeRace" };
     return { ok: false, error: error.message };
   }
 

@@ -3,14 +3,16 @@ import { getI18n } from "@/lib/i18n/server";
 import { GANTT } from "@/lib/tokens";
 import { cn } from "@/lib/cn";
 import type { ScaleUnit } from "@/lib/gantt/scale";
-import type { SiteChoice } from "./board-types";
 
 /**
  * Barre d'outils du plan de charge : échelle, filtres, légende.
  *
- * Trois filtres, car le brief §9.4 demande « projet entier, un contrat, un
- * site ». Le sous-projet s'y ajoute parce que c'est le niveau AUQUEL LE PLAN
- * EST ÉCRIT : filtrer par site s'y ramène (voir la page).
+ * La portée se règle au SOUS-PROJET, qui est le niveau auquel le plan est
+ * réellement écrit : « Training venues works » couvre les 13 halls à la fois.
+ *
+ * Le filtre par site a été retiré le 21/08/2026 : aucune tâche ne désignait de
+ * hall précis, et il ne pouvait rien retenir que son sous-projet ne retienne
+ * déjà. Un filtre qui ne discrimine pas encombre.
  *
  * Tout passe par l'URL, donc une vue se partage par un lien et survit à un
  * rechargement — ce qui compte pour un outil dont les captures finissent dans
@@ -21,22 +23,20 @@ export async function ScaleSwitch({
   scales,
   contractCodes,
   currentContract,
-  sites,
-  currentSite,
   subprojects,
   currentSubproject,
   compact,
+  showNames,
   scenarioCode,
 }: {
   scale: ScaleUnit;
   scales: ScaleUnit[];
   contractCodes: string[];
   currentContract: string | null;
-  sites: SiteChoice[];
-  currentSite: string | null;
   subprojects: string[];
   currentSubproject: string | null;
   compact: boolean;
+  showNames: boolean;
   scenarioCode: string;
 }) {
   const { t } = await getI18n();
@@ -48,20 +48,19 @@ export async function ScaleSwitch({
   const href = (next: {
     scale?: ScaleUnit;
     contract?: string | null;
-    site?: string | null;
     subproject?: string | null;
     cols?: "compact" | "all";
+    names?: boolean;
   }) => {
     const params = new URLSearchParams({ scenario: scenarioCode });
     params.set("scale", next.scale ?? scale);
     const contract = next.contract === undefined ? currentContract : next.contract;
     if (contract) params.set("contract", contract);
-    const site = next.site === undefined ? currentSite : next.site;
-    if (site) params.set("site", site);
     const sub = next.subproject === undefined ? currentSubproject : next.subproject;
     if (sub) params.set("subproject", sub);
     const cols = next.cols ?? (compact ? "compact" : "all");
     if (cols === "all") params.set("cols", "all");
+    if (next.names ?? showNames) params.set("names", "1");
     return `/schedule?${params.toString()}`;
   };
 
@@ -96,46 +95,32 @@ export async function ScaleSwitch({
         className="inline-flex flex-wrap items-center gap-0.5 rounded-md bg-[var(--app-bg)] p-0.5"
       >
         <Link
-          href={href({ contract: null, site: null, subproject: null })}
+          href={href({ contract: null, subproject: null })}
           aria-current={
-            currentContract === null && currentSite === null && currentSubproject === null
-              ? "true"
-              : undefined
+            currentContract === null && currentSubproject === null ? "true" : undefined
           }
           className={cn(
             chip,
-            currentContract === null && currentSite === null && currentSubproject === null
-              ? activeChip
-              : idleChip,
+            currentContract === null && currentSubproject === null ? activeChip : idleChip,
           )}
         >
           {t("gantt.filterWholeProject")}
         </Link>
+        {/* Les DEUX sous-projets, toujours. On les listait d'après les tâches
+            présentes : le scénario « Base » ne porte que les training venues,
+            si bien que le Student Center n'apparaissait nulle part — on ne
+            pouvait pas constater qu'il était vide ici. */}
         {subprojects.map((code) => (
           <Link
             key={code}
-            href={href({ subproject: code, site: null })}
-            aria-current={code === currentSubproject && !currentSite ? "true" : undefined}
-            className={cn(chip, code === currentSubproject && !currentSite ? activeChip : idleChip)}
+            href={href({ subproject: code })}
+            aria-current={code === currentSubproject ? "true" : undefined}
+            className={cn(chip, code === currentSubproject ? activeChip : idleChip)}
           >
             {t(`schedule.sub_${code}`)}
           </Link>
         ))}
       </div>
-
-      {sites.length > 0 && (
-        <label className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-          {t("gantt.filterSite")}
-          {/* Une liste déroulante et non des puces : 14 sites feraient 14
-              puces, qui repousseraient la légende hors de l'écran. */}
-          <SiteSelect
-            sites={sites}
-            current={currentSite}
-            href={href}
-            allLabel={t("gantt.filterAllSites")}
-          />
-        </label>
-      )}
 
       {contractCodes.length > 0 && (
         <div
@@ -167,6 +152,20 @@ export async function ScaleSwitch({
 
       {/* Colonnes. Le jeu réduit est le défaut : sinon la grille prend 986 px
           et le diagramme n'a plus de place pour exister. */}
+      {/* Nom des tâches sur les barres. Hors du jeu de colonnes : c'est une
+          question de lecture du diagramme, pas de saisie. */}
+      <Link
+        href={href({ names: !showNames })}
+        aria-pressed={showNames}
+        className={
+          "rounded border border-[var(--border)] px-2 py-1 text-xs font-medium text-[var(--text)] " +
+          (showNames ? "bg-[var(--app-bg)]" : "bg-[var(--surface)]")
+        }
+        title={t("gantt.showNamesHint")}
+      >
+        {t("gantt.showNames")}
+      </Link>
+
       <Link
         href={href({ cols: compact ? "all" : "compact" })}
         className={
@@ -187,63 +186,6 @@ export async function ScaleSwitch({
         <LegendItem color={GANTT.today} label={t("gantt.today")} />
       </div>
     </div>
-  );
-}
-
-/**
- * Sélecteur de site sans JavaScript : `details/summary` natif, chaque option
- * est un lien. Le composant reste serveur — pas de bundle envoyé au
- * navigateur pour un filtre qu'on utilise trois fois par jour.
- */
-function SiteSelect({
-  sites,
-  current,
-  href,
-  allLabel,
-}: {
-  sites: SiteChoice[];
-  current: string | null;
-  href: (next: { site?: string | null; subproject?: string | null }) => string;
-  allLabel: string;
-}) {
-  const selected = sites.find((s) => s.siteCode === current) ?? null;
-  return (
-    <details className="relative">
-      <summary
-        className={
-          "cursor-pointer list-none rounded border border-[var(--border)] bg-[var(--surface)] " +
-          "px-2 py-1 text-xs font-medium text-[var(--text)]"
-        }
-      >
-        {selected ? `${selected.siteCode} — ${selected.name}` : allLabel}
-      </summary>
-      <div
-        className={
-          "absolute left-0 z-30 mt-1 max-h-72 w-72 overflow-y-auto rounded-md border " +
-          "border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg"
-        }
-      >
-        <Link
-          href={href({ site: null })}
-          className="block rounded px-2 py-1 text-xs hover:bg-[var(--app-bg)]"
-        >
-          {allLabel}
-        </Link>
-        {sites.map((s) => (
-          <Link
-            key={s.id}
-            href={href({ site: s.siteCode, subproject: null })}
-            aria-current={s.siteCode === current ? "true" : undefined}
-            className={cn(
-              "block rounded px-2 py-1 text-xs hover:bg-[var(--app-bg)]",
-              s.siteCode === current && "bg-[var(--app-bg)] font-medium",
-            )}
-          >
-            <span className="font-mono">{s.siteCode}</span> — {s.name}
-          </Link>
-        ))}
-      </div>
-    </details>
   );
 }
 

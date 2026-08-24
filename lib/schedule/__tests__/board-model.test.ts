@@ -149,6 +149,37 @@ describe("precedences par numero de ligne", () => {
   });
 });
 
+describe("poser une precedence libere la date epinglee", () => {
+  it("le successeur SE DEPLACE meme s'il portait une date epinglee", () => {
+    // Le defaut signale : l'ancre prime sur les predecesseurs dans le moteur,
+    // donc relier deux taches faisait apparaitre la fleche sans rien deplacer.
+    let m = seedModel();
+    m = setField(m, "s2", { startAnchor: "2027-05-01" });
+    expect(m.tasks.find((t) => t.id === "s2")!.start).toBe("2027-05-01");
+
+    m = (setPredecessorRows(m, "s2", [3]) as { ok: true; model: BoardModel }).model;
+    const s1 = m.tasks.find((t) => t.id === "s1")!;
+    const s2 = m.tasks.find((t) => t.id === "s2")!;
+    expect(s2.startAnchor).toBeNull();
+    expect(s2.start).toBe(s1.end);
+  });
+
+  it("detacher NE REEPINGLE PAS : la tache retrouve une date libre", () => {
+    let m = seedModel();
+    m = setField(m, "s2", { startAnchor: "2027-05-01" });
+    m = (setPredecessorRows(m, "s2", [3]) as { ok: true; model: BoardModel }).model;
+    m = (setPredecessorRows(m, "s2", []) as { ok: true; model: BoardModel }).model;
+    expect(m.tasks.find((t) => t.id === "s2")!.startAnchor).toBeNull();
+  });
+
+  it("ne touche pas a l'ancre des AUTRES taches", () => {
+    let m = seedModel();
+    m = setField(m, "a", { startAnchor: "2026-10-01" });
+    m = (setPredecessorRows(m, "s2", [3]) as { ok: true; model: BoardModel }).model;
+    expect(m.tasks.find((t) => t.id === "a")!.startAnchor).toBe("2026-10-01");
+  });
+});
+
 describe("fin-debut : la fin suit toujours le debut", () => {
   it("deplacer le debut deplace la fin d'autant", () => {
     const m = setField(seedModel(), "a", { startAnchor: "2026-10-01" });

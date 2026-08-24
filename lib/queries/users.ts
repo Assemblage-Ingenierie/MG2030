@@ -123,3 +123,62 @@ export async function listRoles(): Promise<RoleOption[]> {
     };
   });
 }
+
+// ── Demandes d'accès ────────────────────────────────────────────────────────
+
+export interface AccessRequestRow {
+  id: string;
+  email: string;
+  fullName: string;
+  jobTitle: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
+/**
+ * Demandes en attente.
+ *
+ * La RLS restreint déjà la lecture aux administrateurs de plateforme : ce
+ * module ne re-filtre pas. Un compte sans ce droit reçoit une liste vide, ce
+ * qui est le comportement correct — pas une erreur.
+ */
+export async function listPendingAccessRequests(): Promise<AccessRequestRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mg2030_access_request")
+    .select("id, email, full_name, job_title, message, created_at")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(`Lecture des demandes d'acces : ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    email: r.email as string,
+    fullName: r.full_name as string,
+    jobTitle: (r.job_title as string) ?? null,
+    message: (r.message as string) ?? null,
+    createdAt: r.created_at as string,
+  }));
+}
+
+export interface OrganisationRow {
+  id: string;
+  code: string;
+  name: string;
+  accessMode: string;
+}
+
+export async function listOrganisations(): Promise<OrganisationRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mg2030_organisation")
+    .select("id, code, name, access_mode")
+    .order("code");
+  if (error) throw new Error(`Lecture des organisations : ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    code: r.code as string,
+    name: r.name as string,
+    accessMode: r.access_mode as string,
+  }));
+}

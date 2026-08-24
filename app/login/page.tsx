@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthState } from "@/lib/auth/server";
 import { getI18n } from "@/lib/i18n/server";
@@ -9,8 +10,11 @@ import { LanguageSwitch } from "@/components/shell/language-switch";
 /**
  * Connexion.
  *
- * Pas d'inscription libre : les comptes sont créés par un administrateur
- * (brief §3). Le formulaire ne propose donc ni « créer un compte », ni Google.
+ * L'inscription est LIBRE depuis le 21/08/2026, mais elle ne donne accès à
+ * rien : le compte créé n'est membre d'aucun projet tant qu'un administrateur
+ * ne l'a pas rattaché. Le brief §3 prévoyait des comptes créés à la main ;
+ * en ouvrir une trentaine ainsi s'est révélé impraticable, et le modèle de
+ * droits rend l'ouverture sans danger.
  *
  * LA BASCULE DE LANGUE EST ICI, avant la connexion. Les utilisateurs sont
  * des agents du ministère à Prishtina : leur demander de se connecter en
@@ -58,7 +62,10 @@ export default async function LoginPage({
         <LoginForm redirectTo={safeRedirect(target)} />
 
         <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
-          {t("auth.invitationOnly")}
+          {t("auth.noAccount")}{" "}
+          <Link href="/signup" className="underline" style={{ color: "var(--accent)" }}>
+            {t("auth.createAccount")}
+          </Link>
         </p>
       </PanelCard>
 

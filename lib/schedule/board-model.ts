@@ -270,8 +270,22 @@ export function setPredecessorRows(
     return { ok: false, error: "unknownPredecessor", detail: bad.join(", ") };
   }
 
+  // ⚠ POSER UNE PRÉCÉDENCE LIBÈRE LA DATE ÉPINGLÉE.
+  //
+  // L'ancre saisie à la main prime sur les prédécesseurs dans le moteur — c'est
+  // sa raison d'être. Conséquence : relier deux tâches ne déplaçait PAS le
+  // successeur s'il portait déjà une date épinglée. On voyait apparaître la
+  // flèche sans que rien ne bouge, et le fin-début n'était vrai qu'en apparence.
+  //
+  // Relier deux tâches, c'est déclarer que la seconde suit la première. On
+  // retire donc l'épingle : le lien devient effectif immédiatement. Détacher la
+  // tâche (liste vide) lui rend sa date libre, sans la réépingler.
+  const attaching = out.length > 0;
   const next: BoardModel = {
     ...model,
+    tasks: model.tasks.map((task) =>
+      task.id === taskId && attaching ? { ...task, startAnchor: null } : task,
+    ),
     dependencies: [
       ...model.dependencies.filter((d) => d.successorId !== taskId),
       ...out.map((predecessorId) => ({ predecessorId, successorId: taskId })),

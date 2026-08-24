@@ -19,7 +19,7 @@ import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { formatPlanDate } from "@/lib/i18n/format";
 import type { ModelTask } from "@/lib/schedule/board-model";
-import type { ContractChoice, PersonOption, SiteChoice } from "./board-types";
+import type { ContractChoice, PersonOption } from "./board-types";
 
 export function TaskForm({
   task,
@@ -27,7 +27,6 @@ export function TaskForm({
   predecessorLabel,
   hasPredecessor,
   people,
-  sites,
   contracts,
   onClose,
   onSave,
@@ -38,7 +37,6 @@ export function TaskForm({
   predecessorLabel: string;
   hasPredecessor: boolean;
   people: PersonOption[];
-  sites: SiteChoice[];
   contracts: ContractChoice[];
   onClose: () => void;
   onSave: (fields: Partial<ModelTask>) => boolean;
@@ -52,7 +50,6 @@ export function TaskForm({
     progressPct: task.progressPct,
     ownerId: task.ownerId,
     contractId: task.contractId,
-    siteId: task.siteId,
   });
 
   const isHeader = task.type === "group_header";
@@ -77,10 +74,7 @@ export function TaskForm({
         {/* Ce que la tâche EST, et qu'on ne change pas ici : le type gouverne
             quels champs ont un sens, et le changer relève d'une autre décision. */}
         <p className="text-xs text-[var(--text-muted)]">
-          {t("schedule.formIdentity", {
-            wbs: task.wbsCode,
-            type: t(`schedule.type_${task.type}`),
-          })}
+          {t("schedule.formIdentity", { type: t(`schedule.type_${task.type}`) })}
         </p>
 
         <Field
@@ -188,25 +182,6 @@ export function TaskForm({
               ))}
             </select>
           </div>
-        </div>
-
-        <div>
-          <Label>{t("schedule.site")}</Label>
-          <select
-            className={fieldClasses() + " mt-1"}
-            value={draft.siteId ?? ""}
-            onChange={(e) => setDraft({ ...draft, siteId: e.target.value || null })}
-          >
-            <option value="">{t("schedule.allSites")}</option>
-            {sites
-              .filter((s) => task.subproject === null || s.subproject === task.subproject)
-              .map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.siteCode} — {s.name}
-                </option>
-              ))}
-          </select>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">{t("schedule.siteHint")}</p>
         </div>
 
         <div className="flex items-center gap-2 border-t border-[var(--border)] pt-4">

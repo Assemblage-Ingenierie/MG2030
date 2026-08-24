@@ -29,6 +29,7 @@ export const GanttPane = memo(function GanttPane({
   deadline,
   locale,
   labels,
+  showNames,
 }: {
   tasks: BoardTask[];
   dependencies: { predecessorId: string; successorId: string }[];
@@ -38,6 +39,8 @@ export const GanttPane = memo(function GanttPane({
   deadline: string | null;
   locale: "en" | "sq";
   labels: { buffer: string; deadline: string; today: string; unreported: string; late: string };
+  /** Écrire le nom de la tâche sur sa barre. */
+  showNames: boolean;
 }) {
   const layout = useMemo(
     () =>
@@ -180,15 +183,27 @@ export const GanttPane = memo(function GanttPane({
           const cy = y + bar.height / 2;
           const r = 6;
           return (
-            <polygon
-              key={bar.taskId}
-              points={`${bar.x},${cy - r} ${bar.x + r},${cy} ${bar.x},${cy + r} ${bar.x - r},${cy}`}
-              fill={GANTT.milestone}
-              stroke={GANTT.text}
-              strokeWidth={0.5}
-            >
-              <title>{`${bar.wbsCode} — ${bar.label}`}</title>
-            </polygon>
+            <g key={bar.taskId}>
+              <polygon
+                points={`${bar.x},${cy - r} ${bar.x + r},${cy} ${bar.x},${cy + r} ${bar.x - r},${cy}`}
+                fill={GANTT.milestone}
+                stroke={GANTT.text}
+                strokeWidth={0.5}
+              >
+                <title>{bar.label}</title>
+              </polygon>
+              {showNames && (
+                <text
+                  x={bar.x + r + 5}
+                  y={cy + 3.5}
+                  fontSize={10}
+                  fill={GANTT.text}
+                  style={{ pointerEvents: "none" }}
+                >
+                  {bar.label}
+                </text>
+              )}
+            </g>
           );
         }
 
@@ -205,7 +220,7 @@ export const GanttPane = memo(function GanttPane({
 
         const unreported = bar.status === "unreported";
         const tip =
-          `${bar.wbsCode} — ${bar.label}` +
+          bar.label +
           (unreported ? ` · ${labels.unreported}` : "") +
           (bar.status === "late" ? ` · ${labels.late}` : "");
 
@@ -227,20 +242,37 @@ export const GanttPane = memo(function GanttPane({
             >
               <title>{tip}</title>
             </rect>
-            {/* Avancement : remplissage INTÉRIEUR, comme sous MS Project. Une
-                bande de 4 px au bas de la barre se lisait comme une ombre. */}
+            {/* Avancement : remplissage INTÉRIEUR, comme sous MS Project.
+                EN CLAIR sur la barre, et non en sombre : la barre est déjà d'un
+                bleu profond, si bien qu'un gris foncé à demi transparent y
+                disparaissait. Le contraste doit venir de la clarté. */}
             {bar.progressWidth > 0 && (
               <rect
-                x={bar.x}
-                y={y + 3}
-                width={bar.progressWidth}
-                height={bar.height - 6}
+                x={bar.x + 1.5}
+                y={y + 2.5}
+                width={Math.max(0, bar.progressWidth - 3)}
+                height={bar.height - 5}
                 rx={1}
-                fill={GANTT.text}
-                opacity={0.5}
+                fill={unreported ? "var(--accent)" : "#ffffff"}
+                opacity={unreported ? 0.75 : 0.92}
               >
                 <title>{tip}</title>
               </rect>
+            )}
+
+            {/* Nom de la tâche. À DROITE de la barre plutôt que dedans : une
+                barre courte ne peut pas contenir son libellé, et un texte
+                tronqué à trois lettres ne renseigne personne. */}
+            {showNames && (
+              <text
+                x={bar.x + bar.width + 6}
+                y={y + bar.height / 2 + 3.5}
+                fontSize={10}
+                fill={GANTT.text}
+                style={{ pointerEvents: "none" }}
+              >
+                {bar.label}
+              </text>
             )}
           </g>
         );

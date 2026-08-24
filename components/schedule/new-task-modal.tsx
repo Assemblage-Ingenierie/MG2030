@@ -28,7 +28,6 @@ export function NewTaskModal({
   const t = useT();
   const [pending, startTransition] = useTransition();
 
-  const [wbsCode, setWbsCode] = useState("");
   const [activity, setActivity] = useState("");
   const [taskType, setTaskType] = useState<CreateTaskInput["taskType"]>("task");
   const [parentId, setParentId] = useState<string>("");
@@ -50,7 +49,6 @@ export function NewTaskModal({
       const ok = await onCreate({
         scenarioCode,
         planId,
-        wbsCode,
         activity,
         taskType,
         parentId: parentId || null,
@@ -60,7 +58,6 @@ export function NewTaskModal({
         sortOrder: tasks.length,
       });
       if (ok) {
-        setWbsCode("");
         setActivity("");
         setDurationDays("");
         onClose();
@@ -72,13 +69,6 @@ export function NewTaskModal({
     <Modal open={open} onClose={onClose} closeLabel={t("common.close")} title={t("schedule.addTask")}>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field
-            label={t("schedule.wbs")}
-            required
-            hint={t("schedule.wbsHint")}
-            value={wbsCode}
-            onChange={(e) => setWbsCode(e.target.value)}
-          />
           <div>
             <Label>{t("schedule.taskType")}</Label>
             <select

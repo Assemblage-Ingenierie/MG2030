@@ -19,6 +19,10 @@ import { NextResponse, type NextRequest } from "next/server";
 /** Routes accessibles sans session. */
 const PUBLIC_PATHS = [
   "/login",
+  // Inscription libre depuis le 21/08/2026. Elle ne donne acces a rien : le
+  // compte cree n'est membre d'aucun projet tant qu'un administrateur ne l'a
+  // pas rattache (voir app/signup/page.tsx).
+  "/signup",
   "/auth/callback",
   "/auth/error",
   // Revue de charte : aucune donnée projet, et son propre layout exige une

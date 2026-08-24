@@ -1,7 +1,12 @@
 import { getI18n } from "@/lib/i18n/server";
 import { getCurrentUser } from "@/lib/auth/server";
 import { isPlatformAdmin } from "@/lib/auth/types";
-import { listRoles, listUsers } from "@/lib/queries/users";
+import {
+  listOrganisations,
+  listPendingAccessRequests,
+  listRoles,
+  listUsers,
+} from "@/lib/queries/users";
 import { listLots, listSiteOptions } from "@/lib/queries/referential";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
@@ -9,6 +14,7 @@ import { Badge, Chip } from "@/components/ui/badge";
 import { AlertIcon } from "@/components/ui/icons";
 import { UserRowActions } from "./user-row-actions";
 import { UserAccessEditor, type ScopeKind } from "./user-access-editor";
+import { AccessRequestList } from "./access-requests";
 
 /**
  * Administration des comptes.
@@ -34,11 +40,13 @@ export default async function UsersPage() {
     );
   }
 
-  const [users, roles, sites, lots] = await Promise.all([
+  const [users, roles, sites, lots, requests, organisations] = await Promise.all([
     listUsers(),
     listRoles(),
     listSiteOptions(),
     listLots(),
+    listPendingAccessRequests(),
+    listOrganisations(),
   ]);
 
   const roleChoices = roles.map((r) => ({
@@ -52,6 +60,19 @@ export default async function UsersPage() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      {/* Les demandes EN PREMIER : c'est ce qu'un administrateur vient traiter,
+          et une demande non vue est quelqu'un qui attend. */}
+      <Section
+        title={t("users.requestsTitle")}
+        description={t("users.requestsIntro")}
+      >
+        <AccessRequestList
+          requests={requests}
+          organisations={organisations}
+          roles={roleChoices}
+        />
+      </Section>
+
       <Section title={t("users.title")} description={t("users.intro")}>
         {/* Le pool d'authentification est partagé : c'est la première chose
             qu'un administrateur doit comprendre en arrivant sur cet écran. */}

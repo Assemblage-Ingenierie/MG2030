@@ -47,7 +47,6 @@ import {
   type BoardTask,
   type ContractChoice,
   type PersonOption,
-  type SiteChoice,
 } from "./board-types";
 import { BoardCell, type CommitDirection } from "./board-cell";
 import { GanttPane, HEAD_H } from "./gantt-pane";
@@ -63,7 +62,6 @@ interface Cell {
 export function ScheduleBoard({
   initial,
   people,
-  sites,
   contracts,
   scenarioCode,
   planId,
@@ -73,11 +71,11 @@ export function ScheduleBoard({
   deadline,
   locale,
   compact,
+  showNames,
   visibleIds,
 }: {
   initial: BoardModel;
   people: PersonOption[];
-  sites: SiteChoice[];
   contracts: ContractChoice[];
   scenarioCode: string;
   planId: string;
@@ -87,6 +85,8 @@ export function ScheduleBoard({
   deadline: string | null;
   locale: "en" | "sq";
   compact: boolean;
+  /** Écrire le nom de la tâche à côté de sa barre. */
+  showNames: boolean;
   /**
    * Identifiants retenus par les filtres de la barre d'outils, ou `null` si
    * aucun filtre n'est posé.
@@ -323,7 +323,6 @@ export function ScheduleBoard({
               columns={columns}
               actionsWidth={actionsWidth}
               people={people}
-              sites={sites}
               contracts={contracts}
               predecessorLabel={board.predecessorLabel(task.id)}
               hasPredecessor={board.hasPredecessor(task.id)}
@@ -360,6 +359,7 @@ export function ScheduleBoard({
             bufferStart={bufferStart}
             deadline={deadline}
             locale={locale}
+            showNames={showNames}
             labels={{
               buffer: t("gantt.buffer"),
               deadline: t("gantt.deadline"),
@@ -394,7 +394,6 @@ export function ScheduleBoard({
           predecessorLabel={board.predecessorLabel(editingTask.id)}
           hasPredecessor={board.hasPredecessor(editingTask.id)}
           people={people}
-          sites={sites}
           contracts={contracts}
           onClose={() => setEditing(null)}
           onSave={(fields) => board.saveFields(editingTask.id, fields)}
@@ -454,7 +453,6 @@ interface RowProps {
   columns: BoardColumn[];
   actionsWidth: number;
   people: PersonOption[];
-  sites: SiteChoice[];
   contracts: ContractChoice[];
   predecessorLabel: string;
   hasPredecessor: boolean;
@@ -494,7 +492,6 @@ function GridRow(props: RowProps) {
     columns,
     actionsWidth,
     people,
-    sites,
     contracts,
     predecessorLabel,
     hasPredecessor,
@@ -525,7 +522,7 @@ function GridRow(props: RowProps) {
 
   const selectEditor = (
     value: string | null,
-    field: "ownerId" | "siteId" | "contractId",
+    field: "ownerId" | "contractId",
     options: { id: string; label: string }[],
     emptyLabel: string,
     small = false,
@@ -579,7 +576,6 @@ function GridRow(props: RowProps) {
       <div
         className="flex shrink-0 items-center justify-end border-r border-b border-[var(--border)] px-2 text-[11px] tabular-nums text-[var(--text-muted)]"
         style={{ width: COLUMN_WIDTH.rowNo }}
-        title={task.wbsCode}
       >
         {rowNumber}
       </div>
@@ -775,38 +771,6 @@ function GridRow(props: RowProps) {
               "contractId",
               contracts.map((c) => ({ id: c.id, label: `${c.contractCode} — ${c.name}` })),
               t("common.none"),
-              true,
-            )
-          }
-        />
-      )}
-
-      {shown("site") && (
-        <BoardCell
-          width={COLUMN_WIDTH.site}
-          editable={cellEditable("site")}
-          active={isActive("site")}
-          raw={task.siteId ?? ""}
-          title={task.siteCode === null ? t("schedule.siteHint") : undefined}
-          display={
-            task.siteCode ? (
-              <span className="truncate font-mono text-[11px]">{task.siteCode}</span>
-            ) : (
-              <span className="text-[11px] text-[var(--text-muted)]">
-                {task.subproject ? t(`schedule.sub_${task.subproject}`) : "—"}
-              </span>
-            )
-          }
-          onActivate={() => onActivate({ row, column: "site" })}
-          onCommit={() => onActivate({ row, column: "site" })}
-          renderEditor={() =>
-            selectEditor(
-              task.siteId,
-              "siteId",
-              sites
-                .filter((s) => task.subproject === null || s.subproject === task.subproject)
-                .map((s) => ({ id: s.id, label: `${s.siteCode} — ${s.name}` })),
-              t("schedule.allSites"),
               true,
             )
           }

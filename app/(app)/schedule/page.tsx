@@ -1,7 +1,7 @@
 import { getI18n } from "@/lib/i18n/server";
 import { listScenarios, loadSchedule } from "@/lib/queries/schedule";
 import { listPeople } from "@/lib/queries/people";
-import { listContracts, listSiteOptions } from "@/lib/queries/referential";
+import { listContracts } from "@/lib/queries/referential";
 import { Card, Section } from "@/components/ui/card";
 import { ScenarioSwitch } from "@/components/schedule/scenario-switch";
 import { UnschedulableNotice } from "@/components/schedule/unschedulable-notice";
@@ -34,9 +34,9 @@ export default async function SchedulePage({
     scenario?: string;
     scale?: string;
     contract?: string;
-    site?: string;
     subproject?: string;
     cols?: string;
+    names?: string;
   }>;
 }) {
   const { t, locale } = await getI18n();
@@ -70,11 +70,10 @@ export default async function SchedulePage({
     );
   }
 
-  const [{ tasks, dependencies, constraints, scenario }, people, sites, contracts] =
+  const [{ tasks, dependencies, constraints, scenario }, people, contracts] =
     await Promise.all([
       loadSchedule(selected.code, scenarios),
       listPeople(),
-      listSiteOptions(),
       listContracts(),
     ]);
 
@@ -85,6 +84,7 @@ export default async function SchedulePage({
   // Jeu de colonnes réduit PAR DÉFAUT : toutes colonnes affichées, la grille
   // prend près de 1000 px et il ne reste presque rien pour le diagramme.
   const compact = params.cols !== "all";
+  const showNames = params.names === "1";
 
   const constraintByTask = new Map(constraints.map((c) => [c.taskId, c.date]));
   const contractIdByCode = new Map(contracts.map((c) => [c.contractCode, c.id]));
@@ -145,23 +145,11 @@ export default async function SchedulePage({
   //
   // `filterTree` conserve les ASCENDANTS des lignes retenues : sans cela, un
   // filtre laissait des enfants indentés sous un parent disparu.
-  const selectedSite = params.site
-    ? sites.find((s) => s.siteCode === params.site) ?? null
-    : null;
-  const filtered = Boolean(params.contract || params.site || params.subproject);
+  const filtered = Boolean(params.contract || params.subproject);
 
   const visibleIds = filtered
     ? filterTree(initial.tasks, (task) => {
         if (params.contract && task.contractCode !== params.contract) return false;
-
-        // Un site précis : les tâches rattachées à ce hall, UNION celles de son
-        // sous-projet qui n'en désignent aucun. Car « Training venues works »
-        // couvre les 13 halls à la fois.
-        if (selectedSite) {
-          if (task.siteId !== null) return task.siteCode === selectedSite.siteCode;
-          return task.subproject === selectedSite.subproject;
-        }
-
         if (params.subproject && task.subproject !== params.subproject) return false;
         return true;
       }).map((task) => task.id)
@@ -170,13 +158,12 @@ export default async function SchedulePage({
   const contractCodes = [
     ...new Set(tasks.map((task) => task.contractCode).filter((c): c is string => Boolean(c))),
   ].sort();
-  const subprojects = [
-    ...new Set(
-      initial.tasks
-        .map((task) => task.subproject)
-        .filter((s): s is NonNullable<typeof s> => Boolean(s)),
-    ),
-  ].sort();
+  // Les DEUX sous-projets, toujours, et non ceux présents dans le scénario.
+  // Le scénario « Base » ne porte que les training venues : le Student Center
+  // n'apparaissait donc nulle part, et on ne pouvait pas constater qu'il était
+  // vide ici. Un filtre qui rend zéro ligne est une information ; un filtre
+  // absent n'en est pas une.
+  const subprojects = ["athletes_village", "training_venues"];
 
   const unassigned = initial.tasks.filter(
     (task) => task.type === "task" && task.ownerId === null,
@@ -207,17 +194,15 @@ export default async function SchedulePage({
             scales={SCALES}
             contractCodes={contractCodes}
             currentContract={params.contract ?? null}
-            sites={sites}
-            currentSite={params.site ?? null}
             subprojects={subprojects}
             currentSubproject={params.subproject ?? null}
             compact={compact}
+            showNames={showNames}
             scenarioCode={selected.code}
           />
           <ScheduleBoard
             initial={initial}
             people={people}
-            sites={sites}
             contracts={contracts.map((c) => ({
               id: c.id,
               contractCode: c.contractCode,
@@ -231,6 +216,7 @@ export default async function SchedulePage({
             deadline={scenario?.deadlineDate ?? null}
             locale={locale}
             compact={compact}
+            showNames={showNames}
             visibleIds={visibleIds}
           />
         </Card>

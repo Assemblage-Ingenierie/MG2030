@@ -54,7 +54,6 @@ export type BoardColumn =
   | "predecessors"
   | "owner"
   | "contract"
-  | "site"
   | "progress";
 
 export const BOARD_COLUMNS: BoardColumn[] = [
@@ -64,7 +63,6 @@ export const BOARD_COLUMNS: BoardColumn[] = [
   "predecessors",
   "owner",
   "contract",
-  "site",
   "progress",
 ];
 
@@ -95,9 +93,8 @@ export const COLUMN_WIDTH: Record<BoardColumn | "rowNo" | "end", number> = {
   start: 90,
   end: 90,
   predecessors: 88,
-  owner: 120,
-  contract: 88,
-  site: 92,
+  owner: 130,
+  contract: 110,
   progress: 58,
 };
 
@@ -146,12 +143,7 @@ export const RIGHT_ALIGNED = new Set<BoardColumn | "end">([
 export function isCellEditable(task: BoardTask, column: BoardColumn): boolean {
   if (task.type === "group_header") return column === "activity";
   if (task.type === "summary") {
-    return (
-      column === "activity" ||
-      column === "owner" ||
-      column === "site" ||
-      column === "contract"
-    );
+    return column === "activity" || column === "owner" || column === "contract";
   }
   if (task.type === "milestone") {
     return (
@@ -159,7 +151,6 @@ export function isCellEditable(task: BoardTask, column: BoardColumn): boolean {
       column === "start" ||
       column === "predecessors" ||
       column === "owner" ||
-      column === "site" ||
       column === "contract"
     );
   }
