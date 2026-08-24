@@ -57,11 +57,12 @@ export async function submitAccessRequest(input: {
   if (!auth.user?.email) return { ok: false, error: "unauthenticated" };
 
   // Déjà membre : la demande n'a pas lieu d'être, et l'écrire embrouillerait
-  // l'écran d'administration.
+  // l'écran d'administration. `mg2030_app_user.id` EST l'identifiant Supabase
+  // Auth — cette table n'a pas de colonne `auth_user_id` séparée.
   const { data: member } = await supabase
     .from("mg2030_app_user")
     .select("id")
-    .eq("auth_user_id", auth.user.id)
+    .eq("id", auth.user.id)
     .maybeSingle();
   if (member) return { ok: false, error: "alreadyMember" };
 
@@ -122,11 +123,11 @@ export async function approveAccessRequest(
   const { data: admin } = await supabase
     .from("mg2030_app_user")
     .select("id")
-    .eq("auth_user_id", me.user?.id ?? "")
+    .eq("id", me.user?.id ?? "")
     .maybeSingle();
 
   const { error: insertError } = await supabase.from("mg2030_app_user").insert({
-    auth_user_id: request.auth_user_id,
+    id: request.auth_user_id,
     email: request.email,
     full_name: request.full_name,
     job_title: request.job_title,
@@ -157,7 +158,7 @@ export async function rejectAccessRequest(requestId: string): Promise<RequestRes
   const { data: admin } = await supabase
     .from("mg2030_app_user")
     .select("id")
-    .eq("auth_user_id", me.user?.id ?? "")
+    .eq("id", me.user?.id ?? "")
     .maybeSingle();
 
   const { error } = await supabase

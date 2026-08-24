@@ -64,7 +64,7 @@ export async function createNoObjection(input: NoObjectionInput): Promise<NoObje
   const { data: me } = await supabase
     .from("mg2030_app_user")
     .select("id")
-    .eq("auth_user_id", auth.user.id)
+    .eq("id", auth.user.id)
     .maybeSingle();
 
   const { error } = await supabase.from("mg2030_no_objection").insert({

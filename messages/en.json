@@ -105,7 +105,8 @@
     "error_shortPassword": "The password must be at least {min} characters.",
     "error_unauthenticated": "Session expired. Sign in again.",
     "error_alreadyMember": "This account is already a member of the project.",
-    "error_writeFailed": "The request could not be recorded."
+    "error_writeFailed": "The request could not be recorded.",
+    "existingAccount": "This email address already has an account in the project. Supabase does not send a confirmation email in that case — creating a new one is not possible. Sign in with your existing password instead; if you don't have access to MG2030 yet, the next screen will let you request it."
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

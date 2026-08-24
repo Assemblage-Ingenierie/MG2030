@@ -11,6 +11,7 @@ import { IconButton } from "@/components/ui/button";
 import { MenuIcon } from "@/components/ui/icons";
 import { BrandMark, FunderMark, KosovoEmblem } from "./brand-mark";
 import { LanguageSwitch } from "./language-switch";
+import { AccountMenu } from "./account-menu";
 
 export function Header({ onMenu, bell }: { onMenu: () => void; bell?: React.ReactNode }) {
   const t = useT();
@@ -38,6 +39,7 @@ export function Header({ onMenu, bell }: { onMenu: () => void; bell?: React.Reac
         <BrandMark />
         {bell}
         <LanguageSwitch />
+        <AccountMenu />
       </div>
     </header>
   );

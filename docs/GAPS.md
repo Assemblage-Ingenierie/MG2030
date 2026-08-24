@@ -801,6 +801,46 @@ Le rattachement d'une tâche à un site reste possible en base ; il redeviendra
 utile le jour où la PIU décomposera hall par hall. C'est alors qu'il faudra
 remettre la colonne, pas avant.
 
+### 67. 🔴 [NOUVEAU — corrigé le 21/08/2026] Quatre requêtes visaient une colonne inexistante
+
+`mg2030_app_user.id` EST l'identifiant Supabase Auth — la table n'a pas de
+colonne `auth_user_id` séparée (elle en a une sur `mg2030_access_request`
+seulement, où elle est légitime). Le code écrit le 21/08 pour les demandes
+d'accès et pour les avis AFD interrogeait `mg2030_app_user` avec
+`.eq("auth_user_id", …)`, qui ne matchait jamais rien, et insérait un champ
+`auth_user_id` qui n'existe pas sur cette table.
+
+**Trouvé en diagnostiquant le blocage de louis@assemblage.net** — voir le
+point 68. Aucun test ne l'avait couvert : les requêtes Supabase ne sont pas
+typées sur les noms de colonnes, l'erreur ne se voit qu'à l'exécution.
+
+**Corrigé** dans les quatre fichiers concernés.
+
+### 68. 🔴 [NOUVEAU — corrigé le 21/08/2026] L'inscription se taisait pour une adresse déjà enregistrée
+
+`louis@assemblage.net` possédait déjà un compte `auth.users` — créé le
+16/06/2026, confirmé, jamais membre de MG2030 (`auth.users` est partagé avec
+l'autre application du projet, point 52). En essayant de créer un compte
+MG2030 avec cette même adresse, Supabase répond **sans erreur et sans
+session**, pour ne pas révéler qu'une adresse est déjà enregistrée :
+`data.user.identities` est un tableau vide. Le code ne vérifiait pas ce
+tableau et affichait « vérifiez vos e-mails » — un e-mail qui n'arriverait
+jamais, puisqu'aucune inscription n'avait réellement eu lieu.
+
+**Corrigé** : ce cas précis affiche désormais « cette adresse a déjà un
+compte », avec un lien vers la connexion. Sur une plateforme fermée à une
+trentaine de personnes, le dire est utile et ne révèle rien qu'un
+administrateur ne sache déjà.
+
+### 69. 🟠 [NOUVEAU — corrigé le 21/08/2026] Aucun moyen de se déconnecter une fois membre
+
+`SignOutButton` n'existait que sur les écrans de refus (compte en attente,
+compte étranger). Un membre pleinement actif n'avait strictement aucun moyen
+de se déconnecter depuis l'application.
+
+**Corrigé** : un menu de compte dans le header (nom, e-mail, rôle,
+déconnexion), pour tout utilisateur authentifié.
+
 ### Reste ouvert, par ordre de blocage
 
 | # | Point | Pourquoi maintenant | Bloque |

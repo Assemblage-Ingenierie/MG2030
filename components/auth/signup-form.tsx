@@ -9,13 +9,23 @@
 // après : découvrir un écran d'attente sans y avoir été préparé se lit comme
 // une panne.
 //
-// Deux issues selon la configuration de Supabase :
+// TROIS issues, et la deuxième est un piège de Supabase Auth.
+//
 //   • session immédiate → la demande d'accès est déposée dans la foulée ;
 //   • confirmation par e-mail requise → on le dit, et la demande sera
-//     proposée à la première connexion (écran d'attente).
+//     proposée à la première connexion (écran d'attente) ;
+//   • L'ADRESSE A DÉJÀ UN COMPTE — `auth.users` est PARTAGÉ avec l'autre
+//     application du projet (GAPS 52). Pour ne pas révéler qu'une adresse est
+//     déjà enregistrée, Supabase répond alors SANS ERREUR et sans session :
+//     `data.user.identities` est un tableau VIDE. Rien ne distingue cette
+//     réponse d'une inscription réussie en attente de confirmation, sauf ce
+//     tableau vide. Ne pas le vérifier, c'était dire « vérifiez vos e-mails »
+//     à quelqu'un qui n'allait jamais rien recevoir — c'est ce qui a bloqué
+//     le premier utilisateur ayant essayé (GAPS 67).
 // ============================================================
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/i18n-context";
@@ -38,12 +48,14 @@ export function SignUpForm() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setNotice(null);
+    setExistingAccount(false);
 
     if (fullName.trim() === "") {
       setError(t("auth.error_emptyName"));
@@ -63,11 +75,20 @@ export function SignUpForm() {
     });
 
     if (authError) {
-      // Un compte existant remonte ici. On ne cherche pas à masquer le cas :
-      // sur une plateforme fermée à trente personnes, dire « cette adresse a
-      // déjà un compte » est utile et ne révèle rien qu'un administrateur ne
-      // sache déjà.
+      // Un compte existant remonte ici DANS CERTAINES CONFIGURATIONS
+      // seulement — voir le cas ci-dessous pour l'autre.
       setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    // `identities` vide et pas d'erreur : l'adresse a déjà un compte.
+    // Supabase le tait pour ne pas révéler qu'une adresse est enregistrée ;
+    // nous, en revanche, sommes une plateforme fermée à une trentaine de
+    // personnes connues — le dire est utile et ne révèle rien qu'un
+    // administrateur ne sache déjà.
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setExistingAccount(true);
       setLoading(false);
       return;
     }
@@ -144,6 +165,22 @@ export function SignUpForm() {
           }}
         >
           {error}
+        </p>
+      )}
+
+      {existingAccount && (
+        <p
+          role="alert"
+          className="rounded-md px-3 py-2 text-sm"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--danger) 10%, transparent)",
+            color: "var(--danger)",
+          }}
+        >
+          {t("auth.existingAccount")}{" "}
+          <Link href="/login" className="underline">
+            {t("auth.signIn")}
+          </Link>
         </p>
       )}
 
