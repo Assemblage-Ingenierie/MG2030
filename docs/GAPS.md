@@ -841,6 +841,37 @@ de se déconnecter depuis l'application.
 **Corrigé** : un menu de compte dans le header (nom, e-mail, rôle,
 déconnexion), pour tout utilisateur authentifié.
 
+### 70. 🟠 [NOUVEAU — 21/08/2026] La réinitialisation de mot de passe renvoie vers PEEB
+
+Constaté par louis@assemblage.net : le lien de récupération reçu par e-mail
+menait à une page de PEEB Cool Santa Fe, pas à MG2030 — et le mail lui-même
+est signé « Mael » / « PEEB Jordan ».
+
+**Cause : le service d'e-mail de Supabase Auth a une configuration UNIQUE pour
+tout le projet**, partagée entre MG2030 et PEEB (conséquence directe du
+point 52). Deux réglages en jeu, à des niveaux différents :
+
+  1. **Le lien de redirection.** Supabase refuse silencieusement une URL de
+     redirection absente de sa liste blanche (Authentication → URL
+     Configuration → Redirect URLs) et retombe sur l'URL par défaut du
+     projet, réglée pour PEEB. **Corrigible en ajoutant
+     `https://mg2030.vercel.app/**` à cette liste** — action de tableau de
+     bord, hors de portée des outils de ce dépôt.
+
+  2. **L'expéditeur et le gabarit du mail** (« Mael » / « PEEB Jordan») sont
+     un réglage de projet, pas d'application : les deux applications
+     partagent le même expéditeur SMTP. Le changer changerait aussi ce que
+     voient les utilisateurs de PEEB.
+
+**Décision du 21/08/2026 : ne pas toucher à l'expéditeur pour l'instant.**
+Le point 1 seul résout la destination du lien, qui était le blocage réel. La
+séparation complète de l'expéditeur exigerait soit de renommer un réglage
+commun aux deux applications, soit de faire émettre les e-mails
+d'authentification par MG2030 lui-même via l'API d'administration Supabase et
+Brevo — ce qui suppose la clé de service, gardée confinée à deux fichiers
+(GAPS 54). Revenir sur ce point si la confusion de marque devient gênante en
+pratique.
+
 ### Reste ouvert, par ordre de blocage
 
 | # | Point | Pourquoi maintenant | Bloque |
