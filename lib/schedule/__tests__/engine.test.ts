@@ -94,7 +94,10 @@ describe("recalcul en cascade", () => {
 });
 
 describe("priorites de calcul du debut", () => {
-  it("l'ancre saisie prime sur le predecesseur", () => {
+  it("LA DEPENDANCE gagne contre une ancre, et la fin suit", () => {
+    // Regle inversee le 22/08/2026. Auparavant l'ancre primait sur tout : une
+    // tache liee pouvait commencer avant la fin de son predecesseur, et la
+    // cascade mourait la. Voir le commentaire dans engine.ts.
     const { windows } = computeSchedule({
       tasks: [
         task({ id: "A", durationDays: 10, startDateInput: "2026-01-01" }),
@@ -104,9 +107,89 @@ describe("priorites de calcul du debut", () => {
       constraints: [],
       projectStart: "2026-01-01",
     });
-    // A finit le 11/01, mais B est ancree au 01/06 : l'ancre gagne.
+    // A finit le 11/01. B suit, son ancre au 01/06 est ignoree.
+    expect(windows.get("A")!.end).toBe("2026-01-11");
+    expect(windows.get("B")!.start).toBe("2026-01-11");
+    expect(windows.get("B")!.driver).toBe("predecessor");
+    // LA FIN SUIT LE DEBUT : 11/01 + 5 jours.
+    expect(windows.get("B")!.end).toBe("2026-01-16");
+  });
+
+  it("l'ancre prime encore SANS predecesseur : c'est la son role", () => {
+    const { windows } = computeSchedule({
+      tasks: [task({ id: "A", durationDays: 10, startDateInput: "2026-06-01" })],
+      dependencies: [],
+      constraints: [],
+      projectStart: "2026-01-01",
+    });
+    expect(windows.get("A")!.start).toBe("2026-06-01");
+    expect(windows.get("A")!.driver).toBe("input");
+  });
+
+  it("une CONTRAINTE, elle, se combine avec la precedence sans l'effacer", () => {
+    // C'est la facon de figer une date MALGRE un lien : elle repousse, jamais
+    // elle n'avance. Le maximum des deux gagne.
+    const { windows } = computeSchedule({
+      tasks: [
+        task({ id: "A", durationDays: 10, startDateInput: "2026-01-01" }),
+        task({ id: "B", durationDays: 5 }),
+      ],
+      dependencies: [{ predecessorId: "A", successorId: "B", type: "FS", lagDays: 0 }],
+      constraints: [
+        { taskId: "B", kind: "start_no_earlier_than", date: "2026-06-01" },
+      ],
+      projectStart: "2026-01-01",
+    });
+    // A finit le 11/01, la contrainte repousse au 01/06 : elle gagne.
     expect(windows.get("B")!.start).toBe("2026-06-01");
-    expect(windows.get("B")!.driver).toBe("input");
+    expect(windows.get("B")!.driver).toBe("constraint");
+    expect(windows.get("B")!.end).toBe("2026-06-06");
+  });
+
+  it("une contrainte ANTERIEURE a la fin du predecesseur n'avance rien", () => {
+    const { windows } = computeSchedule({
+      tasks: [
+        task({ id: "A", durationDays: 100, startDateInput: "2026-01-01" }),
+        task({ id: "B", durationDays: 5 }),
+      ],
+      dependencies: [{ predecessorId: "A", successorId: "B", type: "FS", lagDays: 0 }],
+      constraints: [
+        { taskId: "B", kind: "start_no_earlier_than", date: "2026-02-01" },
+      ],
+      projectStart: "2026-01-01",
+    });
+    // A finit le 11/04. La contrainte au 01/02 est deja depassee : sans effet.
+    expect(windows.get("B")!.start).toBe("2026-04-11");
+    expect(windows.get("B")!.driver).toBe("predecessor");
+  });
+
+  it("CASCADE : deplacer la tete de chaine deplace tout l'aval, ancres comprises", () => {
+    const build = (headStart: string) =>
+      computeSchedule({
+        tasks: [
+          task({ id: "A", durationDays: 10, startDateInput: headStart }),
+          // B et C portent des ancres HERITEES qui contredisent leur lien :
+          // c'est exactement la situation trouvee en production.
+          task({ id: "B", durationDays: 5, startDateInput: "2020-01-01" }),
+          task({ id: "C", durationDays: 7, startDateInput: "2020-01-01" }),
+        ],
+        dependencies: [
+          { predecessorId: "A", successorId: "B", type: "FS", lagDays: 0 },
+          { predecessorId: "B", successorId: "C", type: "FS", lagDays: 0 },
+        ],
+        constraints: [],
+        projectStart: "2026-01-01",
+      }).windows;
+
+    const avant = build("2026-01-01");
+    expect(avant.get("C")!.start).toBe("2026-01-16");
+    expect(avant.get("C")!.end).toBe("2026-01-23");
+
+    // On decale la tete de 10 jours : tout l'aval doit reculer d'autant.
+    const apres = build("2026-01-11");
+    expect(apres.get("B")!.start).toBe("2026-01-21");
+    expect(apres.get("C")!.start).toBe("2026-01-26");
+    expect(apres.get("C")!.end).toBe("2026-02-02");
   });
 
   it("la contrainte « pas avant » repousse mais n'avance jamais", () => {

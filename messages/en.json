@@ -432,7 +432,7 @@
     "contractHint": "Which contract funds this task. Drives the contract filter and the procurement view.",
     "rowNoHint": "Row number, renumbered automatically. This is what you type in the Predecessors column — hover a number to see its WBS code.",
     "predecessorsFormHint": "Predecessors are entered in the grid, in the Predecessors column: row numbers separated by commas.",
-    "startDrivenBy": "Driven by row {rows}: finish-to-start. To set this date by hand, clear the Predecessors column first.",
+    "startDrivenBy": "Driven by row {rows}: finish-to-start. The start is a result, not an entry. To hold this task back further, use « Not before » below.",
     "cycleNotice": "A precedence cycle makes the schedule impossible to compute. The dates shown are the last valid ones. Remove one of the links to recover.",
     "unknownTask": "This task no longer exists. Reload the page.",
     "undo": "Undo",
@@ -459,7 +459,10 @@
     "progressHint": "Percent complete, entered by hand. It draws the dark band inside the bar, and a task past its end date with less than 100% shows as late.",
     "writeFailed": "The database refused the write. Your change was rolled back.",
     "deleteTaskHint": "Archives the task and its children. It is not erased — Ctrl+Z brings it back, and the change log keeps the trace.",
-    "codeRace": "Two tasks were created at the same instant. Try again."
+    "codeRace": "Two tasks were created at the same instant. Try again.",
+    "constraintLabel": "Not before",
+    "constraintHint": "Holds the task back until this date, whatever else would allow it to start earlier.",
+    "constraintHintLinked": "This is how you hold a linked task back. Unlike a start date, a constraint only ever PUSHES — the task starts at the later of this date and its predecessor's end, so the link stays true."
   },
   "gantt": {
     "title": "Gantt",

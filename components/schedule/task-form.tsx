@@ -50,6 +50,7 @@ export function TaskForm({
     progressPct: task.progressPct,
     ownerId: task.ownerId,
     contractId: task.contractId,
+    constraintDate: task.constraintDate,
   });
 
   const isHeader = task.type === "group_header";
@@ -139,6 +140,25 @@ export function TaskForm({
               <p className="mt-1 text-xs text-[var(--text-muted)]">{t("schedule.endHint")}</p>
             </div>
           </div>
+        )}
+
+        {/* Contrainte « pas avant ». Proposée dans TOUS les cas, y compris
+            avec un prédécesseur : c'est précisément là qu'elle sert. */}
+        {!isHeader && (
+          <Field
+            label={t("schedule.constraintLabel")}
+            type="date"
+            optionalText={t("common.optional")}
+            hint={
+              hasPredecessor
+                ? t("schedule.constraintHintLinked")
+                : t("schedule.constraintHint")
+            }
+            value={draft.constraintDate ?? ""}
+            onChange={(e) =>
+              setDraft({ ...draft, constraintDate: e.target.value || null })
+            }
+          />
         )}
 
         <div>

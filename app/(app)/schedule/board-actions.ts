@@ -50,6 +50,12 @@ export type BoardChange =
       ownerId: string | null;
       contractId: string | null;
       siteId: string | null;
+      /**
+       * Contrainte « pas avant ». Vit dans une AUTRE table, mais voyage avec
+       * le formulaire : un seul geste de l'utilisateur doit rester un seul
+       * aller-retour et une seule entrée d'historique.
+       */
+      constraintDate: string | null;
     };
 
 /** Colonnes touchées par chaque type de changement simple. */
@@ -125,6 +131,28 @@ export async function applyBoardChange(
         })
         .eq("id", change.taskId);
       if (error) return { ok: false, error: error.message };
+
+      // La contrainte est dans une table séparée : deux écritures, un seul
+      // geste. Vider le champ retire la contrainte plutôt que d'en poser une
+      // vide, qui n'aurait aucun sens.
+      if (change.constraintDate === null) {
+        const { error: del } = await supabase
+          .from("mg2030_task_constraint")
+          .delete()
+          .eq("task_id", change.taskId)
+          .eq("kind", "start_no_earlier_than");
+        if (del) return { ok: false, error: del.message };
+      } else {
+        const { error: up } = await supabase.from("mg2030_task_constraint").upsert(
+          {
+            task_id: change.taskId,
+            kind: "start_no_earlier_than",
+            constraint_date: change.constraintDate,
+          },
+          { onConflict: "task_id,kind" },
+        );
+        if (up) return { ok: false, error: up.message };
+      }
       break;
     }
 

@@ -315,6 +315,7 @@ export function useBoard({
         ownerId: t.ownerId,
         contractId: t.contractId,
         siteId: t.siteId,
+        constraintDate: t.constraintDate,
       });
 
       commit(setField(model, taskId, fields), asChange(merged), asChange(task), taskId);

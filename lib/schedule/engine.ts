@@ -122,9 +122,23 @@ export function computeSchedule(input: ScheduleInput): ScheduleResult {
       driver = "constraint";
     }
 
-    // Ancre saisie : elle PRIME sur tout. C'est le geste par lequel un chef de
-    // projet fige une date en connaissance de cause.
-    if (task.startDateInput) {
+    // ── Ancre saisie ────────────────────────────────────────────────────
+    //
+    // ⚠ ELLE NE PRIME QUE SUR UNE TÂCHE SANS PRÉDÉCESSEUR.
+    //
+    // Elle primait sur tout, y compris les précédences. Conséquence observée
+    // en production : trois tâches liées portaient une ancre qui contredisait
+    // leur prédécesseur — « AFD's NoN » commençait 23 jours AVANT la fin de la
+    // validation qu'elle attend. La flèche était dessinée, la dépendance
+    // existait en base, et le calcul l'ignorait sans le dire. Pire, la cascade
+    // MOURAIT là : tout l'aval repartait d'une date fausse.
+    //
+    // Une dépendance fin-début est une affirmation sur le déroulement du
+    // projet ; une date saisie ne peut pas la contredire en silence. Pour
+    // figer une date MALGRÉ un lien, on pose une contrainte « pas avant »,
+    // traitée juste au-dessus : elle repousse sans jamais avancer, donc elle
+    // se combine avec la précédence au lieu de l'effacer.
+    if (task.startDateInput && !incoming.has(id)) {
       start = task.startDateInput;
       driver = "input";
       drivingPredecessor = null;
