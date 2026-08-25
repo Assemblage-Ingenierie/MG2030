@@ -525,6 +525,17 @@ function GridRow(props: RowProps) {
     field: "ownerId" | "contractId",
     options: { id: string; label: string }[],
     emptyLabel: string,
+    /**
+     * Referme la cellule après le choix.
+     *
+     * ⚠ SANS CET APPEL, LA CELLULE RESTAIT OUVERTE POUR TOUJOURS après une
+     * sélection : `onChange` écrivait bien la valeur, mais rien ne rendait la
+     * main à l'affichage — on voyait donc la liste déroulante rester en
+     * place, jamais le nom choisi, jusqu'au rechargement complet de la page.
+     * `close` est fourni par `board-cell.tsx` précisément pour ce moment ;
+     * il restait ici sans appelant.
+     */
+    close: (direction: CommitDirection) => void,
     small = false,
   ) => (
     <select
@@ -534,7 +545,10 @@ function GridRow(props: RowProps) {
       )}
       style={{ borderColor: "var(--focus)" }}
       value={value ?? ""}
-      onChange={(e) => onAssign(task.id, field, e.target.value || null)}
+      onChange={(e) => {
+        onAssign(task.id, field, e.target.value || null);
+        close("none");
+      }}
     >
       <option value="">{emptyLabel}</option>
       {options.map((o) => (
@@ -737,13 +751,14 @@ function GridRow(props: RowProps) {
             )
           }
           onActivate={() => onActivate({ row, column: "owner" })}
-          onCommit={() => onActivate({ row, column: "owner" })}
-          renderEditor={() =>
+          onCommit={(v, d) => onCommit(row, "owner", v, d)}
+          renderEditor={({ close }) =>
             selectEditor(
               task.ownerId,
               "ownerId",
               people.map((p) => ({ id: p.id, label: `${p.fullName} — ${p.roleCode}` })),
               t("schedule.unassigned"),
+              close,
             )
           }
         />
@@ -764,13 +779,14 @@ function GridRow(props: RowProps) {
             )
           }
           onActivate={() => onActivate({ row, column: "contract" })}
-          onCommit={() => onActivate({ row, column: "contract" })}
-          renderEditor={() =>
+          onCommit={(v, d) => onCommit(row, "contract", v, d)}
+          renderEditor={({ close }) =>
             selectEditor(
               task.contractId,
               "contractId",
               contracts.map((c) => ({ id: c.id, label: `${c.contractCode} — ${c.name}` })),
               t("common.none"),
+              close,
               true,
             )
           }
