@@ -45,6 +45,7 @@ export const NAV: NavGroup[] = [
       { href: "/sites", labelKey: "nav.sites", icon: "sites", permission: null },
       { href: "/buildings", labelKey: "nav.buildings", icon: "buildings", permission: null },
       { href: "/contracts", labelKey: "nav.contracts", icon: "contracts", permission: null },
+      { href: "/map", labelKey: "nav.map", icon: "map", permission: null },
     ],
   },
   {

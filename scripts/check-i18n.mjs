@@ -51,6 +51,7 @@ const ALLOWED = [
   /^lib\/[a-z.\/-]+$/, // chemins de fichiers cités en documentation
   /^name@example\.org$/,
   /^Training venues works$/, // libellé de tâche issu du seed, non traduit (brief §6)
+  /^OpenStreetMap$/, // nom propre du fournisseur de tuiles, attribution légale non traduite
 ];
 
 const isAllowed = (text) => ALLOWED.some((re) => re.test(text.trim()));

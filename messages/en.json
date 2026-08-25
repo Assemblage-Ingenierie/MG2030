@@ -33,7 +33,8 @@
     "account": "My account",
     "plan": "Plan",
     "noObjections": "No-objections",
-    "procurement": "Procurement"
+    "procurement": "Procurement",
+    "map": "Map"
   },
   "common": {
     "search": "Search",
@@ -720,5 +721,13 @@
     "conflictWarning": "{count} steps start before their predecessor ends, because the procurement plan and the chained durations disagree (GAPS 13). The contract dates win. Check them before applying — this is a real divergence between two source documents, not a calculation error.",
     "isNoObjectionLabel": "This step is an AFD no-objection",
     "conflictWarningOne": "One step starts before its predecessor ends, because the procurement plan and the chained durations disagree (GAPS 13). The contract date wins. Check it before applying — this is a real divergence between two source documents, not a calculation error."
+  },
+  "map": {
+    "title": "Site map",
+    "intro": "The 14 sites, located from the mapping supplied on 25/08/2026 (GAPS 71). Gold marks the Athletes’ Village, blue the training venue halls.",
+    "noCoordinates": "No site has coordinates yet.",
+    "missingCoordinates": "{count} sites have no coordinates and do not appear on the map.",
+    "sourceNote": "Map data © OpenStreetMap contributors. Coordinates read off Carte Pristina / All locs.pdf, not surveyed on site — treat placement as approximate.",
+    "buildingsUnit": "buildings"
   }
 }

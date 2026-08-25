@@ -142,6 +142,13 @@ export const CheckIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const MapIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 4v16M15 4v16" />
+    <path d="M4 6.5 9 4l6 2.5 5-2.5v13l-5 2.5-6-2.5-5 2.5Z" />
+  </Svg>
+);
+
 export const AlertIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 9v4M12 17h.01" />
@@ -163,6 +170,7 @@ export const NAV_ICONS = {
   orgChart: OrgIcon,
   admin: AdminIcon,
   users: UsersIcon,
+  map: MapIcon,
 } as const;
 
 export type NavIconName = keyof typeof NAV_ICONS;

@@ -911,6 +911,30 @@ la PIU peut avoir une raison que nous ignorons, et une règle technique n'a pas
 bâtiments, soit les 23 du site) ; **les quatre lots `W-TV` restent à
 composer**.
 
+### 73. ✅ [RÉSOLU le 25/08/2026] Carte des sites — hors périmètre v1, implémentée à la demande
+
+Le brief §9 liste la carte parmi les modules **hors périmètre de la version 1**
+(phase 2, avec le tableau de bord consolidé). **Décision du 25/08/2026 :
+implémentée quand même**, à la demande explicite, une fois les 14 sites
+géolocalisés (point 71).
+
+**Seule dépendance externe de toute l'application**, et c'est un choix
+délibéré, pas un relâchement de la règle. Le brief §4 proscrit toute
+dépendance lourde sans validation préalable — c'est pourquoi le Gantt et le
+plan de charge sont du SVG fait main plutôt qu'une bibliothèque de graphes.
+Pour une carte, l'arbitrage inverse a été posé EXPLICITEMENT : un semis de
+points sans fond réel (sans rues, sans repères de Pristina) aurait perdu
+l'essentiel de ce qui rend une carte utile. Leaflet (~40 Ko) et les tuiles
+OpenStreetMap ont donc été retenus, après une question directe à l'utilisateur
+plutôt qu'un choix pris seul.
+
+**Conséquence à noter** : chaque affichage de `/map` charge des tuiles depuis
+`tile.openstreetmap.org`, un service tiers. Aucune donnée du projet n'y est
+envoyée au-delà de ce que révèle la zone de carte demandée (une empreinte
+Pristina, sans identifiant), mais c'est la première fois que l'application
+dépend d'un service externe pour son affichage plutôt que pour son
+authentification ou son stockage.
+
 ### Reste ouvert, par ordre de blocage
 
 | # | Point | Pourquoi maintenant | Bloque |
