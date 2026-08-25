@@ -365,7 +365,18 @@
     "error_minAboveMax": "The minimum amount cannot be greater than the maximum.",
     "noContractor": "No contractor yet",
     "buildingCount": "{count} buildings",
-    "unassignedSummary": "{count} lots have no buildings assigned yet. Their composition is not settled — it is not a count of zero (GAPS 3)."
+    "unassignedSummary": "{count} lots have no buildings assigned yet. Their composition is not settled — it is not a count of zero (GAPS 3).",
+    "assignBuildings": "Assign buildings",
+    "composeTitle": "Buildings of lot {lot}",
+    "selectedCount": "buildings selected",
+    "selectedAgainstAnnounced": "selected — the lot name announces {announced}",
+    "countMismatch": "does not match the name",
+    "sameContractWarning": "{count} of these buildings already belong to another lot of the SAME contract. That usually means the same works counted twice — but it is your call, not a rule, so nothing is blocked.",
+    "alreadyInHint": "Already assigned to this other lot of the same contract.",
+    "searchBuildings": "Search a building or a site…",
+    "noBuildingMatch": "No building matches",
+    "clearSelection": "Clear selection",
+    "error_writeFailed": "The database refused the write."
   },
   "schedule": {
     "title": "Plan",

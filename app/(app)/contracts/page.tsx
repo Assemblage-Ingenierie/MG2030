@@ -1,5 +1,10 @@
 import { getI18n } from "@/lib/i18n/server";
-import { listContracts, listLots } from "@/lib/queries/referential";
+import {
+  listBuildingChoices,
+  listContracts,
+  listLotBuildings,
+  listLots,
+} from "@/lib/queries/referential";
 import { listScenarios } from "@/lib/queries/schedule";
 import { Section } from "@/components/ui/card";
 import { SourceNote } from "@/components/referential/source-note";
@@ -21,10 +26,12 @@ import { ContractTable } from "@/components/referential/contract-table";
  */
 export default async function ContractsPage() {
   const { t, locale } = await getI18n();
-  const [contracts, lots, scenarios] = await Promise.all([
+  const [contracts, lots, scenarios, buildings, assignments] = await Promise.all([
     listContracts(),
     listLots(),
     listScenarios(),
+    listBuildingChoices(),
+    listLotBuildings(),
   ]);
 
   const unassignedLots = lots.filter((l) => l.buildingCount === 0);
@@ -84,6 +91,8 @@ export default async function ContractsPage() {
           }))}
           scenarios={scenarioOptions}
           locale={locale}
+          buildings={buildings}
+          assignments={assignments}
         />
 
         <SourceNote>{t("contracts.numberNote")}</SourceNote>

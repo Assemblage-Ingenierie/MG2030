@@ -327,3 +327,72 @@ export async function listLots(contractCode?: string): Promise<LotRow[]> {
     };
   });
 }
+
+// ── Composition des lots ────────────────────────────────────────────────────
+
+export interface BuildingChoice {
+  id: string;
+  buildingCode: string;
+  name: string;
+  siteCode: string;
+  siteName: string;
+  subproject: string;
+  interventionType: string;
+  grossArea: number | null;
+}
+
+/**
+ * Tous les bâtiments, en options légères pour l'affectation aux lots.
+ *
+ * Sans pagination : 36 bâtiments au total (23 au Student Center, un par hall).
+ * Paginer une liste qu'on doit parcourir entièrement pour composer un lot
+ * ferait perdre plus de temps qu'elle n'en économise.
+ */
+export async function listBuildingChoices(): Promise<BuildingChoice[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mg2030_building")
+    .select(
+      `id, building_code, name, intervention_type, gross_area_sqm,
+       mg2030_site!inner ( site_code, name, subproject )`,
+    )
+    .is("archived_at", null)
+    .order("building_code");
+
+  if (error) throw new Error(`Lecture des batiments : ${error.message}`);
+
+  const raw = (data ?? []) as unknown as Record<string, unknown>[];
+  return raw.map((r) => {
+    const site = r.mg2030_site as { site_code: string; name: string; subproject: string };
+    return {
+      id: r.id as string,
+      buildingCode: r.building_code as string,
+      name: r.name as string,
+      siteCode: site.site_code,
+      siteName: site.name,
+      subproject: site.subproject,
+      interventionType: r.intervention_type as string,
+      grossArea: (r.gross_area_sqm as number) ?? null,
+    };
+  });
+}
+
+/**
+ * Toutes les affectations bâtiment ↔ lot.
+ *
+ * Chargées en bloc plutôt que lot par lot : l'écran a besoin de savoir, pour
+ * chaque bâtiment, s'il est DÉJÀ pris par un autre lot du même marché — ce qui
+ * suppose de connaître l'ensemble, pas seulement le lot qu'on édite.
+ */
+export async function listLotBuildings(): Promise<{ lotId: string; buildingId: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mg2030_lot_building")
+    .select("lot_id, building_id");
+
+  if (error) throw new Error(`Lecture de la composition des lots : ${error.message}`);
+  return (data ?? []).map((r) => ({
+    lotId: r.lot_id as string,
+    buildingId: r.building_id as string,
+  }));
+}

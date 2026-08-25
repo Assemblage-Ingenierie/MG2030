@@ -160,3 +160,50 @@ export async function createLot(input: LotInput): Promise<ActionResult> {
   revalidatePath("/contracts");
   return { ok: true };
 }
+
+// ── Composition des lots ────────────────────────────────────────────────────
+
+/**
+ * Remplace la composition d'un lot.
+ *
+ * Remplacement complet plutôt que différentiel : la clé primaire est
+ * (lot_id, building_id), donc supprimer puis réinsérer est exact et tient en
+ * deux requêtes. Un différentiel demanderait de lire l'état courant d'abord,
+ * pour un gain nul à ce volume (36 bâtiments).
+ *
+ * ⚠ ON NE VÉRIFIE PAS qu'un bâtiment n'est pris qu'une fois : un même bâtiment
+ * appartient légitimement à un lot de TRAVAUX et à un lot d'ÉQUIPEMENT, qui
+ * sont deux marchés distincts. Ce qui serait une faute, c'est deux lots du
+ * MÊME marché — l'écran le signale, sans l'interdire : c'est un arbitrage
+ * d'allotissement, pas une règle technique, et la PIU peut avoir une raison
+ * que nous ignorons.
+ *
+ * La RLS reste l'autorité : `contract.write` et la visibilité du lot.
+ */
+export async function setLotBuildings(
+  lotId: string,
+  buildingIds: string[],
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { error: deleteError } = await supabase
+    .from("mg2030_lot_building")
+    .delete()
+    .eq("lot_id", lotId);
+  if (deleteError) return { ok: false, error: deleteError.message };
+
+  if (buildingIds.length > 0) {
+    const { error } = await supabase.from("mg2030_lot_building").insert(
+      buildingIds.map((buildingId) => ({
+        lot_id: lotId,
+        building_id: buildingId,
+        source: "affectation manuelle",
+      })),
+    );
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/contracts");
+  revalidatePath("/buildings");
+  return { ok: true };
+}

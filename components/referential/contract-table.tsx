@@ -21,6 +21,11 @@ import { Button } from "@/components/ui/button";
 import { formatAmount, formatAmountRange, formatPlanDate } from "@/lib/i18n/format";
 import { cn } from "@/lib/cn";
 import { ContractRowEdit, LotRowEdit } from "./contract-row-edit";
+import {
+  LotBuildingsButton,
+  type BuildingChoice,
+  type LotAssignment,
+} from "./lot-buildings";
 
 export interface ContractView {
   id: string;
@@ -77,11 +82,15 @@ export function ContractTable({
   lots,
   scenarios,
   locale,
+  buildings,
+  assignments,
 }: {
   contracts: ContractView[];
   lots: LotView[];
   scenarios: ScenarioOption[];
   locale: "en" | "sq";
+  buildings: BuildingChoice[];
+  assignments: LotAssignment[];
 }) {
   const contractOptions = useMemo(
     () => contracts.map((c) => ({ id: c.id, contractCode: c.contractCode, name: c.name })),
@@ -272,6 +281,8 @@ export function ContractTable({
                   directContracting={directContracting}
                   scenarios={scenarios}
                   contractOptions={contractOptions}
+                  buildings={buildings}
+                  assignments={assignments}
                   locale={locale}
                   cell={cell}
                   t={t}
@@ -323,6 +334,8 @@ function FragmentRows({
   directContracting,
   scenarios,
   contractOptions,
+  buildings,
+  assignments,
   locale,
   cell,
   t,
@@ -334,6 +347,8 @@ function FragmentRows({
   directContracting: boolean;
   scenarios: ScenarioOption[];
   contractOptions: { id: string; contractCode: string; name: string }[];
+  buildings: BuildingChoice[];
+  assignments: LotAssignment[];
   locale: "en" | "sq";
   cell: string;
   t: (key: string, values?: Record<string, string>) => string;
@@ -461,14 +476,21 @@ function FragmentRows({
                 {lot.contractor ?? t("lots.noContractor")}
               </span>
             </td>
-            <td className={cn(cell, "text-xs text-[var(--text-muted)]")}>
-              {lot.buildingCount > 0 ? (
-                t("lots.buildingCount", { count: String(lot.buildingCount) })
-              ) : (
-                /* Zéro bâtiment se lirait comme « lot vide ». Ici la
-                   composition n'est simplement pas arrêtée. */
-                <span title={t("lots.unassignedNote")}>{t("lots.unassigned")}</span>
-              )}
+            {/* La composition se règle ICI : les sources ne disent pas quels
+                halls composent chaque lot de travaux, c'est un arbitrage de la
+                PIU (GAPS 3). */}
+            <td className={cn(cell, "text-xs")}>
+              <LotBuildingsButton
+                lotId={lot.id}
+                lotCode={lot.lotCode}
+                lotName={lot.name}
+                contractId={lot.contractId}
+                buildings={buildings}
+                assignments={assignments}
+                lotsOfSameContract={lots
+                  .filter((other) => other.contractId === lot.contractId)
+                  .map((other) => ({ id: other.id, lotCode: other.lotCode }))}
+              />
             </td>
             <td className={cn(cell, "text-right tabular-nums text-xs")}>
               {formatAmountRange(lot.amountMin, lot.amountMax, locale)}

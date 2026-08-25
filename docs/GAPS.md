@@ -872,6 +872,45 @@ Brevo — ce qui suppose la clé de service, gardée confinée à deux fichiers
 (GAPS 54). Revenir sur ce point si la confusion de marque devient gênante en
 pratique.
 
+### 71. ✅ [RÉSOLU le 22/08/2026] Coordonnées des 14 sites
+
+Les points 1 et 2 signalaient `address`, `latitude` et `longitude` vides sur
+les 14 sites — bloquants pour un module carte. La cartographie
+`Carte Pristina / All locs.pdf` porte les coordonnées des 14 lieux, et la
+correspondance avec la base est **sans ambiguïté** : chaque lieu de la carte a
+exactement un site homonyme.
+
+Chargées le 22/08/2026. Emprise obtenue : 42,641 à 42,678 N et 21,141 à
+21,180 E, soit environ 4 km sur 3 km centrés sur Pristina — cohérent avec le
+périmètre annoncé. `source` porte la trace du document d'origine.
+
+**`address` reste vide** : la carte donne des points, pas des libellés
+postaux. Ce n'est pas bloquant pour une carte, qui se trace sur les
+coordonnées.
+
+### 72. ✅ [RÉSOLU le 22/08/2026] Composition des lots de travaux
+
+Le point 3 restait ouvert : les sources ne disent pas quels halls composent
+chacun des quatre lots `W-TV`. Les libellés annoncent « Lot 1 (3 venues) » à
+« Lot 4 (4 venues) » — 3+3+3+4 = 13 — mais la répartition nominative n'existe
+dans aucun document.
+
+**Ce n'est pas une donnée à retrouver, c'est un arbitrage de la PIU.** D'où
+une saisie à la main, depuis la ligne de lot de l'écran des marchés : les
+bâtiments groupés par site, avec un compteur qui confronte ce qui est coché à
+ce que le libellé annonce, sans jamais l'imposer.
+
+**Un bâtiment peut appartenir à plusieurs lots**, et c'est normal : le même
+hall relève d'un lot de travaux et d'un lot d'équipement, qui sont deux
+marchés distincts. Ce qui serait une faute, c'est deux lots du **même**
+marché — le même ouvrage payé deux fois. L'écran le signale sans l'interdire :
+la PIU peut avoir une raison que nous ignorons, et une règle technique n'a pas
+à trancher un arbitrage d'allotissement.
+
+État au 22/08/2026 : les lots du Student Center sont composés (12 et 11
+bâtiments, soit les 23 du site) ; **les quatre lots `W-TV` restent à
+composer**.
+
 ### Reste ouvert, par ordre de blocage
 
 | # | Point | Pourquoi maintenant | Bloque |
@@ -882,7 +921,7 @@ pratique.
 | 4 | **11** — matrice rôle × permission | Sans elle, seul l'administrateur peut écrire | Lot 3 |
 | 5 | **33** — tags : union ou intersection | Conditionne la RLS documentaire | Lot 3, puis 11 |
 | ~~6~~ | ~~**36** — mode d'invitation~~ | **Réglé le 21/08/2026** par l'inscription libre (point 63) | — |
-| 7 | **3** — composition des lots de training venues | Conditionne le périmètre des représentants sur site | Lot 6 |
+| ~~7~~ | ~~**3** — composition des lots~~ | **Saisissable depuis le 22/08/2026** (point 72). Reste à renseigner par la PIU | — |
 | 8 | **9** — décomposition en tâches de `design_bid_build` | Conditionne la voie de droit commun | Lot 9 |
 | 9 | **61** — un scénario portant les deux sous-projets | Sans lui, le calendrier complet n'est visible sur aucun écran | Exploitation |
 | 10 | **62** — ouverture des ~30 comptes PIU | Sans eux, aucune alerte de retard n'a de destinataire | Exploitation |
