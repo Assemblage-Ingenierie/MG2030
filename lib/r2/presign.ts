@@ -26,6 +26,18 @@ export interface R2Config {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
+  /**
+   * Juridiction du bucket, ou `null` pour le point d'entrée par défaut.
+   *
+   * ⚠ DISTINCTE de l'indice de localisation proposé à la création d'un
+   * bucket. Un bucket créé sous une juridiction (EU, FedRAMP) vit sur un
+   * point d'entrée SÉPARÉ — `<compte>.eu.r2.cloudflarestorage.com` et non
+   * `<compte>.r2.cloudflarestorage.com`. Interroger le mauvais point d'entrée
+   * ne renvoie pas « juridiction incorrecte » mais une erreur qui se lit
+   * comme un problème de CORS ou de droits, sans rapport avec la cause
+   * réelle — c'est ce qui a trompé le diagnostic la première fois.
+   */
+  jurisdiction: string | null;
 }
 
 /** Configuration R2, ou `null` si absente. */
@@ -35,7 +47,7 @@ export function readR2Config(): R2Config | null {
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const bucket = process.env.R2_BUCKET;
   if (!accountId || !accessKeyId || !secretAccessKey || !bucket) return null;
-  return { accountId, accessKeyId, secretAccessKey, bucket };
+  return { accountId, accessKeyId, secretAccessKey, bucket, jurisdiction: process.env.R2_JURISDICTION || null };
 }
 
 const sha256Hex = (data: string): string => createHash("sha256").update(data, "utf8").digest("hex");
@@ -79,7 +91,9 @@ export function presignUrl(
     throw new Error("La duree de validite doit etre comprise entre 1 et 3600 secondes.");
   }
 
-  const host = `${config.accountId}.r2.cloudflarestorage.com`;
+  const host = config.jurisdiction
+    ? `${config.accountId}.${config.jurisdiction}.r2.cloudflarestorage.com`
+    : `${config.accountId}.r2.cloudflarestorage.com`;
   const path = `/${config.bucket}/${encodeKey(objectKey)}`;
 
   const now = new Date();
