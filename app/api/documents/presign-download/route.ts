@@ -14,7 +14,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/server";
-import { presignUrl, readR2Config } from "@/lib/r2/presign";
+import { contentDisposition, presignUrl, readR2Config } from "@/lib/r2/presign";
 
 const EXPIRES_IN = 300;
 
@@ -24,10 +24,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  const documentId = new URL(request.url).searchParams.get("id");
+  const url = new URL(request.url);
+  const documentId = url.searchParams.get("id");
   if (!documentId) {
     return NextResponse.json({ error: "missing_id" }, { status: 400 });
   }
+
+  // `view` laisse le navigateur afficher ce qu'il sait afficher (PDF, image)
+  // et télécharger le reste sous son propre nom ; `attachment` FORCE le
+  // téléchargement. Dans les deux cas, le nom vient de `original_filename`,
+  // jamais de la clé R2 — dont le préfixe UUID sert à l'unicité de l'objet,
+  // pas à l'affichage.
+  const mode = url.searchParams.get("mode") === "attachment" ? "attachment" : "inline";
 
   const config = readR2Config();
   if (!config) {
@@ -55,6 +63,13 @@ export async function GET(request: Request) {
     "GET",
     document.r2_object_key as string,
     EXPIRES_IN,
+    {},
+    {
+      "response-content-disposition": contentDisposition(
+        mode,
+        document.original_filename as string,
+      ),
+    },
   );
 
   return NextResponse.json({

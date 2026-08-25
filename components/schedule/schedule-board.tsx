@@ -103,7 +103,7 @@ export function ScheduleBoard({
   const { can } = usePermissions();
   const editable = can("task.write");
 
-  const board = useBoard({ initial, scenarioCode, editable });
+  const board = useBoard({ initial, scenarioCode, editable, people, contracts });
 
   const [active, setActive] = useState<Cell | null>(null);
   const [adding, setAdding] = useState(false);

@@ -16,6 +16,9 @@ import "server-only";
 // ============================================================
 
 import { createHash, createHmac } from "node:crypto";
+import { contentDisposition, encodeRfc3986 } from "./content-disposition";
+
+export { contentDisposition };
 
 const SERVICE = "s3";
 const REGION = "auto"; // R2 n'a qu'une région logique.
@@ -54,20 +57,6 @@ const sha256Hex = (data: string): string => createHash("sha256").update(data, "u
 const hmac = (key: Buffer | string, data: string): Buffer =>
   createHmac("sha256", key).update(data, "utf8").digest();
 
-/**
- * Encodage d'URI conforme à SigV4.
- *
- * `encodeURIComponent` laisse passer `!'()*`, que la spécification exige
- * d'encoder. Une signature calculée sur un chemin différemment encodé est
- * rejetée sans explication utile : d'où ce complément.
- */
-function encodeRfc3986(value: string): string {
-  return encodeURIComponent(value).replace(
-    /[!'()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
-}
-
 /** Chemin d'objet : chaque segment encodé, les barres obliques conservées. */
 const encodeKey = (key: string): string => key.split("/").map(encodeRfc3986).join("/");
 
@@ -79,6 +68,12 @@ export type Method = "PUT" | "GET" | "DELETE";
  * @param expiresIn durée de validité, en secondes. Volontairement COURTE :
  *   une URL de téléchargement est un droit d'accès transportable, qui échappe
  *   à la RLS une fois émis. Défaut 5 minutes ; ne pas dépasser l'heure.
+ * @param responseParams Paramètres de réponse S3 standard
+ *   (`response-content-disposition`, `response-content-type`…). Ils font
+ *   partie de la requête SIGNÉE — R2 les applique à la réponse GET sans
+ *   jamais toucher aux métadonnées stockées sur l'objet. C'est ce qui permet
+ *   de servir le MÊME objet en aperçu (`inline`) ou en téléchargement
+ *   (`attachment`, nom nettoyé) sans le réécrire.
  */
 export function presignUrl(
   config: R2Config,
@@ -86,6 +81,7 @@ export function presignUrl(
   objectKey: string,
   expiresIn = 300,
   extraHeaders: Record<string, string> = {},
+  responseParams: Record<string, string> = {},
 ): string {
   if (expiresIn < 1 || expiresIn > 3600) {
     throw new Error("La duree de validite doit etre comprise entre 1 et 3600 secondes.");
@@ -121,6 +117,7 @@ export function presignUrl(
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": String(expiresIn),
     "X-Amz-SignedHeaders": signedHeaders,
+    ...responseParams,
   });
 
   // La chaîne de requête canonique est triée par clé, en encodage RFC 3986.
@@ -160,6 +157,10 @@ export function presignUrl(
  * est de toute façon stocké dans `mg2030_document.original_filename`.
  *
  * Le préfixe `mg2030/` isole l'application : le bucket peut être partagé.
+ *
+ * ⚠ CET UUID NE DOIT JAMAIS APPARAÎTRE À L'UTILISATEUR. La clé sert à nommer
+ * l'objet dans R2, pas à nommer le fichier téléchargé — c'est le rôle de
+ * `contentDisposition()`, qui renvoie `original_filename` tel que déposé.
  */
 export function buildObjectKey(folderPath: string, filename: string): string {
   const safeFolder = folderPath

@@ -37,6 +37,7 @@ import {
   type ModelTask,
 } from "@/lib/schedule/board-model";
 import { applyBoardChange, type BoardChange } from "@/app/(app)/schedule/board-actions";
+import type { ContractChoice, PersonOption } from "./board-types";
 
 /** Une entrée de l'historique : l'état d'avant, celui d'après, et les deux écritures. */
 interface Entry {
@@ -61,10 +62,21 @@ export function useBoard({
   initial,
   scenarioCode,
   editable,
+  people,
+  contracts,
 }: {
   initial: BoardModel;
   scenarioCode: string;
   editable: boolean;
+  /**
+   * Pour dériver `ownerName` / `contractCode` À L'AFFECTATION, sans
+   * aller-retour serveur. Le modèle ne porte que les IDENTIFIANTS
+   * (`ownerId`, `contractId`) ; les libellés affichés sont des champs à part,
+   * et rien ne les mettait à jour quand on choisissait un responsable ou un
+   * marché — la grille affichait donc l'ANCIENNE valeur jusqu'au rechargement.
+   */
+  people: PersonOption[];
+  contracts: ContractChoice[];
 }) {
   const [model, setModel] = useState(initial);
   const [past, setPast] = useState<Entry[]>([]);
@@ -233,15 +245,27 @@ export function useBoard({
       const task = model.tasks.find((t) => t.id === taskId);
       if (!task || task[field] === value) return;
 
+      // Le champ affiché n'est pas celui qu'on écrit : `ownerName` et
+      // `contractCode` sont dérivés ICI, depuis les listes déjà en mémoire,
+      // pour que la cellule change sans attendre un recalcul serveur.
+      const patch: Partial<ModelTask> = { [field]: value };
+      if (field === "ownerId") {
+        patch.ownerName = value ? people.find((p) => p.id === value)?.fullName ?? null : null;
+      } else if (field === "contractId") {
+        patch.contractCode = value
+          ? contracts.find((c) => c.id === value)?.contractCode ?? null
+          : null;
+      }
+
       const kind = field === "ownerId" ? "owner" : field === "siteId" ? "site" : "contract";
       commit(
-        setField(model, taskId, { [field]: value } as Partial<ModelTask>),
+        setField(model, taskId, patch),
         { kind, taskId, value } as BoardChange,
         { kind, taskId, value: task[field] } as BoardChange,
         taskId,
       );
     },
-    [model, editable, commit],
+    [model, editable, commit, people, contracts],
   );
 
   // ── Déplacement ───────────────────────────────────────────────────────────
