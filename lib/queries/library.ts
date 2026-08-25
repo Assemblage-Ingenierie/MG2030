@@ -32,7 +32,14 @@ export interface DocumentRow {
   description: string | null;
   uploadedAt: string;
   uploadedByName: string | null;
-  tags: { code: string; label: string; color: string | null }[];
+  tags: { id: string; code: string; label: string; color: string | null }[];
+}
+
+export interface TagOption {
+  id: string;
+  code: string;
+  label: string;
+  color: string | null;
 }
 
 /** Arborescence complète, assemblée en arbre. 39 dossiers au chargement. */
@@ -87,7 +94,7 @@ export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
       `id, folder_id, original_filename, size_bytes, mime_type, description, uploaded_at,
        mg2030_folder!inner ( path ),
        uploader:mg2030_app_user!mg2030_document_uploaded_by_fkey ( full_name ),
-       mg2030_document_tag ( mg2030_tag ( code, label, color ) )`,
+       mg2030_document_tag ( mg2030_tag ( id, code, label, color ) )`,
     )
     .is("archived_at", null)
     .order("uploaded_at", { ascending: false })
@@ -102,7 +109,9 @@ export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
     const r = row as unknown as Record<string, unknown> & {
       mg2030_folder: { path: string };
       uploader: { full_name: string } | null;
-      mg2030_document_tag: { mg2030_tag: { code: string; label: string; color: string | null } }[];
+      mg2030_document_tag: {
+        mg2030_tag: { id: string; code: string; label: string; color: string | null };
+      }[];
     };
     return {
       id: r.id as string,
@@ -117,6 +126,27 @@ export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
       tags: (r.mg2030_document_tag ?? []).map((dt) => dt.mg2030_tag),
     };
   });
+}
+
+/**
+ * Tous les tags, pour les proposer à l'ajout.
+ *
+ * 4 lignes en système (GAPS §7) : lus en bloc, sans pagination.
+ */
+export async function listTagOptions(): Promise<TagOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mg2030_tag")
+    .select("id, code, label, color")
+    .order("label");
+
+  if (error) throw new Error(`Lecture des tags : ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    code: r.code as string,
+    label: r.label as string,
+    color: (r.color as string) ?? null,
+  }));
 }
 
 /** Taille lisible. Base 1024, unités décimales — l'usage courant. */

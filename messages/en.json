@@ -585,7 +585,15 @@
     "error_mime_type_blocked": "This file type is not accepted in the library.",
     "error_folder_not_found": "That folder does not exist, or you cannot access it.",
     "error_upload_failed": "The transfer to storage failed. Nothing was recorded.",
-    "error_orphan": "The file reached storage but could not be recorded. Object key: {key} — pass it to an administrator so the orphan can be cleaned up."
+    "error_orphan": "The file reached storage but could not be recorded. Object key: {key} — pass it to an administrator so the orphan can be cleaned up.",
+    "openHint": "Open in a new tab. PDFs and images display inline; other types download.",
+    "addTag": "Add a tag…",
+    "removeTag": "Remove tag {tag}",
+    "error_missing_id": "No document identifier was given.",
+    "error_not_found": "This document does not exist, or you cannot access it.",
+    "error_unauthenticated": "Session expired. Sign in again.",
+    "error_downloadFailed": "The download link could not be issued.",
+    "error_tagFailed": "The tag change was refused."
   },
   "notifications": {
     "title": "Notifications",

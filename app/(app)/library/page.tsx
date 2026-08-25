@@ -1,13 +1,20 @@
 import { getI18n } from "@/lib/i18n/server";
-import { formatBytes, listDocuments, loadFolderTree, type FolderNode } from "@/lib/queries/library";
+import {
+  formatBytes,
+  listDocuments,
+  listTagOptions,
+  loadFolderTree,
+  type FolderNode,
+} from "@/lib/queries/library";
 import { formatDateTime } from "@/lib/i18n/format";
 import { readR2Config } from "@/lib/r2/presign";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
-import { Chip } from "@/components/ui/badge";
 import { SourceNote } from "@/components/referential/source-note";
 import { FolderTree } from "@/components/library/folder-tree";
 import { UploadPanel } from "@/components/library/upload-panel";
+import { DocumentTags } from "@/components/library/document-tags";
+import { OpenDocumentLink } from "@/components/library/open-document";
 
 /**
  * Bibliothèque documentaire.
@@ -23,7 +30,11 @@ export default async function LibraryPage({
   const { t } = await getI18n();
   const { folder: folderId } = await searchParams;
 
-  const [tree, documents] = await Promise.all([loadFolderTree(), listDocuments(folderId)]);
+  const [tree, documents, allTags] = await Promise.all([
+    loadFolderTree(),
+    listDocuments(folderId),
+    listTagOptions(),
+  ]);
   const r2Ready = readR2Config() !== null;
 
   const selected = folderId ? findFolder(tree, folderId) : null;
@@ -61,7 +72,7 @@ export default async function LibraryPage({
                   {documents.map((doc) => (
                     <Tr key={doc.id}>
                       <Td>
-                        <span className="block font-medium">{doc.originalFilename}</span>
+                        <OpenDocumentLink documentId={doc.id} filename={doc.originalFilename} />
                         {doc.description && (
                           <span className="block text-xs text-[var(--text-muted)]">
                             {doc.description}
@@ -74,23 +85,7 @@ export default async function LibraryPage({
                         )}
                       </Td>
                       <Td>
-                        {doc.tags.length === 0 ? (
-                          /* Un document sans tag est visible de TOUS les
-                             membres actifs (brief §7) : le dire évite de
-                             croire à une restriction implicite. */
-                          <span
-                            className="text-xs text-[var(--text-muted)]"
-                            title={t("library.noTagNote")}
-                          >
-                            {t("library.noTag")}
-                          </span>
-                        ) : (
-                          <span className="flex flex-wrap gap-1">
-                            {doc.tags.map((tag) => (
-                              <Chip key={tag.code}>{tag.label}</Chip>
-                            ))}
-                          </span>
-                        )}
+                        <DocumentTags documentId={doc.id} tags={doc.tags} allTags={allTags} />
                       </Td>
                       <Td align="right" className="tabular-nums">
                         {formatBytes(doc.sizeBytes)}
