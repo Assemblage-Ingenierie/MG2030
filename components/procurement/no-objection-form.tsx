@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { Modal } from "@/components/ui/modal";
+import { localToday } from "@/lib/schedule/dates";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { Button, IconButton } from "@/components/ui/button";
 import {
@@ -219,7 +220,9 @@ function AnswerModal({
 }) {
   const t = useT();
   const [outcome, setOutcome] = useState<Outcome>("no_objection");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // Horloge LOCALE et non UTC : voir localToday(). Entre minuit et deux
+  // heures du matin, la version universelle proposait la veille.
+  const [date, setDate] = useState(localToday);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

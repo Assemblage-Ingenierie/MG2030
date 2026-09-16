@@ -63,6 +63,21 @@ const predecessorIdsOf = (model: BoardModel, taskId: string) =>
 const successorIdsOf = (model: BoardModel, taskId: string) =>
   model.dependencies.filter((d) => d.predecessorId === taskId).map((d) => d.successorId);
 
+/**
+ * Dates épinglées des tâches nommées, TELLES QU'ELLES ÉTAIENT.
+ *
+ * Poser une précédence libère l'ancre du successeur — c'est nécessaire, sinon
+ * le lien resterait décoratif. L'annulation doit donc REPOSER cette ancre, et
+ * non se contenter de retirer le lien : sans cela Ctrl+Z rendait un état qui
+ * n'avait jamais existé, la date épinglée définitivement perdue.
+ *
+ * On lit ces valeurs sur le modèle d'AVANT, seul endroit où elles subsistent.
+ */
+const anchorsOf = (model: BoardModel, taskIds: string[]) =>
+  model.tasks
+    .filter((task) => taskIds.includes(task.id))
+    .map((task) => ({ taskId: task.id, startAnchor: task.startAnchor }));
+
 /** « 3, 7 » ou « #3 #7 » → [3, 7]. La saisie est tolérante, la lecture stricte. */
 const parseRowList = (text: string): number[] =>
   text === ""
@@ -232,7 +247,12 @@ export function useBoard({
               taskId,
               predecessorIds: predecessorIdsOf(result.model, taskId),
             },
-            { kind: "predecessors", taskId, predecessorIds: predecessorIdsOf(model, taskId) },
+            {
+              kind: "predecessors",
+              taskId,
+              predecessorIds: predecessorIdsOf(model, taskId),
+              anchors: anchorsOf(model, [taskId]),
+            },
             taskId,
           );
           return true;
@@ -256,7 +276,18 @@ export function useBoard({
           commit(
             result.model,
             { kind: "successors", taskId, successorIds: successorIdsOf(result.model, taskId) },
-            { kind: "successors", taskId, successorIds: successorIdsOf(model, taskId) },
+            {
+              kind: "successors",
+              taskId,
+              successorIds: successorIdsOf(model, taskId),
+              // Les deux jeux : celles qu'on vient de relier perdent leur
+              // ancre, celles qu'on détachait la gardaient. L'annulation doit
+              // rendre les unes ET les autres.
+              anchors: anchorsOf(model, [
+                ...successorIdsOf(model, taskId),
+                ...successorIdsOf(result.model, taskId),
+              ]),
+            },
             taskId,
           );
           return true;

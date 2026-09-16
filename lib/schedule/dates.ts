@@ -97,3 +97,25 @@ export function daysToWeeks(days: number): number {
 }
 
 export const weeksToDays = (weeks: number): number => Math.round(weeks * 7);
+
+/**
+ * Date du jour SELON L'HORLOGE DE QUI SAISIT, au format AAAA-MM-JJ.
+ *
+ * ⚠ NE PAS UTILISER `toISOString()` POUR CELA. Cette méthode rend la date en
+ * temps universel : pour un utilisateur à Prishtina ou à Paris — deux heures
+ * d'avance en été — tout ce qui est saisi entre minuit et deux heures du matin
+ * se voit proposer LA VEILLE. Constaté le 17/09/2026 : le formulaire de
+ * réponse AFD affichait le 16.
+ *
+ * Sur un champ qui sert à mesurer un délai d'instruction, un jour d'écart
+ * n'est pas cosmétique — c'est le chiffre que la PIU remonte à l'AFD.
+ *
+ * `padStart` plutôt qu'un formateur de locale : la sortie doit être l'ISO
+ * attendu par `<input type="date">`, quelle que soit la langue du navigateur.
+ */
+export function localToday(now: Date = new Date()): string {
+  const year = String(now.getFullYear()).padStart(4, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

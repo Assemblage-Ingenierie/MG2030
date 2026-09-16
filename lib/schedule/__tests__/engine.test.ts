@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 import { computeSchedule, downstreamOf } from "../engine";
+import { localToday } from "../dates";
 import { ScheduleCycleError, UnsupportedDependencyError, type TaskInput } from "../types";
 import {
   PROJECT_START,
@@ -351,5 +352,23 @@ describe("cas limites", () => {
     // FINIT a debut + 2000 jours (chaque tache finit la ou la suivante commence).
     expect(windows.get(`T${n - 1}`)!.end).toBe("2031-06-24");
     expect(windows.get("T0")!.start).toBe("2026-01-01");
+  });
+});
+
+describe("date du jour locale", () => {
+  it("suit l'horloge LOCALE, pas le temps universel", () => {
+    // 17 septembre 2026, 00h30 a Paris (UTC+2) = 16 septembre 22h30 UTC.
+    // `toISOString()` aurait rendu le 16 : c'est le decalage constate sur le
+    // formulaire de reponse AFD.
+    const justAfterMidnight = new Date(2026, 8, 17, 0, 30, 0);
+    expect(localToday(justAfterMidnight)).toBe("2026-09-17");
+  });
+
+  it("complete mois et jour sur deux chiffres", () => {
+    expect(localToday(new Date(2027, 0, 5, 12, 0, 0))).toBe("2027-01-05");
+  });
+
+  it("rend le dernier jour de l'annee sans deborder", () => {
+    expect(localToday(new Date(2029, 11, 31, 23, 59, 59))).toBe("2029-12-31");
   });
 });

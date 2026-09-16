@@ -23,6 +23,17 @@ export type CommitDirection = "down" | "right" | "none";
 export interface CellProps {
   /** Valeur affichée en lecture. */
   display: React.ReactNode;
+  /**
+   * Contenu rendu AVANT la zone cliquable, et SURTOUT hors d'elle.
+   *
+   * ⚠ C'EST CE QUI EMPÊCHE UN BOUTON DANS UN BOUTON. Le chevron de repliement
+   * vivait dans `display`, donc à l'intérieur du <button> de la cellule. HTML
+   * invalide : React échouait à l'hydratation, abandonnait le rendu serveur et
+   * refaisait toute la page côté client, et le clic sur le chevron était
+   * capté par la cellule au lieu du chevron. C'est le repliement « qui ne
+   * marche pas » signalé le 16/09/2026.
+   */
+  prefix?: React.ReactNode;
   /** Valeur brute mise dans le champ à l'entrée en édition. */
   raw: string;
   editable: boolean;
@@ -43,6 +54,7 @@ export interface CellProps {
 
 export const BoardCell = memo(function BoardCell({
   display,
+  prefix,
   raw,
   editable,
   active,
@@ -163,25 +175,31 @@ export const BoardCell = memo(function BoardCell({
         style={{ width }}
         title={title}
       >
+        {prefix}
         <span className="truncate">{display}</span>
       </div>
     );
   }
 
+  // Le cadre porte la bordure et la largeur ; le bouton n'occupe que la place
+  // restante. Survoler le chevron ne surligne donc pas la cellule — ce qui est
+  // juste : replier n'est pas éditer.
   return (
-    <button
-      type="button"
-      onClick={onActivate}
-      onFocus={onActivate}
-      title={title}
-      className={cn(
-        base,
-        "flex cursor-text items-center px-2 text-left transition-colors hover:bg-[var(--app-bg)]",
-        align === "right" && "justify-end",
-      )}
-      style={{ width }}
-    >
-      <span className="truncate">{display}</span>
-    </button>
+    <div className={cn(base, "flex items-center")} style={{ width }}>
+      {prefix}
+      <button
+        type="button"
+        onClick={onActivate}
+        onFocus={onActivate}
+        title={title}
+        className={cn(
+          "flex min-w-0 flex-1 cursor-text items-center self-stretch px-2 text-left",
+          "transition-colors hover:bg-[var(--app-bg)]",
+          align === "right" && "justify-end",
+        )}
+      >
+        <span className="truncate">{display}</span>
+      </button>
+    </div>
   );
 });

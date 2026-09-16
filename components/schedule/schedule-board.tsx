@@ -627,21 +627,22 @@ function GridRow(props: RowProps) {
         editable={cellEditable("activity")}
         active={isActive("activity")}
         raw={task.activity}
-        display={
+        /* Retrait hiérarchique ET chevron vivent DANS LE PRÉFIXE, donc hors de
+           la zone cliquable de la cellule. Un <button> imbriqué dans un autre
+           est du HTML invalide : l'hydratation échouait, et le clic sur le
+           chevron partait à la cellule. */
+        prefix={
           <span
-            className="flex items-center gap-1"
-            style={{ paddingLeft: task.depth * 12 }}
+            className="flex shrink-0 items-center"
+            style={{ paddingLeft: 8 + task.depth * 12 }}
           >
-            {/* Chevron de repliement : seulement là où il masque quelque chose. */}
+            {/* Seulement là où il masque quelque chose. */}
             {collapsible ? (
               <button
                 type="button"
                 aria-expanded={!collapsed}
                 aria-label={t(collapsed ? "schedule.expandRow" : "schedule.collapseRow")}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleCollapse(task.id);
-                }}
+                onClick={() => onToggleCollapse(task.id)}
                 className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--border)]"
               >
                 <svg
@@ -660,14 +661,19 @@ function GridRow(props: RowProps) {
             ) : (
               <span className="w-4 shrink-0" aria-hidden="true" />
             )}
+          </span>
+        }
+        display={
+          <span className="flex items-center gap-1">
             {/* Un cran au-dessus des autres colonnes (15 px contre 14) : le nom
                 de la tâche est ce qu'on lit en premier et le plus souvent, les
                 dates et durées ne se consultent qu'ensuite. */}
             <span
               className={cn(
-                "truncate text-[15px]",
-                task.type === "group_header" &&
-                  "text-[11px] uppercase tracking-wide text-[var(--text-muted)]",
+                "truncate",
+                task.type === "group_header"
+                  ? "text-[11px] uppercase tracking-wide text-[var(--text-muted)]"
+                  : "text-[15px]",
               )}
             >
               {task.activity}

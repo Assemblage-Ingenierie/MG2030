@@ -34,7 +34,22 @@ export type BoardChange =
   | { kind: "owner"; taskId: string; value: string | null }
   | { kind: "site"; taskId: string; value: string | null }
   | { kind: "contract"; taskId: string; value: string | null }
-  | { kind: "predecessors"; taskId: string; predecessorIds: string[] }
+  | {
+      kind: "predecessors";
+      taskId: string;
+      predecessorIds: string[];
+      /**
+       * Ancres à REPOSER avant de récrire les liens. Sert à l'annulation.
+       *
+       * Poser une précédence libère la date épinglée du successeur — il le
+       * faut, sinon le lien n'aurait aucun effet. Mais l'inverse n'était pas
+       * écrit : Ctrl+Z retirait bien le lien et laissait la date épinglée
+       * PERDUE. L'annulation prétendait alors rendre l'état d'avant tout en
+       * gardant une partie du changement, ce qui est la seule chose qu'un
+       * bouton « annuler » n'a pas le droit de faire.
+       */
+      anchors?: { taskId: string; startAnchor: string | null }[];
+    }
   /**
    * Précédences vues DEPUIS L'AMONT : « ces tâches-là me suivent ».
    *
@@ -43,7 +58,13 @@ export type BoardChange =
    * l'écriture n'est pas symétrique de `predecessors` : ici on remplace les
    * liens PARTANT de la tâche, là ceux qui y arrivent.
    */
-  | { kind: "successors"; taskId: string; successorIds: string[] }
+  | {
+      kind: "successors";
+      taskId: string;
+      successorIds: string[];
+      /** Voir `anchors` ci-dessus : ici ce sont celles des tâches AVAL. */
+      anchors?: { taskId: string; startAnchor: string | null }[];
+    }
   | { kind: "order"; order: { id: string; sortOrder: number }[] }
   | { kind: "delete"; taskId: string }
   /** Ressuscite une tâche archivée. Sert à l'annulation d'une suppression. */
@@ -90,11 +111,33 @@ function movesDates(kind: BoardChange["kind"]): boolean {
     kind === "duration" ||
     kind === "startAnchor" ||
     kind === "predecessors" ||
+    kind === "successors" ||
     kind === "order" ||
     kind === "delete" ||
     kind === "restore" ||
     kind === "fields"
   );
+}
+
+/**
+ * Repose les dates épinglées portées par un changement de précédence.
+ *
+ * Appelé AVANT la réécriture des liens : si l'on reposait l'ancre après, le
+ * code qui libère les ancres des tâches nouvellement reliées l'effacerait
+ * aussitôt. L'ordre compte donc, et il n'est pas interchangeable.
+ */
+async function restoreAnchors(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  anchors: { taskId: string; startAnchor: string | null }[] | undefined,
+): Promise<string | null> {
+  for (const anchor of anchors ?? []) {
+    const { error } = await supabase
+      .from("mg2030_task")
+      .update({ start_date_input: anchor.startAnchor })
+      .eq("id", anchor.taskId);
+    if (error) return error.message;
+  }
+  return null;
 }
 
 export async function applyBoardChange(
@@ -166,6 +209,9 @@ export async function applyBoardChange(
     }
 
     case "predecessors": {
+      const failed = await restoreAnchors(supabase, change.anchors);
+      if (failed) return { ok: false, error: failed };
+
       // Poser une précédence LIBÈRE la date épinglée : l'ancre prime sur les
       // prédécesseurs dans le moteur, donc la garder rendrait le lien sans
       // effet. Même règle que côté client (lib/schedule/board-model.ts).
@@ -203,6 +249,9 @@ export async function applyBoardChange(
     }
 
     case "successors": {
+      const failedAnchors = await restoreAnchors(supabase, change.anchors);
+      if (failedAnchors) return { ok: false, error: failedAnchors };
+
       // Chaque successeur perd son ancre, pour la raison exposée ci-dessus :
       // l'ancre prime sur les prédécesseurs, donc la garder rendrait le lien
       // décoratif. Ce sont les tâches AVAL qu'on libère ici, pas la tâche
