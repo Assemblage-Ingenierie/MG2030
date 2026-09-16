@@ -101,6 +101,29 @@ export const GANTT = {
 } as const;
 
 // ============================================================
+// Couleur par ENTITÉ RESPONSABLE (demande du 16/09/2026).
+//
+// Les trois codes sont ceux de `mg2030_organisation`, qui les porte depuis le
+// seed : pas d'énumération parallèle, pas de second axe à maintenir.
+//
+//   • TA  — assistance technique (Assemblage). Rouge, couleur du prestataire.
+//   • AFD — bailleur. Bleu, le sien.
+//   • PIU — unité d'exécution du MJS. Or de l'emblème du Kosovo, qui est déjà
+//           l'accent secondaire de la plateforme : la maîtrise d'ouvrage
+//           kosovare porte la couleur de son propre État.
+//
+// Le rouge N'EST PAS `danger` (#c0392b) ni le rose du retard (#ea9999) : trois
+// rouges se côtoieraient sur le même diagramme sans dire la même chose. Celui
+// d'Assemblage est plus sombre et plus sourd, et le retard continue de primer
+// sur l'appartenance quand les deux s'appliquent.
+// ============================================================
+export const ENTITY_COLOR: Record<string, string> = {
+  TA: "#9b2c2c",
+  AFD: BRAND.blue,
+  PIU: BRAND.gold,
+};
+
+// ============================================================
 // Rayons, ombres, échelle typographique.
 // Valeurs relevées par fréquence d'emploi dans le dépôt de charte.
 // ============================================================

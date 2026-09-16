@@ -30,19 +30,74 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/i18n-context";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
+import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { PasswordField } from "./password-field";
 import { submitAccessRequest } from "@/app/actions/access-request";
 
 /** Longueur minimale imposée par Supabase Auth ; on le dit avant l'aller-retour. */
 const MIN_PASSWORD = 8;
 
-export function SignUpForm() {
+export interface OrganisationChoice {
+  id: string;
+  code: string;
+  name: string;
+}
+
+/**
+ * Entité d'appartenance : assistance technique, AFD, ou unité d'exécution.
+ *
+ * Ce n'est pas une formalité. L'entité colore les barres du plan de charge, si
+ * bien qu'une affectation approximative se lit ensuite comme un fait sur un
+ * diagramme envoyé à l'AFD. Elle reste néanmoins une DÉCLARATION : l'écran
+ * d'approbation la montre à l'administrateur, qui tranche.
+ *
+ * Facultative, et délibérément : un champ obligatoire mal compris se remplit
+ * au hasard, et une entité fausse est pire qu'une entité absente — l'absence,
+ * elle, se voit.
+ */
+function EntityChoice({
+  organisations,
+  value,
+  onChange,
+  label,
+  hint,
+  emptyLabel,
+}: {
+  organisations: OrganisationChoice[];
+  value: string;
+  onChange: (id: string) => void;
+  label: string;
+  hint: string;
+  emptyLabel: string;
+}) {
+  if (organisations.length === 0) return null;
+  return (
+    <div>
+      <Label>{label}</Label>
+      <select
+        className={fieldClasses() + " mt-1"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">{emptyLabel}</option>
+        {organisations.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">{hint}</p>
+    </div>
+  );
+}
+
+export function SignUpForm({ organisations }: { organisations: OrganisationChoice[] }) {
   const t = useT();
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
+  const [organisationId, setOrganisationId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -104,6 +159,7 @@ export function SignUpForm() {
     const result = await submitAccessRequest({
       fullName: fullName.trim(),
       jobTitle: jobTitle.trim() || null,
+      organisationId: organisationId || null,
       message: message.trim() || null,
     });
     setLoading(false);
@@ -131,6 +187,14 @@ export function SignUpForm() {
         autoComplete="organization-title"
         value={jobTitle}
         onChange={(e) => setJobTitle(e.target.value)}
+      />
+      <EntityChoice
+        organisations={organisations}
+        value={organisationId}
+        onChange={setOrganisationId}
+        label={t("auth.entity")}
+        hint={t("auth.entityHint")}
+        emptyLabel={t("auth.entityUnspecified")}
       />
       <Field
         label={t("auth.email")}
@@ -210,12 +274,25 @@ export function SignUpForm() {
  * personne possède déjà un compte de l'autre application du projet et souhaite
  * accéder à MG2030.
  */
-export function AccessRequestForm({ defaultName }: { defaultName: string }) {
+export function AccessRequestForm({
+  defaultName,
+  organisations,
+}: {
+  defaultName: string;
+  /**
+   * Les trois entités du projet : assistance technique, AFD, unité d'exécution.
+   * Elles viennent de `mg2030_organisation` — la même table que celle qui
+   * colore les barres du Gantt, pour que déclaration et affichage ne puissent
+   * pas diverger.
+   */
+  organisations: OrganisationChoice[];
+}) {
   const t = useT();
   const router = useRouter();
 
   const [fullName, setFullName] = useState(defaultName);
   const [jobTitle, setJobTitle] = useState("");
+  const [organisationId, setOrganisationId] = useState("");
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -235,6 +312,7 @@ export function AccessRequestForm({ defaultName }: { defaultName: string }) {
     const result = await submitAccessRequest({
       fullName: fullName.trim(),
       jobTitle: jobTitle.trim() || null,
+      organisationId: organisationId || null,
       message: message.trim() || null,
     });
     if (!result.ok) {
@@ -259,6 +337,14 @@ export function AccessRequestForm({ defaultName }: { defaultName: string }) {
         optionalText={t("common.optional")}
         value={jobTitle}
         onChange={(e) => setJobTitle(e.target.value)}
+      />
+      <EntityChoice
+        organisations={organisations}
+        value={organisationId}
+        onChange={setOrganisationId}
+        label={t("auth.entity")}
+        hint={t("auth.entityHint")}
+        emptyLabel={t("auth.entityUnspecified")}
       />
       <Field
         label={t("auth.requestMessage")}

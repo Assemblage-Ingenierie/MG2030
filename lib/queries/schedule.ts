@@ -83,12 +83,23 @@ export interface TaskRow extends TaskInput {
   validatorId: string | null;
   planId: string;
   ownerName: string | null;
+  /**
+   * Code de l'entité du responsable : TA, AFD ou PIU.
+   *
+   * C'est lui qui donne sa couleur à la barre du Gantt. Il vient de
+   * `mg2030_organisation`, qui porte l'entité depuis le seed — il n'existe pas
+   * de second axe « entité » à côté.
+   */
+  ownerOrgCode: string | null;
   /** Fenêtre recalculée par le moteur. */
   computed: TaskWindow | null;
   /** Vrai si la date stockée diffère de la date calculée. */
   drifted: boolean;
   depth: number;
 }
+
+/** Forme de la jointure responsable → organisation, telle que PostgREST la rend. */
+type OwnerJoin = { full_name: string; mg2030_organisation: { code: string } | null } | null;
 
 export interface SchedulePayload {
   tasks: TaskRow[];
@@ -131,7 +142,10 @@ export async function loadSchedule(
        mg2030_schedule_scenario!inner ( code ),
        mg2030_contract ( contract_code ),
        mg2030_site ( site_code, name ),
-       owner:mg2030_app_user!mg2030_task_owner_id_fkey ( full_name )`,
+       owner:mg2030_app_user!mg2030_task_owner_id_fkey (
+         full_name,
+         mg2030_organisation ( code )
+       )`,
     )
     .eq("mg2030_schedule_scenario.code", scenarioCode)
     .is("archived_at", null)
@@ -224,7 +238,8 @@ export async function loadSchedule(
       ownerId: (r.owner_id as string) ?? null,
       validatorId: (r.validator_id as string) ?? null,
       planId: r.plan_id as string,
-      ownerName: (r.owner as { full_name: string } | null)?.full_name ?? null,
+      ownerName: (r.owner as OwnerJoin)?.full_name ?? null,
+      ownerOrgCode: (r.owner as OwnerJoin)?.mg2030_organisation?.code ?? null,
       computed,
       drifted:
         computed !== null &&

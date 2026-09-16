@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
-import { GANTT } from "@/lib/tokens";
+import { ENTITY_COLOR, GANTT } from "@/lib/tokens";
 import { cn } from "@/lib/cn";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 
@@ -184,6 +184,19 @@ export async function ScaleSwitch({
         <LegendItem color="#ea9999" label={t("gantt.late")} />
         <LegendItem color="var(--accent-2)" label={t("gantt.unreported")} hollow />
         <LegendItem color={GANTT.today} label={t("gantt.today")} />
+      </div>
+
+      {/* Entités responsables, sur une ligne à part.
+          Séparées de la légende des états parce qu'elles répondent à une autre
+          question : celle du dessus dit « où en est-on ? », celle-ci « qui
+          tient la tâche ? ». Mêlées, on lirait « en retard » et « AFD » comme
+          deux valeurs d'une même échelle. */}
+      <div className="flex w-full flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">
+        <span>{t("gantt.entityLegend")}</span>
+        <LegendItem color={ENTITY_COLOR.TA} label={t("gantt.entity_TA")} />
+        <LegendItem color={ENTITY_COLOR.AFD} label={t("gantt.entity_AFD")} />
+        <LegendItem color={ENTITY_COLOR.PIU} label={t("gantt.entity_PIU")} />
+        <span>{t("gantt.entityNoOwner")}</span>
       </div>
     </div>
   );

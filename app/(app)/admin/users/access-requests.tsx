@@ -25,6 +25,8 @@ export interface PendingRequest {
   jobTitle: string | null;
   message: string | null;
   createdAt: string;
+  /** Entité déclarée par le demandeur, ou `null` s'il a préféré ne rien dire. */
+  organisationId: string | null;
 }
 
 export interface OrgChoice {
@@ -83,7 +85,14 @@ function RequestRow({
   roles: RoleChoice[];
 }) {
   const t = useT();
-  const [orgId, setOrgId] = useState(organisations[0]?.id ?? "");
+  // Pré-sélection sur l'entité DÉCLARÉE à l'inscription, quand il y en a une.
+  // L'administrateur garde la main : une déclaration n'est pas une décision, et
+  // c'est bien lui qui rattache le compte.
+  const [orgId, setOrgId] = useState(
+    request.organisationId && organisations.some((o) => o.id === request.organisationId)
+      ? request.organisationId
+      : organisations[0]?.id ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 

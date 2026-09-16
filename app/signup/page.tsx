@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthState } from "@/lib/auth/server";
 import { getI18n } from "@/lib/i18n/server";
+import { listSignupOrganisations } from "@/lib/queries/users";
 import { PanelCard } from "@/components/ui/card";
 import { SignUpForm } from "@/components/auth/signup-form";
 import { FunderMark, KosovoEmblem } from "@/components/shell/brand-mark";
@@ -25,6 +26,8 @@ export default async function SignUpPage() {
   if (state.status !== "anonymous") redirect("/");
 
   const { t } = await getI18n();
+  // Lecture par fonction et non par table : l'appelant est anonyme ici.
+  const organisations = await listSignupOrganisations();
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-4 py-8">
@@ -52,7 +55,7 @@ export default async function SignUpPage() {
           {t("auth.signUpNotice")}
         </p>
 
-        <SignUpForm />
+        <SignUpForm organisations={organisations} />
 
         <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
           {t("auth.haveAccount")}{" "}

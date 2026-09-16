@@ -120,7 +120,10 @@
     "confirmPassword": "Confirm password",
     "setNewPassword": "Set new password",
     "saving": "Saving…",
-    "error_passwordMismatch": "The two passwords do not match."
+    "error_passwordMismatch": "The two passwords do not match.",
+    "entity": "Your entity",
+    "entityHint": "Which side of the project you work for. It colours the tasks you own in the schedule. An administrator confirms it when granting access.",
+    "entityUnspecified": "Prefer not to say"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -505,7 +508,12 @@
     "showFewerColumnsHint": "Keep only activity, duration and dates, to give the diagram room.",
     "unreported": "Not reported",
     "showNames": "Task names",
-    "showNamesHint": "Write each task name next to its bar. Useful for a screenshot; noisy on a dense plan."
+    "showNamesHint": "Write each task name next to its bar. Useful for a screenshot; noisy on a dense plan.",
+    "entityLegend": "Responsible entity:",
+    "entity_TA": "Technical assistance",
+    "entity_AFD": "AFD",
+    "entity_PIU": "PIU (MYS)",
+    "entityNoOwner": "— tasks with no named owner keep the default colour."
   },
   "deliverables": {
     "title": "Deliverables",

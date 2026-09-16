@@ -5,6 +5,7 @@ import { PanelCard } from "@/components/ui/card";
 import { AlertIcon } from "@/components/ui/icons";
 import { SignOutButton } from "./sign-out-button";
 import { AccessRequestForm } from "./signup-form";
+import { listSignupOrganisations } from "@/lib/queries/users";
 
 /**
  * Garde d'accès. Enveloppe tout écran métier.
@@ -83,6 +84,7 @@ export async function AccessGuard({ children }: { children: React.ReactNode }) {
           defaultName={
             (auth.user?.user_metadata?.full_name as string | undefined) ?? ""
           }
+          organisations={await listSignupOrganisations()}
         />
       </Refusal>
     );

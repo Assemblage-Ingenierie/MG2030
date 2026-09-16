@@ -47,6 +47,15 @@ function appUrl(): string {
 export async function submitAccessRequest(input: {
   fullName: string;
   jobTitle: string | null;
+  /**
+   * Entité déclarée par le demandeur (TA, AFD, PIU) ou `null`.
+   *
+   * Déclaration, non décision : l'écran d'approbation la présente et
+   * l'administrateur tranche. Elle sert à lui éviter de deviner d'après le
+   * domaine de l'adresse, ce qui est faux dès qu'un expert de l'assistance
+   * technique écrit depuis sa propre société.
+   */
+  organisationId: string | null;
   message: string | null;
 }): Promise<RequestResult> {
   const fullName = input.fullName.trim();
@@ -71,6 +80,7 @@ export async function submitAccessRequest(input: {
     email: auth.user.email,
     full_name: fullName,
     job_title: input.jobTitle?.trim() || null,
+    organisation_id: input.organisationId,
     message: input.message?.trim() || null,
   };
 

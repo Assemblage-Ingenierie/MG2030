@@ -25,6 +25,12 @@ export interface GanttTask {
   progressPct: number | null;
   depth: number;
   contractCode: string | null;
+  /**
+   * Code de l'entite responsable : TA, AFD ou PIU. Donne sa couleur a la barre.
+   * Facultatif, et c'est le cas ordinaire : la plupart des taches du plan
+   * n'ont pas encore de responsable nomme.
+   */
+  ownerOrgCode?: string | null;
 }
 
 export interface Bar {
@@ -54,6 +60,8 @@ export interface Bar {
   isLate: boolean;
   /** Un jalon est rendu en losange, pas en barre. */
   diamond: boolean;
+  /** Entite responsable, reportee telle quelle : la couleur se decide au rendu. */
+  ownerOrgCode?: string | null;
   rowIndex: number;
 }
 
@@ -134,6 +142,7 @@ export function buildLayout(options: LayoutOptions): GanttLayout {
         task.progressPct === null ? 0 : Math.round((width * task.progressPct) / 100),
       depth: task.depth,
       status: barStatus(task, today),
+      ownerOrgCode: task.ownerOrgCode ?? null,
       isLate: barStatus(task, today) === "late",
       diamond: isMilestone,
       rowIndex: index,

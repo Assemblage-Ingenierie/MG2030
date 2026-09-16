@@ -21,7 +21,7 @@
 // ============================================================
 
 import { memo, useMemo } from "react";
-import { GANTT } from "@/lib/tokens";
+import { ENTITY_COLOR, GANTT } from "@/lib/tokens";
 import { buildLayout, ROW_H } from "@/lib/gantt/layout";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 import type { BoardTask } from "./board-types";
@@ -63,6 +63,7 @@ export const GanttPane = memo(function GanttPane({
           progressPct: t.progressPct,
           depth: t.depth,
           contractCode: t.contractCode,
+          ownerOrgCode: t.ownerOrgCode ?? null,
         })),
         dependencies,
         scale,
@@ -236,12 +237,23 @@ export const GanttPane = memo(function GanttPane({
           // tâche dont la fin est passée sans avancement saisi n'est PAS en
           // retard — on n'en sait rien. La dire en rose serait affirmer un fait
           // que personne n'a constaté.
+          //
+          // ORDRE DE PRÉCÉDENCE DES COULEURS, et il n'est pas arbitraire :
+          //   1. le RETARD prime sur tout. Savoir qu'une tâche dérape importe
+          //      plus que savoir à qui elle incombe ;
+          //   2. un récapitulatif garde son gris de structure : il n'est
+          //      responsable de rien, il agrège ;
+          //   3. sinon, l'ENTITÉ RESPONSABLE, quand un responsable est nommé ;
+          //   4. à défaut, l'accent : la majorité des tâches du plan n'ont pas
+          //      encore de responsable, et les peindre d'une couleur d'entité
+          //      arbitraire affirmerait une attribution qui n'existe pas.
+          const entityColor = bar.ownerOrgCode ? ENTITY_COLOR[bar.ownerOrgCode] : undefined;
           const fill =
             bar.status === "late"
               ? "#ea9999"
               : bar.type === "summary"
                 ? GANTT.text
-                : "var(--accent)";
+                : (entityColor ?? "var(--accent)");
 
           const unreported = bar.status === "unreported";
           const tip =

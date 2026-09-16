@@ -133,6 +133,8 @@ export interface AccessRequestRow {
   jobTitle: string | null;
   message: string | null;
   createdAt: string;
+  /** Entité DÉCLARÉE par le demandeur. Pré-sélectionnée, jamais imposée. */
+  organisationId: string | null;
 }
 
 /**
@@ -146,7 +148,7 @@ export async function listPendingAccessRequests(): Promise<AccessRequestRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("mg2030_access_request")
-    .select("id, email, full_name, job_title, message, created_at")
+    .select("id, email, full_name, job_title, organisation_id, message, created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
@@ -156,6 +158,7 @@ export async function listPendingAccessRequests(): Promise<AccessRequestRow[]> {
     email: r.email as string,
     fullName: r.full_name as string,
     jobTitle: (r.job_title as string) ?? null,
+    organisationId: (r.organisation_id as string) ?? null,
     message: (r.message as string) ?? null,
     createdAt: r.created_at as string,
   }));
@@ -166,6 +169,22 @@ export interface OrganisationRow {
   code: string;
   name: string;
   accessMode: string;
+}
+
+/**
+ * Entités du projet pour le formulaire d'inscription.
+ *
+ * Passe par `mg2030_signup_organisations()` et non par la table : l'appelant
+ * peut être ANONYME — il n'a pas encore de compte — et la table n'est lisible
+ * que d'un compte authentifié (migration 0029).
+ */
+export async function listSignupOrganisations(): Promise<
+  { id: string; code: string; name: string }[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mg2030_signup_organisations");
+  if (error) throw new Error(`Lecture des entites : ${error.message}`);
+  return (data ?? []) as { id: string; code: string; name: string }[];
 }
 
 export async function listOrganisations(): Promise<OrganisationRow[]> {

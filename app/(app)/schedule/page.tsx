@@ -101,6 +101,7 @@ export default async function SchedulePage({
     progressPct: task.progressPct,
     ownerId: task.ownerId,
     ownerName: task.ownerName,
+    ownerOrgCode: task.ownerOrgCode,
     contractId: task.contractCode ? contractIdByCode.get(task.contractCode) ?? null : null,
     contractCode: task.contractCode,
     siteId: task.siteId,

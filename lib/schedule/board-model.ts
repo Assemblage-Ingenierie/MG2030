@@ -43,6 +43,8 @@ export interface ModelTask {
   progressPct: number | null;
   ownerId: string | null;
   ownerName: string | null;
+  /** Entite du responsable (TA / AFD / PIU) : couleur de la barre. */
+  ownerOrgCode?: string | null;
   contractId: string | null;
   contractCode: string | null;
   siteId: string | null;
