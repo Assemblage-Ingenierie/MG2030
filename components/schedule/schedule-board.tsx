@@ -24,7 +24,7 @@ import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { Button, IconButton } from "@/components/ui/button";
 import { formatPlanDate } from "@/lib/i18n/format";
-import { daysToWeeks } from "@/lib/schedule/dates";
+import { daysBetween, daysToWeeks } from "@/lib/schedule/dates";
 import { ROW_H } from "@/lib/gantt/layout";
 import {
   descendantCount,
@@ -41,7 +41,6 @@ import {
   isCellEditable,
   isStartEditable,
   renderOrder,
-  RIGHT_ALIGNED,
   visibleColumns,
   type BoardColumn,
   type BoardTask,
@@ -424,23 +423,23 @@ function GridHeader({
   columns: BoardColumn[];
   actionsWidth: number;
 }) {
+  // Intitulés CENTRÉS, contrairement aux cellules qu'ils coiffent. Un en-tête
+  // ne se lit pas comme une valeur : le centrer le sépare visuellement de la
+  // colonne de chiffres ou de dates alignée dessous, sans ajouter de trait.
   const cell =
-    "flex shrink-0 items-center border-r border-b border-[var(--border)] px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+    "flex shrink-0 items-center justify-center border-r border-b border-[var(--border)] px-2 " +
+    "text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
   return (
     <div className="sticky top-0 z-20 flex bg-[var(--app-bg)]" style={{ height: HEAD_H }}>
       <div
-        className={cn(cell, "justify-end")}
+        className={cell}
         style={{ width: COLUMN_WIDTH.rowNo }}
         title={t("schedule.rowNoHint")}
       >
         #
       </div>
       {renderOrder(columns).map((column) => (
-        <div
-          key={column}
-          className={cn(cell, RIGHT_ALIGNED.has(column) && "justify-end")}
-          style={{ width: COLUMN_WIDTH[column] }}
-        >
+        <div key={column} className={cell} style={{ width: COLUMN_WIDTH[column] }}>
           {t(`schedule.${column}`)}
         </div>
       ))}
@@ -521,6 +520,18 @@ function GridRow(props: RowProps) {
     t,
   } = props;
 
+  /**
+   * Étendue d'un parent : de son premier début à sa dernière fin.
+   *
+   * `end` est EXCLUSIF dans le moteur — c'est le jour où le successeur
+   * démarre — donc `daysBetween` donne directement le nombre de jours
+   * occupés, sans « +1 » à ajouter.
+   */
+  const spanDays =
+    (task.type === "summary" || task.type === "group_header") && task.start && task.end
+      ? daysBetween(task.start, task.end)
+      : null;
+
   const isActive = (column: BoardColumn) => active?.row === row && active.column === column;
   const shown = (column: BoardColumn) => columns.includes(column);
   const cellEditable = (column: BoardColumn) =>
@@ -572,6 +583,11 @@ function GridRow(props: RowProps) {
     <div
       className={cn(
         "flex",
+        // La LIGNE ENTIÈRE d'un parent est en gras, pas seulement son libellé.
+        // Un récapitulatif dont les dates et la durée s'affichent du même poids
+        // que ses enfants ne se distingue plus d'eux : on lit une liste plate
+        // là où il y a une hiérarchie.
+        (task.type === "summary" || task.type === "group_header") && "font-semibold",
         task.type === "group_header" && "bg-[var(--app-bg)]",
         row % 2 === 1 && task.type !== "group_header" && "bg-[color-mix(in_srgb,var(--app-bg)_45%,transparent)]",
         saving && "opacity-60",
@@ -641,10 +657,12 @@ function GridRow(props: RowProps) {
             ) : (
               <span className="w-4 shrink-0" aria-hidden="true" />
             )}
+            {/* Un cran au-dessus des autres colonnes (15 px contre 14) : le nom
+                de la tâche est ce qu'on lit en premier et le plus souvent, les
+                dates et durées ne se consultent qu'ensuite. */}
             <span
               className={cn(
-                "truncate",
-                (task.type === "summary" || task.type === "group_header") && "font-semibold",
+                "truncate text-[15px]",
                 task.type === "group_header" &&
                   "text-[11px] uppercase tracking-wide text-[var(--text-muted)]",
               )}
@@ -675,10 +693,19 @@ function GridRow(props: RowProps) {
             : t("schedule.durationTooltip", { weeks: String(daysToWeeks(task.durationDays)) })
         }
         display={
-          task.durationDays === null ? (
-            <span className="text-[var(--text-muted)]">—</span>
-          ) : (
+          task.durationDays !== null ? (
             <span className="tabular-nums">{task.durationDays}</span>
+          ) : spanDays !== null ? (
+            /* Un parent n'a pas de durée PROPRE — la sienne est celle de ses
+               enfants réunis. On l'affiche quand même : sans elle, la colonne
+               montrait un tiret là où se trouve précisément l'information
+               qu'on cherche en repliant une phase. Mise en retrait et non en
+               noir plein, parce qu'elle est CALCULÉE et non saisissable. */
+            <span className="tabular-nums text-[var(--text-muted)]" title={t("schedule.spanHint")}>
+              {spanDays}
+            </span>
+          ) : (
+            <span className="text-[var(--text-muted)]">—</span>
           )
         }
         onActivate={() => onActivate({ row, column: "duration" })}

@@ -33,10 +33,17 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 function validate(input: NoObjectionInput): string | null {
   if (input.subject.trim() === "") return "emptySubject";
-  // La contrainte `has_target` refuserait la ligne ; on le dit en clair avant
-  // l'aller-retour plutôt que de laisser remonter un message Postgres.
-  if (!input.contractId && !input.lotId && !input.taskId) return "noTarget";
-  if (input.sentDate !== null && !ISO.test(input.sentDate)) return "invalidDate";
+
+  // Le rattachement à un marché, un lot ou une tâche n'est PLUS exigé
+  // (migration 0027) : le plan de passation lui-même passe en non-objection et
+  // ne relève d'aucun marché.
+  //
+  // La DATE D'ENVOI, elle, devient obligatoire. C'est elle qui déclenche le
+  // compte à rebours de l'instruction AFD : sans elle un avis figure dans la
+  // liste sans qu'on puisse dire depuis combien de temps il attend, ce qui est
+  // exactement l'information pour laquelle cet écran existe.
+  if (!input.sentDate) return "missingSentDate";
+  if (!ISO.test(input.sentDate)) return "invalidDate";
   return null;
 }
 
@@ -118,13 +125,21 @@ export async function markSent(id: string, date: string | null): Promise<NoObjec
  * Statut et date sont écrits ENSEMBLE : la contrainte de base les exige
  * indissociables, et c'est la bonne règle — un avis « rendu » sans date de
  * réponse rendrait tout calcul de délai faux.
+ *
+ * ⚠ LA DATE EST EXIGÉE, ET N'EST PLUS PRÉSUMÉE « AUJOURD'HUI ».
+ * Elle l'était, par commodité. Mais une réponse de l'AFD s'enregistre le plus
+ * souvent quelques jours après sa réception : présumer le jour de la saisie
+ * raccourcissait silencieusement le délai d'instruction mesuré, c'est-à-dire
+ * le seul chiffre que cet écran sert à produire. Mieux vaut demander la date
+ * que publier une statistique fausse.
  */
 export async function recordAnswer(
   id: string,
   outcome: "no_objection" | "no_objection_with_comments" | "rejected",
-  date: string | null,
+  date: string,
 ): Promise<NoObjectionWrite> {
-  const answered = date ?? new Date().toISOString().slice(0, 10);
+  const answered = date;
+  if (!answered) return { ok: false, error: "missingResponseDate" };
   if (!ISO.test(answered)) return { ok: false, error: "invalidDate" };
 
   const supabase = await createClient();

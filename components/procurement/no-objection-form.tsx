@@ -107,9 +107,12 @@ function FormModal({
             value={value.reference ?? ""}
             onChange={(e) => setValue({ ...value, reference: e.target.value })}
           />
+          {/* Obligatoire : c'est elle qui fait courir le délai d'instruction.
+              Un avis sans date d'envoi occupe une ligne sans qu'on puisse dire
+              depuis quand il attend. */}
           <Field
             label={t("noObjections.sentDate")}
-            optionalText={t("common.optional")}
+            required
             type="date"
             hint={t("noObjections.sentDateHint")}
             value={value.sentDate ?? ""}
@@ -117,8 +120,11 @@ function FormModal({
           />
         </div>
 
+        {/* Facultatif, et il doit le rester : le plan de passation lui-même
+            passe en non-objection sans relever d'aucun marché (migration
+            0027). */}
         <div>
-          <Label>{t("noObjections.contract")}</Label>
+          <Label optionalText={t("common.optional")}>{t("noObjections.contract")}</Label>
           <select
             className={fieldClasses() + " mt-1"}
             value={value.contractId ?? ""}
@@ -162,6 +168,7 @@ function FormModal({
         <Field
           label={t("noObjections.comments")}
           optionalText={t("common.optional")}
+          hint={t("noObjections.commentsHint")}
           value={value.comments ?? ""}
           onChange={(e) => setValue({ ...value, comments: e.target.value })}
         />
@@ -177,6 +184,108 @@ function FormModal({
             {t("common.cancel")}
           </Button>
           <Button variant="primary" type="submit" disabled={pending}>
+            {pending ? t("common.saving") : t("common.save")}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+type Outcome = "no_objection" | "no_objection_with_comments" | "rejected";
+
+/**
+ * Saisie de la réponse de l'AFD : issue ET date, dans le même geste.
+ *
+ * L'issue se choisissait auparavant dans une liste déroulante qui écrivait
+ * aussitôt, en datant la réponse du jour de la saisie. C'était rapide et faux :
+ * une réponse s'enregistre souvent quelques jours après sa réception, si bien
+ * que le délai d'instruction mesuré — la seule statistique que cet écran
+ * produise — était systématiquement raccourci.
+ *
+ * La date est donc DEMANDÉE. Elle est pré-remplie au jour même, qui reste le
+ * cas le plus fréquent, mais elle est visible et corrigeable avant écriture.
+ */
+function AnswerModal({
+  open,
+  onClose,
+  noObjectionId,
+  sentDate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  noObjectionId: string;
+  sentDate: string | null;
+}) {
+  const t = useT();
+  const [outcome, setOutcome] = useState<Outcome>("no_objection");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    // La base refuse une réponse antérieure à l'envoi (contrainte
+    // `no_objection_dates`). On le dit ici, où l'utilisateur peut corriger,
+    // plutôt que de laisser remonter un message Postgres.
+    if (sentDate && date < sentDate) {
+      setError(t("noObjections.error_answerBeforeSent"));
+      return;
+    }
+    startTransition(async () => {
+      const result = await recordAnswer(noObjectionId, outcome, date);
+      if (!result.ok) {
+        const label = t(`noObjections.error_${result.error}`);
+        setError(result.detail ? `${label} — ${result.detail}` : label);
+        return;
+      }
+      onClose();
+    });
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      closeLabel={t("common.close")}
+      title={t("noObjections.recordAnswer")}
+    >
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <div>
+          <Label>{t("noObjections.outcome")}</Label>
+          <select
+            className={fieldClasses() + " mt-1"}
+            value={outcome}
+            onChange={(e) => setOutcome(e.target.value as Outcome)}
+          >
+            <option value="no_objection">{t("noObjections.status_no_objection")}</option>
+            <option value="no_objection_with_comments">
+              {t("noObjections.status_no_objection_with_comments")}
+            </option>
+            <option value="rejected">{t("noObjections.status_rejected")}</option>
+          </select>
+        </div>
+
+        <Field
+          label={t("noObjections.responseDate")}
+          required
+          type="date"
+          hint={t("noObjections.responseDateHint")}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+
+        {error && (
+          <p role="alert" className="text-sm" style={{ color: "var(--danger)" }}>
+            {error}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="secondary" type="button" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button variant="primary" type="submit" disabled={pending || !date}>
             {pending ? t("common.saving") : t("common.save")}
           </Button>
         </div>
@@ -233,6 +342,7 @@ export function NoObjectionRowActions({
   const t = useT();
   const { can } = usePermissions();
   const [open, setOpen] = useState(false);
+  const [answering, setAnswering] = useState(false);
   const [pending, startTransition] = useTransition();
 
   if (!can("no_objection.write")) return null;
@@ -254,32 +364,17 @@ export function NoObjectionRowActions({
       )}
 
       {awaitingAnswer && (
-        <select
-          disabled={pending}
-          aria-label={t("noObjections.recordAnswer")}
-          className="h-7 rounded border border-[var(--border)] bg-[var(--surface)] px-1 text-xs"
-          value=""
-          onChange={(e) => {
-            const outcome = e.target.value;
-            if (!outcome) return;
-            startTransition(
-              () =>
-                void recordAnswer(
-                  id,
-                  outcome as "no_objection" | "no_objection_with_comments" | "rejected",
-                  null,
-                ),
-            );
-          }}
-        >
-          <option value="">{t("noObjections.recordAnswer")}</option>
-          <option value="no_objection">{t("noObjections.status_no_objection")}</option>
-          <option value="no_objection_with_comments">
-            {t("noObjections.status_no_objection_with_comments")}
-          </option>
-          <option value="rejected">{t("noObjections.status_rejected")}</option>
-        </select>
+        <Button size="sm" variant="quiet" disabled={pending} onClick={() => setAnswering(true)}>
+          {t("noObjections.recordAnswer")}
+        </Button>
       )}
+
+      <AnswerModal
+        open={answering}
+        onClose={() => setAnswering(false)}
+        noObjectionId={id}
+        sentDate={row.sentDate}
+      />
 
       {awaitingAnswer && (
         <Button
