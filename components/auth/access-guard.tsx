@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { PanelCard } from "@/components/ui/card";
 import { AlertIcon } from "@/components/ui/icons";
 import { SignOutButton } from "./sign-out-button";
-import { AuthUserProvider } from "./auth-context";
 import { AccessRequestForm } from "./signup-form";
 
 /**
@@ -100,7 +99,9 @@ export async function AccessGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <AuthUserProvider user={state.user}>{children}</AuthUserProvider>;
+  // L'identité est fournie PLUS HAUT, par app/(app)/layout.tsx, pour que le
+  // header — donc le menu de compte et sa déconnexion — soit lui aussi dedans.
+  return <>{children}</>;
 }
 
 /** Adresses affichées à qui attend une affectation. */

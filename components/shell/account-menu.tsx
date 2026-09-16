@@ -17,6 +17,7 @@ import { useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/i18n-context";
 import { useAuthUser } from "@/components/auth/auth-context";
+import { LogoutIcon } from "@/components/ui/icons";
 
 export function AccountMenu() {
   const t = useT();
@@ -50,6 +51,10 @@ export function AccountMenu() {
           {initials(user.fullName)}
         </span>
         <span className="hidden max-w-[140px] truncate sm:inline">{user.fullName}</span>
+        {/* L'avatar seul ne se lit pas comme « se déconnecter » : l'utilisateur
+            a signalé ne pas trouver la sortie. L'icône rend l'affordance
+            visible sans ouvrir le menu. */}
+        <LogoutIcon className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
       </summary>
 
       <div
@@ -67,8 +72,12 @@ export function AccountMenu() {
           type="button"
           disabled={pending}
           onClick={signOut}
-          className="mt-1 w-full rounded px-3 py-1.5 text-left text-sm text-[var(--text)] hover:bg-[var(--app-bg)] disabled:opacity-60"
+          className={
+            "mt-1 flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm " +
+            "text-[var(--text)] hover:bg-[var(--app-bg)] disabled:opacity-60"
+          }
         >
+          <LogoutIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
           {pending ? t("common.saving") : t("common.signOut")}
         </button>
       </div>

@@ -34,6 +34,20 @@ export function UploadPanel({ folderId, folderPath }: { folderId: string; folder
   const [message, setMessage] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
 
+  /**
+   * Description saisie AVANT de choisir le fichier.
+   *
+   * Signalé le 16/09/2026 : « je n'ai pas eu d'option pour renseigner les
+   * informations relatives au document ». Le champ existait en base depuis le
+   * début, mais aucun écran ne le proposait — un nom de fichier brut est un
+   * bien piètre descriptif dans une bibliothèque qui vise 10 à 50 Go.
+   *
+   * Il est ici plutôt qu'après l'envoi : au moment où l'on choisit le fichier,
+   * on sait ce qu'il contient ; une fois la barre de progression terminée, on
+   * est déjà passé à autre chose.
+   */
+  const [description, setDescription] = useState("");
+
   async function upload(file: File) {
     setFilename(file.name);
     setProgress(0);
@@ -103,6 +117,7 @@ export function UploadPanel({ folderId, folderPath }: { folderId: string; folder
       originalFilename: file.name,
       sizeBytes: file.size,
       mimeType: file.type || "application/octet-stream",
+      description: description.trim() || undefined,
     });
 
     if (!result.ok) {
@@ -113,6 +128,7 @@ export function UploadPanel({ folderId, folderPath }: { folderId: string; folder
 
     setPhase("done");
     setProgress(100);
+    setDescription("");
     if (inputRef.current) inputRef.current.value = "";
     router.refresh();
   }
@@ -159,6 +175,23 @@ export function UploadPanel({ folderId, folderPath }: { folderId: string; folder
           )}
         </div>
       </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-[var(--text-muted)]">
+          {t("library.descriptionLabel")}
+        </span>
+        <input
+          type="text"
+          value={description}
+          disabled={busy}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={t("library.descriptionPlaceholder")}
+          className={
+            "rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 " +
+            "text-sm text-[var(--text)] disabled:opacity-60"
+          }
+        />
+      </label>
 
       {busy && (
         <div className="flex items-center gap-3">

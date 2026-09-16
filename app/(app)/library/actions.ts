@@ -12,6 +12,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/server";
+import { presignUrl, readR2Config } from "@/lib/r2/presign";
 
 export interface RegisterInput {
   folderId: string;
@@ -67,6 +68,76 @@ export async function registerDocument(input: RegisterInput): Promise<ActionResu
 
   revalidatePath("/library");
   return { ok: true, documentId: data.id as string };
+}
+
+/**
+ * Supprime un document : la ligne, puis l objet R2.
+ *
+ * Dans cet ordre, et c est deliberé. La RLS (politique
+ * `mg2030_document_delete_own`) n autorise la suppression qu au deposant ou a
+ * un administrateur : tant qu elle n a pas tranche, on ne touche pas au
+ * stockage. Effacer le fichier d abord, puis se voir refuser la ligne, aurait
+ * laisse une entree pointant vers le vide — la pire des deux issues.
+ *
+ * L echec du DELETE sur R2 n est PAS remonte comme une erreur : le document a
+ * bien disparu de la bibliotheque, ce que l utilisateur a demande. Il reste un
+ * objet orphelin, qui ne coute que du stockage et qu aucune URL pre-signee ne
+ * peut plus atteindre, faute de ligne pour en donner la cle.
+ */
+export async function deleteDocument(documentId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: doc, error: readError } = await supabase
+    .from("mg2030_document")
+    .select("r2_object_key")
+    .eq("id", documentId)
+    .maybeSingle();
+
+  if (readError) return { ok: false, error: readError.message };
+  if (!doc) return { ok: false, error: "not_found" };
+
+  const { error, count } = await supabase
+    .from("mg2030_document")
+    .delete({ count: "exact" })
+    .eq("id", documentId);
+
+  if (error) return { ok: false, error: error.message };
+  // Zero ligne supprimee : la RLS a refuse en silence, comme elle le fait
+  // toujours. Sans ce test, l ecran annoncerait une suppression qui n a pas eu
+  // lieu.
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  const config = readR2Config();
+  if (config) {
+    try {
+      await fetch(presignUrl(config, "DELETE", doc.r2_object_key as string, 60), {
+        method: "DELETE",
+      });
+    } catch {
+      // Objet orphelin ; voir le commentaire ci-dessus.
+    }
+  }
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+/** Description libre du document, modifiable apres coup. */
+export async function setDocumentDescription(
+  documentId: string,
+  description: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const trimmed = description.trim();
+
+  const { error } = await supabase
+    .from("mg2030_document")
+    .update({ description: trimmed === "" ? null : trimmed })
+    .eq("id", documentId);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/library");
+  return { ok: true };
 }
 
 /** Ajoute ou retire un tag. La RLS verifie que l appelant peut lire le document. */

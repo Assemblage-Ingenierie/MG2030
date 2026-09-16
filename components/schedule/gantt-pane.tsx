@@ -8,6 +8,14 @@
 // tient à une seule chose — les deux volets rendent la même liste, dans le même
 // ordre, avec la même hauteur de ligne (ROW_H).
 //
+// ⚠ DEUX SVG, PAS UN. L'échelle de temps est un SVG distinct du corps, rendu
+// `sticky` par l'appelant. Un SVG unique défilait en entier : l'en-tête de la
+// grille de gauche restait collé pendant que l'échelle de droite s'échappait
+// vers le haut, et les deux volets ne se lisaient plus sur la même ligne.
+// C'est le bug d'affichage signalé le 16/09/2026 (« les lignes ne défilent pas
+// de manière homogène »). Le corps ne connaît donc plus HEAD_H du tout : ses
+// ordonnées partent de zéro.
+//
 // `memo` : ce volet ne dépend pas de la cellule en cours d'édition. Sans lui,
 // chaque frappe dans la grille redessinerait le SVG entier.
 // ============================================================
@@ -67,135 +75,223 @@ export const GanttPane = memo(function GanttPane({
   );
 
   const width = Math.max(layout.chartWidth, 320);
-  const height = HEAD_H + tasks.length * ROW_H;
+  const bodyH = tasks.length * ROW_H;
 
   return (
-    <svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      style={{ display: "block", background: "var(--surface)" }}
-      aria-hidden="true"
-    >
-      <defs>
-        <marker id="mg-arrow-b" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 z" fill={GANTT.muted} />
-        </marker>
-        {/* La marge terminale n'est pas du travail : hachures, pas une barre. */}
-        <pattern
-          id="mg-buffer-b"
-          width="6"
-          height="6"
-          patternTransform="rotate(45)"
-          patternUnits="userSpaceOnUse"
-        >
-          <rect width="6" height="6" fill={GANTT.band} />
-          <line x1="0" y1="0" x2="0" y2="6" stroke={GANTT.gridStrong} strokeWidth="2" />
-        </pattern>
-      </defs>
-
-      {/* Marge terminale, sous tout le reste */}
-      {layout.bufferX !== null && layout.deadlineX !== null && (
-        <rect
-          x={layout.bufferX}
-          y={HEAD_H}
-          width={Math.max(0, layout.deadlineX - layout.bufferX)}
-          height={height - HEAD_H}
-          fill="url(#mg-buffer-b)"
-          opacity={0.7}
-        >
-          <title>{labels.buffer}</title>
-        </rect>
-      )}
-
-      {/* Grille verticale */}
-      {layout.ticks.map((tick) => {
-        const x = tick.offsetDays * layout.pxPerDay;
-        return (
-          <line
-            key={tick.date}
-            x1={x}
-            y1={HEAD_H}
-            x2={x}
-            y2={height}
-            stroke={tick.major ? GANTT.gridStrong : GANTT.grid}
-          />
-        );
-      })}
-
-      {/* En-tête d'échelle */}
-      <rect x={0} y={0} width={width} height={HEAD_H} fill={GANTT.band} />
-      {layout.ticks.map((tick) => {
-        const x = tick.offsetDays * layout.pxPerDay;
-        const w = tick.spanDays * layout.pxPerDay;
-        // On n'écrit un libellé que s'il tient : du texte superposé illisible
-        // est pire que pas de texte.
-        if (w < 24) return null;
-        return (
-          <text
-            key={`l-${tick.date}`}
-            x={x + w / 2}
-            y={HEAD_H - 15}
-            textAnchor="middle"
-            fontSize={10}
-            fill={tick.major ? GANTT.text : GANTT.muted}
-            fontWeight={tick.major ? 600 : 400}
-          >
-            {tick.label}
-          </text>
-        );
-      })}
-      <line x1={0} y1={HEAD_H} x2={width} y2={HEAD_H} stroke={GANTT.gridStrong} />
-
-      {/* Lignes alternées — mêmes rangs que la grille de gauche */}
-      {tasks.map((task, i) =>
-        i % 2 === 1 ? (
-          <rect
-            key={task.id}
-            x={0}
-            y={HEAD_H + i * ROW_H}
-            width={width}
-            height={ROW_H}
-            fill={GANTT.band}
-            opacity={0.35}
-          />
-        ) : null,
-      )}
-
-      {/* Flèches de précédence, SOUS les barres */}
-      {layout.links.map((link) => (
-        <polyline
-          key={`${link.from}-${link.to}`}
-          points={link.points.map(([x, y]) => `${x},${HEAD_H + y}`).join(" ")}
-          fill="none"
-          stroke={GANTT.muted}
-          strokeWidth={1}
-          markerEnd="url(#mg-arrow-b)"
-          opacity={0.75}
+    <div style={{ width }}>
+      {/* ── Échelle de temps, collée en haut comme l'en-tête de la grille ── */}
+      <svg
+        width={width}
+        height={HEAD_H}
+        viewBox={`0 0 ${width} ${HEAD_H}`}
+        className="sticky top-0 z-[5]"
+        style={{ display: "block", background: "var(--app-bg)" }}
+        aria-hidden="true"
+      >
+        <rect x={0} y={0} width={width} height={HEAD_H} fill={GANTT.band} />
+        {layout.ticks.map((tick) => {
+          const x = tick.offsetDays * layout.pxPerDay;
+          const w = tick.spanDays * layout.pxPerDay;
+          // On n'écrit un libellé que s'il tient : du texte superposé illisible
+          // est pire que pas de texte.
+          if (w < 24) return null;
+          return (
+            <text
+              key={`l-${tick.date}`}
+              x={x + w / 2}
+              y={HEAD_H - 15}
+              textAnchor="middle"
+              fontSize={10}
+              fill={tick.major ? GANTT.text : GANTT.muted}
+              fontWeight={tick.major ? 600 : 400}
+            >
+              {tick.label}
+            </text>
+          );
+        })}
+        <line
+          x1={0}
+          y1={HEAD_H - 0.5}
+          x2={width}
+          y2={HEAD_H - 0.5}
+          stroke={GANTT.gridStrong}
         />
-      ))}
+      </svg>
 
-      {/* Barres */}
-      {layout.bars.map((bar) => {
-        const y = HEAD_H + bar.y;
+      {/* ── Corps ──────────────────────────────────────────────────────── */}
+      <svg
+        width={width}
+        height={bodyH}
+        viewBox={`0 0 ${width} ${bodyH}`}
+        style={{ display: "block", background: "var(--surface)" }}
+        aria-hidden="true"
+      >
+        <defs>
+          <marker id="mg-arrow-b" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 z" fill={GANTT.muted} />
+          </marker>
+          {/* La marge terminale n'est pas du travail : hachures, pas une barre. */}
+          <pattern
+            id="mg-buffer-b"
+            width="6"
+            height="6"
+            patternTransform="rotate(45)"
+            patternUnits="userSpaceOnUse"
+          >
+            <rect width="6" height="6" fill={GANTT.band} />
+            <line x1="0" y1="0" x2="0" y2="6" stroke={GANTT.gridStrong} strokeWidth="2" />
+          </pattern>
+        </defs>
 
-        if (bar.diamond) {
-          const cy = y + bar.height / 2;
-          const r = 6;
+        {/* Marge terminale, sous tout le reste */}
+        {layout.bufferX !== null && layout.deadlineX !== null && (
+          <rect
+            x={layout.bufferX}
+            y={0}
+            width={Math.max(0, layout.deadlineX - layout.bufferX)}
+            height={bodyH}
+            fill="url(#mg-buffer-b)"
+            opacity={0.7}
+          >
+            <title>{labels.buffer}</title>
+          </rect>
+        )}
+
+        {/* Grille verticale */}
+        {layout.ticks.map((tick) => {
+          const x = tick.offsetDays * layout.pxPerDay;
+          return (
+            <line
+              key={tick.date}
+              x1={x}
+              y1={0}
+              x2={x}
+              y2={bodyH}
+              stroke={tick.major ? GANTT.gridStrong : GANTT.grid}
+            />
+          );
+        })}
+
+        {/* Lignes alternées — mêmes rangs que la grille de gauche */}
+        {tasks.map((task, i) =>
+          i % 2 === 1 ? (
+            <rect
+              key={task.id}
+              x={0}
+              y={i * ROW_H}
+              width={width}
+              height={ROW_H}
+              fill={GANTT.band}
+              opacity={0.35}
+            />
+          ) : null,
+        )}
+
+        {/* Flèches de précédence, SOUS les barres */}
+        {layout.links.map((link) => (
+          <polyline
+            key={`${link.from}-${link.to}`}
+            points={link.points.map(([x, y]) => `${x},${y}`).join(" ")}
+            fill="none"
+            stroke={GANTT.muted}
+            strokeWidth={1}
+            markerEnd="url(#mg-arrow-b)"
+            opacity={0.75}
+          />
+        ))}
+
+        {/* Barres */}
+        {layout.bars.map((bar) => {
+          const y = bar.y;
+
+          if (bar.diamond) {
+            const cy = y + bar.height / 2;
+            const r = 6;
+            return (
+              <g key={bar.taskId}>
+                <polygon
+                  points={`${bar.x},${cy - r} ${bar.x + r},${cy} ${bar.x},${cy + r} ${bar.x - r},${cy}`}
+                  fill={GANTT.milestone}
+                  stroke={GANTT.text}
+                  strokeWidth={0.5}
+                >
+                  <title>{bar.label}</title>
+                </polygon>
+                {showNames && (
+                  <text
+                    x={bar.x + r + 5}
+                    y={cy + 3.5}
+                    fontSize={10}
+                    fill={GANTT.text}
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {bar.label}
+                  </text>
+                )}
+              </g>
+            );
+          }
+
+          // Quatre états, et la nuance décisive est « non renseigné » : une
+          // tâche dont la fin est passée sans avancement saisi n'est PAS en
+          // retard — on n'en sait rien. La dire en rose serait affirmer un fait
+          // que personne n'a constaté.
+          const fill =
+            bar.status === "late"
+              ? "#ea9999"
+              : bar.type === "summary"
+                ? GANTT.text
+                : "var(--accent)";
+
+          const unreported = bar.status === "unreported";
+          const tip =
+            bar.label +
+            (unreported ? ` · ${labels.unreported}` : "") +
+            (bar.status === "late" ? ` · ${labels.late}` : "");
+
           return (
             <g key={bar.taskId}>
-              <polygon
-                points={`${bar.x},${cy - r} ${bar.x + r},${cy} ${bar.x},${cy + r} ${bar.x - r},${cy}`}
-                fill={GANTT.milestone}
-                stroke={GANTT.text}
-                strokeWidth={0.5}
+              <rect
+                x={bar.x}
+                y={y}
+                width={bar.width}
+                height={bar.height}
+                rx={bar.type === "summary" ? 1 : 3}
+                fill={unreported ? "var(--surface)" : fill}
+                /* Non renseigné : contour tireté, barre creuse. On voit qu'il y a
+                   une tâche, et qu'il n'y a pas d'information. */
+                stroke={unreported ? "var(--accent-2)" : undefined}
+                strokeWidth={unreported ? 1.2 : 0}
+                strokeDasharray={unreported ? "3 2" : undefined}
+                opacity={bar.type === "summary" ? 0.85 : 1}
               >
-                <title>{bar.label}</title>
-              </polygon>
+                <title>{tip}</title>
+              </rect>
+              {/* Avancement : remplissage INTÉRIEUR, comme sous MS Project.
+                  EN CLAIR sur la barre, et non en sombre : la barre est déjà d'un
+                  bleu profond, si bien qu'un gris foncé à demi transparent y
+                  disparaissait. Le contraste doit venir de la clarté. */}
+              {bar.progressWidth > 0 && (
+                <rect
+                  x={bar.x + 1.5}
+                  y={y + 2.5}
+                  width={Math.max(0, bar.progressWidth - 3)}
+                  height={bar.height - 5}
+                  rx={1}
+                  fill={unreported ? "var(--accent)" : "#ffffff"}
+                  opacity={unreported ? 0.75 : 0.92}
+                >
+                  <title>{tip}</title>
+                </rect>
+              )}
+
+              {/* Nom de la tâche. À DROITE de la barre plutôt que dedans : une
+                  barre courte ne peut pas contenir son libellé, et un texte
+                  tronqué à trois lettres ne renseigne personne. */}
               {showNames && (
                 <text
-                  x={bar.x + r + 5}
-                  y={cy + 3.5}
+                  x={bar.x + bar.width + 6}
+                  y={y + bar.height / 2 + 3.5}
                   fontSize={10}
                   fill={GANTT.text}
                   style={{ pointerEvents: "none" }}
@@ -205,113 +301,41 @@ export const GanttPane = memo(function GanttPane({
               )}
             </g>
           );
-        }
+        })}
 
-        // Quatre états, et la nuance décisive est « non renseigné » : une
-        // tâche dont la fin est passée sans avancement saisi n'est PAS en
-        // retard — on n'en sait rien. La dire en rose serait affirmer un fait
-        // que personne n'a constaté.
-        const fill =
-          bar.status === "late"
-            ? "#ea9999"
-            : bar.type === "summary"
-              ? GANTT.text
-              : "var(--accent)";
-
-        const unreported = bar.status === "unreported";
-        const tip =
-          bar.label +
-          (unreported ? ` · ${labels.unreported}` : "") +
-          (bar.status === "late" ? ` · ${labels.late}` : "");
-
-        return (
-          <g key={bar.taskId}>
-            <rect
-              x={bar.x}
-              y={y}
-              width={bar.width}
-              height={bar.height}
-              rx={bar.type === "summary" ? 1 : 3}
-              fill={unreported ? "var(--surface)" : fill}
-              /* Non renseigné : contour tireté, barre creuse. On voit qu'il y a
-                 une tâche, et qu'il n'y a pas d'information. */
-              stroke={unreported ? "var(--accent-2)" : undefined}
-              strokeWidth={unreported ? 1.2 : 0}
-              strokeDasharray={unreported ? "3 2" : undefined}
-              opacity={bar.type === "summary" ? 0.85 : 1}
-            >
-              <title>{tip}</title>
-            </rect>
-            {/* Avancement : remplissage INTÉRIEUR, comme sous MS Project.
-                EN CLAIR sur la barre, et non en sombre : la barre est déjà d'un
-                bleu profond, si bien qu'un gris foncé à demi transparent y
-                disparaissait. Le contraste doit venir de la clarté. */}
-            {bar.progressWidth > 0 && (
-              <rect
-                x={bar.x + 1.5}
-                y={y + 2.5}
-                width={Math.max(0, bar.progressWidth - 3)}
-                height={bar.height - 5}
-                rx={1}
-                fill={unreported ? "var(--accent)" : "#ffffff"}
-                opacity={unreported ? 0.75 : 0.92}
-              >
-                <title>{tip}</title>
-              </rect>
-            )}
-
-            {/* Nom de la tâche. À DROITE de la barre plutôt que dedans : une
-                barre courte ne peut pas contenir son libellé, et un texte
-                tronqué à trois lettres ne renseigne personne. */}
-            {showNames && (
-              <text
-                x={bar.x + bar.width + 6}
-                y={y + bar.height / 2 + 3.5}
-                fontSize={10}
-                fill={GANTT.text}
-                style={{ pointerEvents: "none" }}
-              >
-                {bar.label}
-              </text>
-            )}
-          </g>
-        );
-      })}
-
-      {/* Repères verticaux, au-dessus de tout */}
-      {layout.deadlineX !== null && (
-        <g>
+        {/* Repères verticaux, au-dessus de tout */}
+        {layout.deadlineX !== null && (
           <line
             x1={layout.deadlineX}
-            y1={HEAD_H}
+            y1={0}
             x2={layout.deadlineX}
-            y2={height}
+            y2={bodyH}
             stroke={GANTT.text}
             strokeWidth={1.5}
             strokeDasharray="4 3"
           >
             <title>{labels.deadline}</title>
           </line>
-        </g>
-      )}
-      {layout.todayX !== null && (
-        <g>
-          <line
-            x1={layout.todayX}
-            y1={HEAD_H}
-            x2={layout.todayX}
-            y2={height}
-            stroke={GANTT.today}
-            strokeWidth={1.5}
-          >
-            <title>{labels.today}</title>
-          </line>
-          <polygon
-            points={`${layout.todayX - 4},${HEAD_H} ${layout.todayX + 4},${HEAD_H} ${layout.todayX},${HEAD_H + 5}`}
-            fill={GANTT.today}
-          />
-        </g>
-      )}
-    </svg>
+        )}
+        {layout.todayX !== null && (
+          <g>
+            <line
+              x1={layout.todayX}
+              y1={0}
+              x2={layout.todayX}
+              y2={bodyH}
+              stroke={GANTT.today}
+              strokeWidth={1.5}
+            >
+              <title>{labels.today}</title>
+            </line>
+            <polygon
+              points={`${layout.todayX - 4},0 ${layout.todayX + 4},0 ${layout.todayX},5`}
+              fill={GANTT.today}
+            />
+          </g>
+        )}
+      </svg>
+    </div>
   );
 });

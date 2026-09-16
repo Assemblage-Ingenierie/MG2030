@@ -305,69 +305,78 @@ export function ScheduleBoard({
         </p>
       )}
 
-      {/* ── Les deux volets, un seul défilement vertical ──────────────── */}
-      <div className="flex max-h-[72vh] overflow-y-auto">
-        <div
-          className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]"
-          style={{ width: paneWidth }}
-        >
-          <GridHeader t={t} columns={columns} actionsWidth={actionsWidth} />
-          {tasks.map((task, row) => (
-            <GridRow
-              key={task.id}
-              task={task}
-              row={row}
-              rowNumber={board.rows.get(task.id) ?? row + 1}
-              active={active}
-              editable={editable}
-              columns={columns}
-              actionsWidth={actionsWidth}
-              people={people}
-              contracts={contracts}
-              predecessorLabel={board.predecessorLabel(task.id)}
-              hasPredecessor={board.hasPredecessor(task.id)}
-              collapsible={isCollapsible(board.model.tasks, task)}
-              collapsed={collapsed.has(task.id)}
-              hiddenCount={
-                collapsed.has(task.id) ? descendantCount(board.model.tasks, task.id) : 0
-              }
-              saving={board.savingId === task.id}
-              dragging={dragging === task.id}
-              onToggleCollapse={toggleCollapse}
-              onActivate={setActive}
-              onCommit={commitCell}
-              onAssign={board.assign}
-              onMove={board.move}
-              onDragStart={setDragging}
-              onDragEnd={() => setDragging(null)}
-              onDrop={(beforeId) => {
-                if (dragging && dragging !== beforeId) board.dropOn(dragging, beforeId);
-                setDragging(null);
-              }}
-              onEdit={setEditing}
-              t={t}
-            />
-          ))}
-        </div>
+      {/* ── Les deux volets, UNE SEULE zone de défilement ───────────────
+          Les deux axes sont portés par ce conteneur unique. Auparavant le
+          volet droit avait son propre `overflow-x-auto` : dès qu'un axe est
+          contraint, CSS force l'autre à `auto`, si bien que le volet droit
+          acquérait sa PROPRE barre verticale et glissait indépendamment de la
+          grille. Avec une seule zone, la désynchronisation des lignes devient
+          structurellement impossible. `items-start` empêche l'étirement des
+          volets, `w-max` laisse la rangée prendre la largeur du diagramme. */}
+      <div className="max-h-[72vh] overflow-auto">
+        <div className="flex w-max items-start">
+          <div
+            className="sticky left-0 z-10 shrink-0 bg-[var(--surface)]"
+            style={{ width: paneWidth }}
+          >
+            <GridHeader t={t} columns={columns} actionsWidth={actionsWidth} />
+            {tasks.map((task, row) => (
+              <GridRow
+                key={task.id}
+                task={task}
+                row={row}
+                rowNumber={board.rows.get(task.id) ?? row + 1}
+                active={active}
+                editable={editable}
+                columns={columns}
+                actionsWidth={actionsWidth}
+                people={people}
+                contracts={contracts}
+                predecessorLabel={board.predecessorLabel(task.id)}
+                hasPredecessor={board.hasPredecessor(task.id)}
+                collapsible={isCollapsible(board.model.tasks, task)}
+                collapsed={collapsed.has(task.id)}
+                hiddenCount={
+                  collapsed.has(task.id) ? descendantCount(board.model.tasks, task.id) : 0
+                }
+                saving={board.savingId === task.id}
+                dragging={dragging === task.id}
+                onToggleCollapse={toggleCollapse}
+                onActivate={setActive}
+                onCommit={commitCell}
+                onAssign={board.assign}
+                onMove={board.move}
+                onDragStart={setDragging}
+                onDragEnd={() => setDragging(null)}
+                onDrop={(beforeId) => {
+                  if (dragging && dragging !== beforeId) board.dropOn(dragging, beforeId);
+                  setDragging(null);
+                }}
+                onEdit={setEditing}
+                t={t}
+              />
+            ))}
+          </div>
 
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          <GanttPane
-            tasks={tasks}
-            dependencies={links}
-            scale={scale}
-            today={today}
-            bufferStart={bufferStart}
-            deadline={deadline}
-            locale={locale}
-            showNames={showNames}
-            labels={{
-              buffer: t("gantt.buffer"),
-              deadline: t("gantt.deadline"),
-              today: t("gantt.today"),
-              unreported: t("gantt.unreported"),
-              late: t("gantt.late"),
-            }}
-          />
+          <div className="shrink-0">
+            <GanttPane
+              tasks={tasks}
+              dependencies={links}
+              scale={scale}
+              today={today}
+              bufferStart={bufferStart}
+              deadline={deadline}
+              locale={locale}
+              showNames={showNames}
+              labels={{
+                buffer: t("gantt.buffer"),
+                deadline: t("gantt.deadline"),
+                today: t("gantt.today"),
+                unreported: t("gantt.unreported"),
+                late: t("gantt.late"),
+              }}
+            />
+          </div>
         </div>
       </div>
 

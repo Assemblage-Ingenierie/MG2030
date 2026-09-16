@@ -15,6 +15,7 @@ import { FolderTree } from "@/components/library/folder-tree";
 import { UploadPanel } from "@/components/library/upload-panel";
 import { DocumentTags } from "@/components/library/document-tags";
 import { OpenDocumentLink } from "@/components/library/open-document";
+import { DeleteDocumentButton } from "@/components/library/document-actions";
 
 /**
  * Bibliothèque documentaire.
@@ -64,10 +65,11 @@ export default async function LibraryPage({
                   <Th align="right">{t("library.size")}</Th>
                   <Th align="right">{t("library.uploaded")}</Th>
                   <Th>{t("library.uploadedBy")}</Th>
+                  <Th align="right">{t("library.actions")}</Th>
                 </Thead>
                 <tbody>
                   {documents.length === 0 && (
-                    <EmptyRow colSpan={5}>{t("library.emptyFolder")}</EmptyRow>
+                    <EmptyRow colSpan={6}>{t("library.emptyFolder")}</EmptyRow>
                   )}
                   {documents.map((doc) => (
                     <Tr key={doc.id}>
@@ -95,6 +97,12 @@ export default async function LibraryPage({
                       </Td>
                       <Td className="text-xs text-[var(--text-muted)]">
                         {doc.uploadedByName ?? "—"}
+                      </Td>
+                      <Td align="right">
+                        <DeleteDocumentButton
+                          documentId={doc.id}
+                          filename={doc.originalFilename}
+                        />
                       </Td>
                     </Tr>
                   ))}

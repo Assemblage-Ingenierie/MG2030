@@ -47,6 +47,22 @@ export async function FolderTree({
   );
 }
 
+/**
+ * Nom lisible d'un dossier.
+ *
+ * Le seed nomme les racines « 01_Project_governance », « 02_Procurement »… Le
+ * préfixe numérique n'existe que pour IMPOSER L'ORDRE D'AFFICHAGE : il n'a
+ * aucun sens pour le lecteur, et la colonne en devient une colonne de chiffres
+ * avant d'être une liste de sujets. On le retire à l'affichage — le tri, lui,
+ * continue de s'appuyer sur le `path` stocké, qui ne change pas.
+ *
+ * Le motif exige le SÉPARATEUR : « 2030_report » garderait son 2030, qui fait
+ * partie du nom, tandis que « 01_… » perd bien son rang.
+ */
+function folderLabel(name: string): string {
+  return name.replace(/^\d+[_-]/, "").replace(/_/g, " ");
+}
+
 function FolderBranch({
   node,
   depth,
@@ -71,7 +87,9 @@ function FolderBranch({
         )}
         style={{ paddingLeft: 8 + depth * 14 }}
       >
-        <span className="truncate">{node.name.replace(/_/g, " ")}</span>
+        <span className={cn("truncate", depth === 0 && "font-semibold")}>
+          {folderLabel(node.name)}
+        </span>
         {node.documentCount > 0 && (
           <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-muted)]">
             {node.documentCount}

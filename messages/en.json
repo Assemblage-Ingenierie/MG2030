@@ -595,7 +595,14 @@
     "error_downloadFailed": "The download link could not be issued.",
     "error_tagFailed": "The tag change was refused.",
     "viewHint": "Open in a new tab. PDFs and images display inline; other types download.",
-    "downloadHint": "Download"
+    "downloadHint": "Download",
+    "descriptionLabel": "Description (optional)",
+    "descriptionPlaceholder": "What this document is, in a few words",
+    "deleteDocument": "Delete {name}",
+    "error_delete_generic": "Deletion failed.",
+    "error_delete_forbidden": "Only the person who uploaded this document, or an administrator, can delete it.",
+    "error_delete_not_found": "This document no longer exists.",
+    "actions": "Actions"
   },
   "notifications": {
     "title": "Notifications",
