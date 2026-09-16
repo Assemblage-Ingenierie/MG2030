@@ -35,6 +35,15 @@ export type BoardChange =
   | { kind: "site"; taskId: string; value: string | null }
   | { kind: "contract"; taskId: string; value: string | null }
   | { kind: "predecessors"; taskId: string; predecessorIds: string[] }
+  /**
+   * Précédences vues DEPUIS L'AMONT : « ces tâches-là me suivent ».
+   *
+   * Le même graphe, écrit dans l'autre sens. C'est ce qui rend la planification
+   * à rebours possible — on part de la date imposée et l'on remonte —, et
+   * l'écriture n'est pas symétrique de `predecessors` : ici on remplace les
+   * liens PARTANT de la tâche, là ceux qui y arrivent.
+   */
+  | { kind: "successors"; taskId: string; successorIds: string[] }
   | { kind: "order"; order: { id: string; sortOrder: number }[] }
   | { kind: "delete"; taskId: string }
   /** Ressuscite une tâche archivée. Sert à l'annulation d'une suppression. */
@@ -188,6 +197,42 @@ export async function applyBoardChange(
         );
         // Le trigger de cycle remonte ici. Le client a déjà refusé le cycle de
         // son côté ; ce garde-fou couvre l'édition concurrente.
+        if (error) return { ok: false, error: "cycle", detail: error.message };
+      }
+      break;
+    }
+
+    case "successors": {
+      // Chaque successeur perd son ancre, pour la raison exposée ci-dessus :
+      // l'ancre prime sur les prédécesseurs, donc la garder rendrait le lien
+      // décoratif. Ce sont les tâches AVAL qu'on libère ici, pas la tâche
+      // éditée — c'est toute la différence avec le cas précédent.
+      if (change.successorIds.length > 0) {
+        const { error } = await supabase
+          .from("mg2030_task")
+          .update({ start_date_input: null })
+          .in("id", change.successorIds);
+        if (error) return { ok: false, error: error.message };
+      }
+
+      // On ne retire QUE les liens partant de cette tâche. Un successeur qui
+      // attend aussi quelqu'un d'autre conserve cette autre attente : effacer
+      // au passage les précédences d'un tiers détruirait son plan en silence.
+      const { error: del } = await supabase
+        .from("mg2030_task_dependency")
+        .delete()
+        .eq("predecessor_id", change.taskId);
+      if (del) return { ok: false, error: del.message };
+
+      if (change.successorIds.length > 0) {
+        const { error } = await supabase.from("mg2030_task_dependency").insert(
+          change.successorIds.map((successorId) => ({
+            predecessor_id: change.taskId,
+            successor_id: successorId,
+            dependency_type: "FS",
+            lag_days: 0,
+          })),
+        );
         if (error) return { ok: false, error: "cycle", detail: error.message };
       }
       break;

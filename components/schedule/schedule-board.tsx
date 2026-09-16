@@ -332,6 +332,7 @@ export function ScheduleBoard({
                 people={people}
                 contracts={contracts}
                 predecessorLabel={board.predecessorLabel(task.id)}
+                successorLabel={board.successorLabel(task.id)}
                 hasPredecessor={board.hasPredecessor(task.id)}
                 collapsible={isCollapsible(board.model.tasks, task)}
                 collapsed={collapsed.has(task.id)}
@@ -463,6 +464,7 @@ interface RowProps {
   people: PersonOption[];
   contracts: ContractChoice[];
   predecessorLabel: string;
+  successorLabel: string;
   hasPredecessor: boolean;
   collapsible: boolean;
   collapsed: boolean;
@@ -502,6 +504,7 @@ function GridRow(props: RowProps) {
     people,
     contracts,
     predecessorLabel,
+    successorLabel,
     hasPredecessor,
     collapsible,
     collapsed,
@@ -770,6 +773,30 @@ function GridRow(props: RowProps) {
           }
           onActivate={() => onActivate({ row, column: "predecessors" })}
           onCommit={(v, d) => onCommit(row, "predecessors", v, d)}
+        />
+      )}
+
+      {/* Tâche(s) suivante(s) — la planification À REBOURS.
+          Le même graphe que la colonne précédente, saisi depuis l'amont. On
+          remonte depuis une date imposée au lieu de dérouler depuis
+          aujourd'hui, ce qui est le raisonnement normal ici : l'ouverture des
+          Jeux ne se déplacera pas. */}
+      {shown("successors") && (
+        <BoardCell
+          width={COLUMN_WIDTH.successors}
+          editable={cellEditable("successors")}
+          active={isActive("successors")}
+          raw={successorLabel}
+          title={t("schedule.successorsHint")}
+          display={
+            successorLabel === "" ? (
+              <span className="text-[var(--text-muted)]">—</span>
+            ) : (
+              <span className="truncate tabular-nums text-[12px]">{successorLabel}</span>
+            )
+          }
+          onActivate={() => onActivate({ row, column: "successors" })}
+          onCommit={(v, d) => onCommit(row, "successors", v, d)}
         />
       )}
 

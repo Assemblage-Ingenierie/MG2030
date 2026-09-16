@@ -478,7 +478,10 @@
     "constraintLabel": "Not before",
     "constraintHint": "Holds the task back until this date, whatever else would allow it to start earlier.",
     "constraintHintLinked": "This is how you hold a linked task back. Unlike a start date, a constraint only ever PUSHES — the task starts at the later of this date and its predecessor's end, so the link stays true.",
-    "spanHint": "Total span of this parent: from its first start to its last finish. Calculated, not entered."
+    "spanHint": "Total span of this parent: from its first start to its last finish. Calculated, not entered.",
+    "successors": "Next",
+    "successorsHint": "Row numbers of the tasks that start when this one finishes. Type them to plan backwards — declare what must follow rather than what came before. Separate with commas.",
+    "unknownSuccessor": "No row carries that number."
   },
   "gantt": {
     "title": "Gantt",

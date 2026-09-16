@@ -33,6 +33,8 @@ import {
   rowNumbers,
   setField,
   setPredecessorRows,
+  setSuccessorRows,
+  successorRows,
   type BoardModel,
   type ModelTask,
 } from "@/lib/schedule/board-model";
@@ -57,6 +59,18 @@ const orderOf = (model: BoardModel) =>
 
 const predecessorIdsOf = (model: BoardModel, taskId: string) =>
   model.dependencies.filter((d) => d.successorId === taskId).map((d) => d.predecessorId);
+
+const successorIdsOf = (model: BoardModel, taskId: string) =>
+  model.dependencies.filter((d) => d.predecessorId === taskId).map((d) => d.successorId);
+
+/** « 3, 7 » ou « #3 #7 » → [3, 7]. La saisie est tolérante, la lecture stricte. */
+const parseRowList = (text: string): number[] =>
+  text === ""
+    ? []
+    : text
+        .split(/[,;\s]+/)
+        .filter(Boolean)
+        .map((piece) => Number(piece.replace(/^#/, "")));
 
 export function useBoard({
   initial,
@@ -201,13 +215,7 @@ export function useBoard({
         }
 
         case "predecessors": {
-          const wanted =
-            text === ""
-              ? []
-              : text
-                  .split(/[,;\s]+/)
-                  .filter(Boolean)
-                  .map((piece) => Number(piece.replace(/^#/, "")));
+          const wanted = parseRowList(text);
           const current = predecessorRows(model, taskId, rows);
           if (wanted.length === current.length && wanted.every((n, i) => n === current[i])) {
             return true;
@@ -225,6 +233,30 @@ export function useBoard({
               predecessorIds: predecessorIdsOf(result.model, taskId),
             },
             { kind: "predecessors", taskId, predecessorIds: predecessorIdsOf(model, taskId) },
+            taskId,
+          );
+          return true;
+        }
+
+        // Planification a REBOURS : on declare ce qui suit, pas ce qui precede.
+        // Meme graphe, saisi depuis l'amont — indispensable quand la date de
+        // fin est imposee, ce qui est le cas ici : les Jeux s'ouvrent a une
+        // date que personne ne deplacera.
+        case "successors": {
+          const wanted = parseRowList(text);
+          const current = successorRows(model, taskId, rows);
+          if (wanted.length === current.length && wanted.every((n, i) => n === current[i])) {
+            return true;
+          }
+          const result = setSuccessorRows(model, taskId, wanted);
+          if (!result.ok) {
+            setError({ code: result.error, detail: result.detail });
+            return false;
+          }
+          commit(
+            result.model,
+            { kind: "successors", taskId, successorIds: successorIdsOf(result.model, taskId) },
+            { kind: "successors", taskId, successorIds: successorIdsOf(model, taskId) },
             taskId,
           );
           return true;
@@ -441,6 +473,10 @@ export function useBoard({
     ),
     predecessorLabel: useCallback(
       (taskId: string) => predecessorRows(model, taskId, rows).join(", "),
+      [model, rows],
+    ),
+    successorLabel: useCallback(
+      (taskId: string) => successorRows(model, taskId, rows).join(", "),
       [model, rows],
     ),
   };

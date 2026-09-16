@@ -52,6 +52,7 @@ export type BoardColumn =
   | "duration"
   | "start"
   | "predecessors"
+  | "successors"
   | "owner"
   | "contract"
   | "progress";
@@ -61,23 +62,31 @@ export const BOARD_COLUMNS: BoardColumn[] = [
   "duration",
   "start",
   "predecessors",
+  "successors",
   "owner",
   "contract",
   "progress",
 ];
 
 /**
- * Jeu réduit : les quatre colonnes qui portent le CALENDRIER.
+ * Jeu réduit : les colonnes qui portent le CALENDRIER.
  *
  * Les précédences en font partie et non le responsable : c'est la précédence
  * qui explique une date, et l'écran sert d'abord à comprendre pourquoi une
  * tâche tombe là.
+ *
+ * Les SUIVANTES y figurent aussi, au prix de 88 px pris au diagramme. C'est le
+ * seul moyen de planifier à rebours sans passer par le jeu complet — et
+ * planifier à rebours est le mode normal ici : la date d'ouverture des Jeux ne
+ * se déplacera pas, donc on remonte depuis elle plutôt que de dérouler depuis
+ * aujourd'hui.
  */
 export const COMPACT_COLUMNS: BoardColumn[] = [
   "activity",
   "duration",
   "start",
   "predecessors",
+  "successors",
 ];
 
 export function visibleColumns(compact: boolean): BoardColumn[] {
@@ -93,6 +102,7 @@ export const COLUMN_WIDTH: Record<BoardColumn | "rowNo" | "end", number> = {
   start: 90,
   end: 90,
   predecessors: 88,
+  successors: 88,
   owner: 130,
   contract: 110,
   progress: 58,
@@ -150,6 +160,7 @@ export function isCellEditable(task: BoardTask, column: BoardColumn): boolean {
       column === "activity" ||
       column === "start" ||
       column === "predecessors" ||
+      column === "successors" ||
       column === "owner" ||
       column === "contract"
     );

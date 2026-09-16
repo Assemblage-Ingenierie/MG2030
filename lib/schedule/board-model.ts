@@ -223,6 +223,19 @@ export function predecessorRows(
     .sort((a, b) => a - b);
 }
 
+/** Numéros de ligne des tâches qui SUIVENT celle-ci. Symétrique du précédent. */
+export function successorRows(
+  model: BoardModel,
+  taskId: string,
+  rows: Map<string, number>,
+): number[] {
+  return model.dependencies
+    .filter((d) => d.predecessorId === taskId)
+    .map((d) => rows.get(d.successorId))
+    .filter((n): n is number => n !== undefined)
+    .sort((a, b) => a - b);
+}
+
 // ── Opérations ──────────────────────────────────────────────────────────────
 
 const patch = (
@@ -295,6 +308,69 @@ export function setPredecessorRows(
   };
 
   // Le cycle est détecté par le recalcul lui-même : inutile de le rechercher.
+  const computed = recompute(next);
+  if (computed.cycle !== null) {
+    return { ok: false, error: "cycle", detail: cycleLabel(computed, computed.cycle) };
+  }
+  return { ok: true, model: computed };
+}
+
+/**
+ * Déclare quelles lignes SUIVENT une tâche — la planification à rebours.
+ *
+ * C'est l'opération inverse de `setPredecessorRows`, et elle n'est pas
+ * redondante avec elle. On planifie dans les deux sens :
+ *
+ *   • en avant — « cette tâche commence quand celle-là finit » ;
+ *   • à REBOURS — « avant de pouvoir lancer les travaux, il faut avoir fini
+ *     ceci, cela et cela encore ». C'est la façon dont on raisonne quand la
+ *     date de fin est imposée, ce qui est exactement le cas ici : les Jeux
+ *     s'ouvrent à une date que personne ne déplacera.
+ *
+ * Pour chaque successeur ajouté, on retire son ancre comme le fait
+ * `setPredecessorRows`, et pour la même raison : sans quoi le lien s'afficherait
+ * sans rien déplacer.
+ *
+ * ⚠ Ne touche QUE les liens partant de `taskId`. Un successeur qui tient déjà
+ * d'un autre prédécesseur le conserve : une tâche peut en attendre plusieurs,
+ * et effacer les autres liens en déclarant celui-ci détruirait le plan de
+ * quelqu'un d'autre sans le dire.
+ */
+export function setSuccessorRows(
+  model: BoardModel,
+  taskId: string,
+  wanted: number[],
+): { ok: true; model: BoardModel } | { ok: false; error: string; detail?: string } {
+  const tasks = ordered(model.tasks);
+  const self = tasks.findIndex((t) => t.id === taskId);
+  if (self === -1) return { ok: false, error: "unknownTask" };
+
+  const out: string[] = [];
+  const bad: number[] = [];
+  for (const n of [...new Set(wanted)]) {
+    if (!Number.isInteger(n) || n < 1 || n > tasks.length) {
+      bad.push(n);
+      continue;
+    }
+    if (n - 1 === self) return { ok: false, error: "selfPredecessor" };
+    out.push(tasks[n - 1].id);
+  }
+  if (bad.length > 0) {
+    return { ok: false, error: "unknownSuccessor", detail: bad.join(", ") };
+  }
+
+  const attached = new Set(out);
+  const next: BoardModel = {
+    ...model,
+    tasks: model.tasks.map((task) =>
+      attached.has(task.id) ? { ...task, startAnchor: null } : task,
+    ),
+    dependencies: [
+      ...model.dependencies.filter((d) => d.predecessorId !== taskId),
+      ...out.map((successorId) => ({ predecessorId: taskId, successorId })),
+    ],
+  };
+
   const computed = recompute(next);
   if (computed.cycle !== null) {
     return { ok: false, error: "cycle", detail: cycleLabel(computed, computed.cycle) };

@@ -13,6 +13,7 @@ import {
   rowNumbers,
   setField,
   setPredecessorRows,
+  setSuccessorRows,
   visibleTasks,
   type BoardModel,
   type ModelTask,
@@ -146,6 +147,69 @@ describe("precedences par numero de ligne", () => {
     expect(isDrivenByPredecessor(m, "s2")).toBe(true);
     m = (setPredecessorRows(m, "s2", []) as { ok: true; model: BoardModel }).model;
     expect(isDrivenByPredecessor(m, "s2")).toBe(false);
+  });
+});
+
+describe("planification a rebours : declarer les taches SUIVANTES", () => {
+  it("pose le lien dans l'autre sens et enchaine les dates", () => {
+    // « s1 doit etre fini avant que s2 puisse commencer », dit depuis s1.
+    const r = setSuccessorRows(seedModel(), "s1", [4]);
+    expect(r.ok).toBe(true);
+    const next = (r as { ok: true; model: BoardModel }).model;
+    const s1 = next.tasks.find((t) => t.id === "s1")!;
+    const s2 = next.tasks.find((t) => t.id === "s2")!;
+    expect(s2.start).toBe(s1.end);
+    expect(isDrivenByPredecessor(next, "s2")).toBe(true);
+  });
+
+  it("libere l'ancre du SUCCESSEUR, sans quoi le lien s'afficherait sans rien deplacer", () => {
+    let m = seedModel();
+    m = setField(m, "s2", { startAnchor: "2027-05-01" });
+    m = (setSuccessorRows(m, "s1", [4]) as { ok: true; model: BoardModel }).model;
+    const s1 = m.tasks.find((t) => t.id === "s1")!;
+    const s2 = m.tasks.find((t) => t.id === "s2")!;
+    expect(s2.startAnchor).toBeNull();
+    expect(s2.start).toBe(s1.end);
+  });
+
+  it("ne detruit PAS les liens qu'un successeur tient d'ailleurs", () => {
+    // s2 attend a (ligne 1). On declare ensuite que s1 precede s2.
+    // Les DEUX liens doivent subsister : une tache peut en attendre plusieurs.
+    let m = seedModel();
+    m = (setPredecessorRows(m, "s2", [1]) as { ok: true; model: BoardModel }).model;
+    m = (setSuccessorRows(m, "s1", [4]) as { ok: true; model: BoardModel }).model;
+    const rows = rowNumbers(m.tasks);
+    expect(predecessorRows(m, "s2", rows).sort()).toEqual([1, 3]);
+  });
+
+  it("une liste vide retire les liens PARTANT de la tache, et eux seuls", () => {
+    let m = seedModel();
+    m = (setPredecessorRows(m, "s2", [1]) as { ok: true; model: BoardModel }).model;
+    m = (setSuccessorRows(m, "s1", [4]) as { ok: true; model: BoardModel }).model;
+    m = (setSuccessorRows(m, "s1", []) as { ok: true; model: BoardModel }).model;
+    const rows = rowNumbers(m.tasks);
+    expect(predecessorRows(m, "s2", rows)).toEqual([1]);
+  });
+
+  it("refuse un numero hors bornes en le NOMMANT", () => {
+    const r = setSuccessorRows(seedModel(), "s1", [99]);
+    expect(r).toMatchObject({ ok: false, error: "unknownSuccessor", detail: "99" });
+  });
+
+  it("refuse qu'une tache se suive elle-meme", () => {
+    const r = setSuccessorRows(seedModel(), "s1", [3]);
+    expect(r).toMatchObject({ ok: false, error: "selfPredecessor" });
+  });
+
+  it("refuse un cycle et le decrit en numeros de ligne", () => {
+    let m = seedModel();
+    m = (setSuccessorRows(m, "s1", [4]) as { ok: true; model: BoardModel }).model;
+    const r = setSuccessorRows(m, "s2", [3]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error).toBe("cycle");
+      expect(r.detail).toMatch(/#/);
+    }
   });
 });
 
