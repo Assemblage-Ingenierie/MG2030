@@ -62,23 +62,36 @@ export function KosovoEmblem({ className }: { className?: string }) {
 }
 
 /**
- * Logo AFD.
+ * Logo de l'Agence Française de Développement — fichier officiel, servi tel quel.
  *
- * ⚠ Fichier absent du dépôt : à reprendre de `peeb-cool-santafe/public/logos/afd.png`
- * ou à obtenir en vectoriel. Tant qu'il manque, on affiche le sigle en toutes
- * lettres plutôt qu'une image cassée.
+ * Le sigle s'affichait jusqu'ici en toutes lettres, faute de fichier au dépôt.
+ * Le voici, repris sans retouche du logotype officiel (1200 × 531, fond
+ * transparent). Il n'est ni redessiné ni recadré : un bailleur institutionnel
+ * a des règles d'emploi de sa marque, et un tracé approché ou une moitié de
+ * verrou seraient l'un comme l'autre une altération.
+ *
+ * ⚠ CONSÉQUENCE ASSUMÉE DE NE PAS RECADRER : à la hauteur de l'en-tête, la
+ * mention « AGENCE FRANÇAISE DE DÉVELOPPEMENT » tombe sous quatre pixels par
+ * ligne et ne se lit plus. C'est le compromis retenu — le verrou complet,
+ * illisible dans sa moitié basse, plutôt qu'une version tronquée. Le nom exact
+ * reste porté par `title` et par le texte alternatif, donc accessible au
+ * lecteur d'écran comme au survol.
+ *
+ * La hauteur par défaut aligne le logo sur l'emblème du Kosovo qui lui fait
+ * face ; les écrans de connexion la remplacent par une valeur plus généreuse,
+ * où la place ne manque pas.
  */
 export function FunderMark({ className }: { className?: string }) {
   const t = useT();
   return (
-    <span
-      className={cn(
-        "text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]",
-        className,
-      )}
+    // Servi depuis public/, jamais transformé : l'optimisation d'images Vercel
+    // est proscrite (brief §4).
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logos/afd.png"
+      alt={t("app.funder")}
       title={t("app.funder")}
-    >
-      AFD
-    </span>
+      className={cn("h-[34px] w-auto sm:h-[38px]", className)}
+    />
   );
 }

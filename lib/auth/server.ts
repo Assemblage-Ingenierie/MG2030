@@ -39,18 +39,32 @@ interface Row {
  * page et chaque Server Component peuvent l'appeler sans multiplier les
  * requêtes.
  *
- * On utilise `getUser()` et non `getSession()` : `getUser()` valide le jeton
- * auprès du serveur d'authentification, `getSession()` fait confiance au
- * cookie. Sur un rendu serveur, seul le premier est sûr.
+ * On ne se fie JAMAIS à `getSession()`, qui lit le cookie sans le revalider :
+ * un cookie se forge, et un rendu serveur qui lui ferait confiance afficherait
+ * la page de quelqu'un d'autre.
+ *
+ * `getClaims()` plutôt que `getUser()` : les deux vérifient la signature à
+ * chaque appel, mais `getUser()` le fait par un aller-retour vers le serveur
+ * d'authentification — ~106 ms depuis la France — tandis que `getClaims()` le
+ * fait LOCALEMENT, ce projet signant ses jetons en ES256 (clef asymétrique).
+ * Le même appel existe dans `proxy.ts`, qui porte l'explication complète ;
+ * les deux se produisaient à chaque navigation, soit deux allers-retours
+ * réseau avant même que la page ne commence à interroger ses propres données.
+ *
+ * ⚠ LES CLAIMS NE SERVENT QU'À IDENTIFIER, JAMAIS À AUTORISER. On en tire
+ * l'identifiant, puis on lit `mg2030_app_user` SOUS RLS : c'est la base qui
+ * décide, comme partout ailleurs (brief §8). En particulier, rien de ce qui
+ * vient de `user_metadata` — modifiable par l'utilisateur lui-même — n'entre
+ * dans une décision de droits.
  */
 export const getAuthState = cache(async (): Promise<AuthState> => {
   const supabase = await createClient();
 
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims ?? null;
 
-  if (!authUser) return { status: "anonymous" };
+  if (!claims?.sub) return { status: "anonymous" };
+  const authUser = { id: claims.sub, email: typeof claims.email === "string" ? claims.email : "" };
 
   // ⚠ auth.users est PARTAGÉ. Être authentifié ne suffit pas : il faut une
   // ligne dans mg2030_app_user. La RLS le vérifie déjà côté base ; ici on le
@@ -69,7 +83,7 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
 
   if (error || !data || !data.mg2030_organisation || !data.mg2030_functional_role) {
     // Pas de ligne, ou ligne incomplète : ce compte n'appartient pas à MG2030.
-    return { status: "foreign", email: authUser.email ?? "" };
+    return { status: "foreign", email: authUser.email };
   }
 
   const user: AppUser = {

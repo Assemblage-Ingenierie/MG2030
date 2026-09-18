@@ -57,9 +57,27 @@ export default async function proxy(request: NextRequest) {
 
   // Cet appel DOIT rester juste après la création du client et avant tout
   // retour : c'est lui qui déclenche le renouvellement du jeton.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  //
+  // ⚠ `getClaims()` ET NON `getUser()`, ET CE N'EST PAS UN RELÂCHEMENT.
+  //
+  // `getUser()` interroge le serveur d'authentification à CHAQUE appel — un
+  // aller-retour réseau mesuré à ~106 ms depuis la France, payé sur chaque
+  // navigation, avant le moindre octet de HTML. `getClaims()` vérifie la
+  // signature du jeton LOCALEMENT (WebCrypto) contre le jeu de clefs publiques
+  // du projet, mis en cache. C'est possible parce que ce projet signe en ES256,
+  // clef asymétrique — vérifié sur /auth/v1/.well-known/jwks.json. C'est
+  // aujourd'hui la méthode recommandée par Supabase pour le proxy Next.js.
+  //
+  // Ce qu'on NE perd PAS :
+  //   • la vérification de signature, faite à chaque appel — on ne fait
+  //     toujours aucune confiance au cookie, contrairement à `getSession()` ;
+  //   • le RENOUVELLEMENT, seule raison d'être de cet appel ici : si le jeton
+  //     est sur le point d'expirer, la session est rafraîchie avant validation.
+  //
+  // Si la clef du projet redevenait symétrique, la méthode retomberait d'elle-
+  // même sur un appel serveur : le code resterait correct, seulement plus lent.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
