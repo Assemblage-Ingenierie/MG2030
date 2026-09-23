@@ -60,7 +60,7 @@ export async function ScaleSwitch({
     if (sub) params.set("subproject", sub);
     const cols = next.cols ?? (compact ? "compact" : "all");
     if (cols === "all") params.set("cols", "all");
-    if (next.names ?? showNames) params.set("names", "1");
+    if (!(next.names ?? showNames)) params.set("names", "0");
     return `/schedule?${params.toString()}`;
   };
 
@@ -179,7 +179,7 @@ export async function ScaleSwitch({
 
       <div className="ml-auto flex flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">
         <LegendItem color="var(--accent)" label={t("gantt.task")} />
-        <LegendItem color={GANTT.text} label={t("gantt.summary")} />
+        <LegendItem color={GANTT.summary} label={t("gantt.summary")} />
         <LegendItem color={GANTT.milestone} label={t("gantt.milestone")} diamond />
         <LegendItem color="#ea9999" label={t("gantt.late")} />
         <LegendItem color="var(--accent-2)" label={t("gantt.unreported")} hollow />

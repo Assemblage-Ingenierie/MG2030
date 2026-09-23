@@ -4,8 +4,8 @@
 // components/procurement/instantiate-panel.tsx — générer un planning de
 // passation depuis un gabarit.
 //
-// PRÉVISUALISER PUIS APPLIQUER, jamais l'inverse. Une génération d'une
-// douzaine de tâches qu'on découvre après coup est pénible à défaire ; la
+// APPLIQUER DIRECTEMENT, OU PRÉVISUALISER D'ABORD. Une génération d'une
+// douzaine de tâches se relit dans l'aperçu avant écriture si on le souhaite ; la
 // voir avant coûte un clic. C'est la raison d'être du moteur pur.
 // ============================================================
 
@@ -205,8 +205,8 @@ export function InstantiatePanel({
 
               <div className="max-h-80 overflow-y-auto rounded-md border border-[var(--border)]">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-[var(--app-bg)]">
-                    <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
+                  <thead className="sticky top-0">
+                    <tr className="table-head text-left text-[11px] uppercase tracking-wide">
                       <th className="px-2 py-1 font-semibold">{t("schedule.wbs")}</th>
                       <th className="px-2 py-1 font-semibold">{t("schedule.activity")}</th>
                       <th className="px-2 py-1 text-right font-semibold">{t("schedule.duration")}</th>
@@ -304,11 +304,14 @@ export function InstantiatePanel({
             <Button variant="secondary" disabled={pending} onClick={preview}>
               {pending ? t("common.loading") : t("procurement.preview")}
             </Button>
-            {/* Appliquer n'est offert QU'APRÈS prévisualisation, et seulement
-                s'il reste quelque chose à créer. */}
+            {/* Appliquer est offert D'EMBLÉE : l'imposer après l'aperçu laissait
+                un bouton grisé sans explication, et le premier clic semblait
+                ne rien faire. L'aperçu reste disponible, et une fois affiché
+                il désactive l'application s'il n'y a plus rien à créer. Le
+                compte rendu (créées / sautées) s'affiche après l'écriture. */}
             <Button
               variant="primary"
-              disabled={pending || rows === null || newRows.length === 0}
+              disabled={pending || (rows !== null && newRows.length === 0)}
               onClick={apply}
             >
               {t("procurement.apply")}

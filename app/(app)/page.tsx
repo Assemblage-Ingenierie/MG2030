@@ -3,7 +3,6 @@ import { getI18n } from "@/lib/i18n/server";
 import { loadOverview } from "@/lib/queries/overview";
 import { formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
-import { SourceNote } from "@/components/referential/source-note";
 
 /**
  * Accueil.
@@ -105,12 +104,6 @@ export default async function HomePage() {
             unit={t("home.contractsUnit", { lots: String(o.lots) })}
           />
         </div>
-
-        {o.tasksWithoutOwner > 0 && (
-          <SourceNote>
-            {t("home.unownedNote", { count: String(o.tasksWithoutOwner) })}
-          </SourceNote>
-        )}
       </Section>
     </div>
   );

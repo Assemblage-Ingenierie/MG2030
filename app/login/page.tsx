@@ -46,12 +46,12 @@ export default async function LoginPage({
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-4 py-8">
       <PanelCard className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3">
-          {/* Bailleur, séparateur, maître d'ouvrage — même ordre que le header. */}
+          {/* Maître d'ouvrage en premier, emblème agrandi ; puis le bailleur. */}
           <div className="flex items-center gap-3">
-            <FunderMark />
-            <span className="h-9 w-px bg-[var(--border)]" aria-hidden="true" />
-            <KosovoEmblem className="h-[38px] w-auto" />
+            <KosovoEmblem className="h-[56px] w-auto" />
             <span className="sr-only">{t("app.owner")}</span>
+            <span className="h-12 w-px bg-[var(--border)]" aria-hidden="true" />
+            <FunderMark />
           </div>
           <h1 className="text-center text-lg font-semibold tracking-tight text-[var(--text)]">
             {t("app.name")}

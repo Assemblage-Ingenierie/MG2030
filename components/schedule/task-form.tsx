@@ -12,11 +12,12 @@
 // où le lien affiché ne correspond plus au calcul.
 // ============================================================
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { Modal } from "@/components/ui/modal";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { formatPlanDate } from "@/lib/i18n/format";
 import type { ModelTask } from "@/lib/schedule/board-model";
 import type { ContractChoice, PersonOption } from "./board-types";
@@ -28,6 +29,7 @@ export function TaskForm({
   hasPredecessor,
   people,
   contracts,
+  tasks,
   onClose,
   onSave,
   onDelete,
@@ -38,6 +40,8 @@ export function TaskForm({
   hasPredecessor: boolean;
   people: PersonOption[];
   contracts: ContractChoice[];
+  /** Toutes les tâches du scénario : sert à proposer les parents possibles. */
+  tasks: ModelTask[];
   onClose: () => void;
   onSave: (fields: Partial<ModelTask>) => boolean;
   onDelete: () => void;
@@ -51,7 +55,29 @@ export function TaskForm({
     ownerId: task.ownerId,
     contractId: task.contractId,
     constraintDate: task.constraintDate,
+    parentId: task.parentId,
   });
+
+  // Parents possibles : un récapitulatif ou un intertitre, JAMAIS la tâche
+  // elle-même ni l'un de ses descendants — ce serait une boucle, que la base
+  // refuserait de toute façon (trigger task_parent_no_cycle).
+  const parents = useMemo(() => {
+    const children = new Map<string, string[]>();
+    for (const x of tasks) {
+      if (x.parentId) children.set(x.parentId, [...(children.get(x.parentId) ?? []), x.id]);
+    }
+    const excluded = new Set<string>();
+    const stack = [task.id];
+    while (stack.length > 0) {
+      const id = stack.pop()!;
+      if (excluded.has(id)) continue;
+      excluded.add(id);
+      stack.push(...(children.get(id) ?? []));
+    }
+    return tasks.filter(
+      (x) => (x.type === "summary" || x.type === "group_header") && !excluded.has(x.id),
+    );
+  }, [tasks, task.id]);
 
   const isHeader = task.type === "group_header";
   const isSummary = task.type === "summary";
@@ -84,6 +110,25 @@ export function TaskForm({
           value={draft.activity}
           onChange={(e) => setDraft({ ...draft, activity: e.target.value })}
         />
+
+        {/* Rattachement : c'est ici qu'on range une tâche existante sous un
+            récapitulatif ou un intertitre. Elle passe en fin de fratrie. */}
+        <div>
+          <Label>{t("schedule.parent")}</Label>
+          <select
+            className={fieldClasses() + " mt-1"}
+            value={draft.parentId ?? ""}
+            onChange={(e) => setDraft({ ...draft, parentId: e.target.value || null })}
+          >
+            <option value="">{t("schedule.noParent")}</option>
+            {parents.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.wbsCode} — {p.activity}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{t("schedule.parentHint")}</p>
+        </div>
 
         {!isHeader && !isSummary && (
           <div className="grid grid-cols-2 gap-4">
@@ -208,20 +253,25 @@ export function TaskForm({
           {/* La suppression vit ICI et non en icône dans la ligne : à côté des
               flèches de déplacement, une corbeille se clique par erreur. Elle
               archive plutôt qu'elle n'efface, et Ctrl+Z la ramène. */}
-          <Button
-            variant="danger"
-            size="sm"
-            type="button"
-            title={t("schedule.deleteTaskHint")}
-            onClick={() => {
-              if (window.confirm(t("schedule.confirmDelete", { wbs: task.activity }))) {
-                onDelete();
-                onClose();
-              }
+          <ConfirmAction
+            message={t("schedule.confirmDelete", { wbs: task.activity })}
+            onConfirm={() => {
+              onDelete();
+              onClose();
             }}
           >
-            {t("schedule.deleteTask")}
-          </Button>
+            {(arm) => (
+              <Button
+                variant="danger"
+                size="sm"
+                type="button"
+                title={t("schedule.deleteTaskHint")}
+                onClick={arm}
+              >
+                {t("schedule.deleteTask")}
+              </Button>
+            )}
+          </ConfirmAction>
           <span className="ml-auto flex gap-2">
             <Button variant="secondary" type="button" onClick={onClose}>
               {t("common.cancel")}

@@ -33,12 +33,31 @@ export const BRAND = {
 } as const;
 
 // ============================================================
+// Charte de la plateforme (demande du 23/09/2026).
+//
+// Remplace, pour l'interface, les couleurs relevées sur l'emblème : l'accent
+// et la navigation latérale passent au bleu nuit, l'accent secondaire de l'or
+// au jaune. `BRAND` reste la palette de l'emblème, toujours employée pour les
+// couleurs d'entité du Gantt (AFD, PIU).
+// ============================================================
+export const CHARTE = {
+  /**
+   * Bleu nuit : fond de la navigation latérale ET accent principal (boutons
+   * primaires, élément actif, marque). Sur le fond de la sidebar, l'accent
+   * disparaîtrait : elle emploie l'accent secondaire pour ses mises en valeur.
+   */
+  navy: "#003049",
+  /** Accent secondaire : mise en valeur, jalons du Gantt. */
+  yellow: "#fcbf49",
+} as const;
+
+// ============================================================
 // Tokens de surface (UI neutre). Repris INCHANGÉS du dépôt de charte : ce sont
 // les tokens structurels, indépendants de tout projet.
 // ============================================================
 export const UI = {
   // Sidebar (palette sombre dédiée)
-  sidebarBg: "#30323e",
+  sidebarBg: CHARTE.navy,
   sidebarText: "#e8e9ed",
   sidebarTextMuted: "#9aa1ad",
   sidebarActive: "rgba(255,255,255,0.10)",
@@ -46,23 +65,29 @@ export const UI = {
   sidebarBorder: "rgba(255,255,255,0.08)",
 
   // Surfaces
-  appBg: "#f3f4f6",
+  appBg: "#f9f6e9", // ivoire : #eae2b7 de la charte allégé à 30 % (23/09/2026)
   surface: "#ffffff",
   border: "#e4e6eb",
   text: TEXT_DARK,
   textMuted: "#646b78",
 
+  // En-têtes de tableau (demande du 23/09/2026) : le bleu nuit de la sidebar,
+  // texte blanc. Valable pour TOUS les tableaux, grille du plan et échelle du
+  // Gantt comprises — ils se lisent comme une seule rangée d'en-têtes.
+  tableHeadBg: CHARTE.navy,
+  tableHeadText: TEXT_LIGHT,
+  tableHeadBorder: "rgba(255,255,255,0.14)",
+
   // États d'interaction
   focus: "#3c78d8",
 
   // Marque
-  accent: BRAND.blue,
-  accent2: BRAND.gold,
+  accent: CHARTE.navy,
+  accent2: CHARTE.yellow,
   onAccent: BRAND.onBrand,
 
   // Signaux. `danger` est DISTINCT de `accent` : l'accent n'étant pas rouge,
-  // l'erreur ne peut pas le réutiliser (contrairement au dépôt de charte, où
-  // l'accent rouge servait aussi de signal d'erreur).
+  // l'erreur ne peut pas le réutiliser.
   danger: "#c0392b",
   ok: "#38761d",
 } as const;
@@ -97,7 +122,9 @@ export const GANTT = {
   /** Barre neutre, sans code métier. */
   neutralBar: "#808080",
   /** Jalon (losange) et marge terminale. */
-  milestone: BRAND.gold,
+  milestone: CHARTE.yellow,
+  /** Barre d'un récapitulatif (demande du 23/09/2026). */
+  summary: CHARTE.yellow,
 } as const;
 
 // ============================================================
@@ -106,19 +133,18 @@ export const GANTT = {
 // Les trois codes sont ceux de `mg2030_organisation`, qui les porte depuis le
 // seed : pas d'énumération parallèle, pas de second axe à maintenir.
 //
-//   • TA  — assistance technique (Assemblage). Rouge, couleur du prestataire.
+//   • TA  — assistance technique (Assemblage). Rouge #e30513, celui de la
+//           charte d'Assemblage (demande du 23/09/2026).
 //   • AFD — bailleur. Bleu, le sien.
 //   • PIU — unité d'exécution du MJS. Or de l'emblème du Kosovo, qui est déjà
 //           l'accent secondaire de la plateforme : la maîtrise d'ouvrage
 //           kosovare porte la couleur de son propre État.
 //
-// Le rouge N'EST PAS `danger` (#c0392b) ni le rose du retard (#ea9999) : trois
-// rouges se côtoieraient sur le même diagramme sans dire la même chose. Celui
-// d'Assemblage est plus sombre et plus sourd, et le retard continue de primer
+// Le rouge N'EST PAS le rose du retard (#ea9999) : le retard continue de primer
 // sur l'appartenance quand les deux s'appliquent.
 // ============================================================
 export const ENTITY_COLOR: Record<string, string> = {
-  TA: "#9b2c2c",
+  TA: "#e30513",
   AFD: BRAND.blue,
   PIU: BRAND.gold,
 };
@@ -168,6 +194,9 @@ export const themeVars = {
   "--accent": UI.accent,
   "--accent-2": UI.accent2,
   "--on-accent": UI.onAccent,
+  "--table-head-bg": UI.tableHeadBg,
+  "--table-head-text": UI.tableHeadText,
+  "--table-head-border": UI.tableHeadBorder,
   "--danger": UI.danger,
   "--ok": UI.ok,
 

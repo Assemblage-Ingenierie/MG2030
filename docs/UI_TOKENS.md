@@ -36,14 +36,14 @@ Reprises **inchangées**. Ce sont les tokens structurels, indépendants de tout 
 
 | Token CSS | Valeur | Rôle |
 |---|---|---|
-| `--app-bg` | `#f3f4f6` | Fond d'application (gris clair) ; fond des champs de saisie |
+| `--app-bg` | `#f9f6e9` | Fond d'application (ivoire : beige `#eae2b7` de la charte allégé à 30 %, 23/09/2026 ; remplace `#f3f4f6`) ; fond des champs de saisie |
 | `--surface` | `#ffffff` | Cartes, tableaux, en-têtes collants, popovers, modales |
 | `--border` | `#e4e6eb` | Toutes les bordures et séparateurs 1 px |
 | `--text` | `#272a33` | Texte principal |
 | `--text-muted` | `#646b78` | Texte secondaire, en-têtes, placeholders |
 | `--focus` | `#3c78d8` | Anneau et bordure de focus clavier |
-| `--accent` | **`#034ea2`** | Marque / élément actif — bleu institutionnel kosovar (remplace le `#E30513` d'Assemblage) |
-| `--accent-2` | **`#d0a650`** | Or institutionnel — soulignés, jalons du Gantt, mise en valeur secondaire |
+| `--accent` | **`#003049`** | Marque / élément actif — bleu nuit de la charte du 23/09/2026, identique au fond de la sidebar (remplace le bleu de l'emblème `#034ea2`) |
+| `--accent-2` | **`#fcbf49`** | Jaune — soulignés, jalons du Gantt, mise en valeur secondaire (remplace l'or `#d0a650`) |
 | `--danger` | **`#c0392b`** | Erreur, action destructrice. Distinct de l'accent, qui n'est plus rouge |
 | `--ok` | `#38761d` | Action positive (accorder, valider) |
 
@@ -51,7 +51,7 @@ Reprises **inchangées**. Ce sont les tokens structurels, indépendants de tout 
 
 | Token CSS | Valeur | Rôle |
 |---|---|---|
-| `--sidebar-bg` | `#30323e` | Fond de la navigation latérale |
+| `--sidebar-bg` | `#003049` | Fond de la navigation latérale — bleu nuit, charte du 23/09/2026 (remplace `#30323e`) |
 | `--sidebar-text` | `#e8e9ed` | Texte de l'item actif |
 | `--sidebar-text-muted` | `#9aa1ad` | Texte des items inactifs |
 | `--sidebar-active` | `rgba(255,255,255,0.10)` | Fond de l'item actif |
@@ -129,6 +129,13 @@ Le `<body>` applique `-webkit-font-smoothing: antialiased` et
 > Conséquence pour MG2030 : cette pile couvre les diacritiques albanais (`ë`, `ç`)
 > sur Windows et macOS sans rien ajouter ; `Noto Sans` couvre Linux en repli.
 > **Ne pas introduire de webfont.**
+>
+> **Exception unique (23/09/2026)** : le logotype « MG2030 » de la barre
+> latérale est composé en **Big Shoulders** (graisse 800, axe `opsz` à 72 pour
+> le dessin « Display »), en référence au modernisme yougoslave de Pristina.
+> Chargée par `next/font` depuis `lib/fonts.ts` : téléchargée au build, servie
+> par l'application, aucune requête vers Google à l'exécution. Elle ne doit
+> servir à rien d'autre.
 
 ### Échelle observée (fréquence réelle dans le dépôt)
 

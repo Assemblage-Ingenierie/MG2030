@@ -6,6 +6,7 @@ import { usePermissions } from "@/components/auth/auth-context";
 import { Modal } from "@/components/ui/modal";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import {
   createDeliverable,
   deleteDeliverable,
@@ -256,19 +257,19 @@ export function DeliverableRowActions({
         {t("common.edit")}
       </Button>
 
-      <IconButton
-        label={t("common.delete")}
+      <ConfirmAction
+        message={t("deliverables.confirmDelete", { title: deliverable.title })}
         disabled={pending}
-        onClick={() => {
-          if (window.confirm(t("deliverables.confirmDelete", { title: deliverable.title }))) {
-            startTransition(() => void deleteDeliverable(deliverable.id!));
-          }
-        }}
+        onConfirm={() => startTransition(() => void deleteDeliverable(deliverable.id!))}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-        </svg>
-      </IconButton>
+        {(arm) => (
+          <IconButton label={t("common.delete")} disabled={pending} onClick={arm}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+            </svg>
+          </IconButton>
+        )}
+      </ConfirmAction>
 
       <DeliverableFormModal
         open={open}

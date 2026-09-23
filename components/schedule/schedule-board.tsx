@@ -19,7 +19,7 @@
 //     ne redessine ni les autres lignes ni le SVG.
 // ============================================================
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { Button, IconButton } from "@/components/ui/button";
@@ -51,6 +51,7 @@ import { BoardCell, type CommitDirection } from "./board-cell";
 import { GanttPane, HEAD_H } from "./gantt-pane";
 import { NewTaskModal } from "./new-task-modal";
 import { TaskForm } from "./task-form";
+import { BulkEditForm } from "./bulk-edit-form";
 import { useBoard } from "./use-board";
 
 interface Cell {
@@ -109,6 +110,11 @@ export function ScheduleBoard({
   const [editing, setEditing] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [dragging, setDragging] = useState<string | null>(null);
+  // Sélection de lignes, à la manière d'un tableur : clic sur le numéro de
+  // ligne, Maj+clic pour une plage, Ctrl+clic pour ajouter ou retirer.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [bulkEditing, setBulkEditing] = useState(false);
 
   const columns = useMemo(() => visibleColumns(compact), [compact]);
 
@@ -124,6 +130,48 @@ export function ScheduleBoard({
     const keep = new Set(visibleIds);
     return open.filter((task) => keep.has(task.id));
   }, [board.model.tasks, collapsed, visibleIds]);
+
+  /** Clic sur un numéro de ligne. La plage suit l'ordre AFFICHÉ, filtres compris. */
+  const selectRow = useCallback(
+    (taskId: string, mode: "single" | "toggle" | "range") => {
+      if (mode === "range" && anchorId) {
+        const from = tasks.findIndex((x) => x.id === anchorId);
+        const to = tasks.findIndex((x) => x.id === taskId);
+        if (from >= 0 && to >= 0) {
+          const [a, b] = from < to ? [from, to] : [to, from];
+          setSelected(new Set(tasks.slice(a, b + 1).map((x) => x.id)));
+          return;
+        }
+      }
+      setAnchorId(taskId);
+      setSelected((current) => {
+        if (mode !== "toggle") {
+          return current.size === 1 && current.has(taskId) ? new Set() : new Set([taskId]);
+        }
+        const next = new Set(current);
+        if (next.has(taskId)) next.delete(taskId);
+        else next.add(taskId);
+        return next;
+      });
+    },
+    [tasks, anchorId],
+  );
+
+  // Échap vide la sélection — sauf pendant une saisie, où il annule la cellule.
+  useEffect(() => {
+    if (selected.size === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !bulkEditing && active === null) setSelected(new Set());
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selected.size, bulkEditing, active]);
+
+  // Une tâche supprimée ou annulée ne doit pas rester sélectionnée en fantôme.
+  const selectedIds = useMemo(
+    () => board.model.tasks.filter((x) => selected.has(x.id)).map((x) => x.id),
+    [board.model.tasks, selected],
+  );
 
   const toggleCollapse = useCallback((taskId: string) => {
     setCollapsed((current) => {
@@ -272,6 +320,20 @@ export function ScheduleBoard({
             {t("common.saving")}
           </span>
         )}
+
+        {editable && selectedIds.length > 0 && (
+          <span className="ml-auto inline-flex items-center gap-2">
+            <span className="text-xs font-medium text-[var(--text)]">
+              {t("schedule.selectedCount", { count: String(selectedIds.length) })}
+            </span>
+            <Button size="sm" variant="primary" onClick={() => setBulkEditing(true)}>
+              {t("schedule.bulkEdit")}
+            </Button>
+            <Button size="sm" variant="quiet" onClick={() => setSelected(new Set())}>
+              {t("schedule.clearSelection")}
+            </Button>
+          </span>
+        )}
       </div>
 
       {/* Un cycle rend le planning incalculable : on le dit, on ne vide pas. */}
@@ -341,6 +403,8 @@ export function ScheduleBoard({
                 }
                 saving={board.savingId === task.id}
                 dragging={dragging === task.id}
+                selected={selected.has(task.id)}
+                onSelect={selectRow}
                 onToggleCollapse={toggleCollapse}
                 onActivate={setActive}
                 onCommit={commitCell}
@@ -396,6 +460,21 @@ export function ScheduleBoard({
         />
       )}
 
+      {bulkEditing && selectedIds.length > 0 && (
+        <BulkEditForm
+          selectedIds={selectedIds}
+          tasks={board.model.tasks}
+          people={people}
+          contracts={contracts}
+          onClose={() => setBulkEditing(false)}
+          onSave={(fields) => board.saveBulk(selectedIds, fields)}
+          onDelete={() => {
+            board.removeMany(selectedIds);
+            setSelected(new Set());
+          }}
+        />
+      )}
+
       {editingTask && (
         <TaskForm
           task={editingTask}
@@ -404,6 +483,7 @@ export function ScheduleBoard({
           hasPredecessor={board.hasPredecessor(editingTask.id)}
           people={people}
           contracts={contracts}
+          tasks={board.model.tasks}
           onClose={() => setEditing(null)}
           onSave={(fields) => board.saveFields(editingTask.id, fields)}
           onDelete={() => board.remove(editingTask.id)}
@@ -428,10 +508,10 @@ function GridHeader({
   // ne se lit pas comme une valeur : le centrer le sépare visuellement de la
   // colonne de chiffres ou de dates alignée dessous, sans ajouter de trait.
   const cell =
-    "flex shrink-0 items-center justify-center border-r border-b border-[var(--border)] px-2 " +
-    "text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+    "flex shrink-0 items-center justify-center border-r border-b px-2 " +
+    "text-center text-[11px] font-semibold uppercase tracking-wide";
   return (
-    <div className="sticky top-0 z-20 flex bg-[var(--app-bg)]" style={{ height: HEAD_H }}>
+    <div className="table-head sticky top-0 z-20 flex" style={{ height: HEAD_H }}>
       <div
         className={cell}
         style={{ width: COLUMN_WIDTH.rowNo }}
@@ -471,6 +551,8 @@ interface RowProps {
   hiddenCount: number;
   saving: boolean;
   dragging: boolean;
+  selected: boolean;
+  onSelect: (taskId: string, mode: "single" | "toggle" | "range") => void;
   onToggleCollapse: (taskId: string) => void;
   onActivate: (cell: Cell) => void;
   onCommit: (
@@ -511,6 +593,8 @@ function GridRow(props: RowProps) {
     hiddenCount,
     saving,
     dragging,
+    selected,
+    onSelect,
     onToggleCollapse,
     onActivate,
     onCommit,
@@ -595,6 +679,7 @@ function GridRow(props: RowProps) {
         row % 2 === 1 && task.type !== "group_header" && "bg-[color-mix(in_srgb,var(--app-bg)_45%,transparent)]",
         saving && "opacity-60",
         dragging && "opacity-40",
+        selected && "bg-[color-mix(in_srgb,var(--focus)_14%,transparent)]",
       )}
       style={{ height: ROW_H }}
       /* Glisser-déposer natif : aucune dépendance, et le clavier garde ses
@@ -614,13 +699,37 @@ function GridRow(props: RowProps) {
       }}
     >
       {/* Numéro de ligne — renuméroté automatiquement, c'est la clé des
-          précédences. Lecture seule : il DÉRIVE de l'ordre. */}
-      <div
-        className="flex shrink-0 items-center justify-end border-r border-b border-[var(--border)] px-2 text-[11px] tabular-nums text-[var(--text-muted)]"
-        style={{ width: COLUMN_WIDTH.rowNo }}
-      >
-        {rowNumber}
-      </div>
+          précédences. Il DÉRIVE de l'ordre, mais sert de poignée de
+          sélection, comme l'en-tête de ligne d'un tableur. */}
+      {editable ? (
+        <button
+          type="button"
+          aria-pressed={selected}
+          title={t("schedule.selectRowHint")}
+          onClick={(e) =>
+            onSelect(task.id, e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "single")
+          }
+          className={cn(
+            "flex shrink-0 cursor-pointer select-none items-center justify-end border-r border-b border-[var(--border)] px-2 text-[11px] tabular-nums hover:bg-[var(--app-bg)]",
+            selected ? "font-semibold text-[var(--text)]" : "text-[var(--text-muted)]",
+          )}
+          style={{
+            width: COLUMN_WIDTH.rowNo,
+            backgroundColor: selected
+              ? "color-mix(in srgb, var(--focus) 30%, transparent)"
+              : undefined,
+          }}
+        >
+          {rowNumber}
+        </button>
+      ) : (
+        <div
+          className="flex shrink-0 items-center justify-end border-r border-b border-[var(--border)] px-2 text-[11px] tabular-nums text-[var(--text-muted)]"
+          style={{ width: COLUMN_WIDTH.rowNo }}
+        >
+          {rowNumber}
+        </div>
+      )}
 
       <BoardCell
         width={COLUMN_WIDTH.activity}

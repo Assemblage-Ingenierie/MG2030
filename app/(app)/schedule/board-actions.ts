@@ -69,6 +69,12 @@ export type BoardChange =
   | { kind: "delete"; taskId: string }
   /** Ressuscite une tâche archivée. Sert à l'annulation d'une suppression. */
   | { kind: "restore"; taskId: string }
+  /**
+   * Sélection multiple. `taskIds` ne contient QUE des racines : une tâche dont
+   * un ancêtre est aussi sélectionné part avec lui, sans entrée propre.
+   */
+  | { kind: "deleteMany"; taskIds: string[] }
+  | { kind: "restoreMany"; taskIds: string[] }
   | {
       /** Édition par formulaire : plusieurs champs d'un coup. */
       kind: "fields";
@@ -86,7 +92,27 @@ export type BoardChange =
        * aller-retour et une seule entrée d'historique.
        */
       constraintDate: string | null;
+      /** Rattachement hiérarchique, et le rang qui l'accompagne. */
+      parentId: string | null;
+      sortOrder: number;
+    }
+  | {
+      /**
+       * Sélection multiple : chaque tâche ne porte QUE les champs modifiés.
+       * Un champ absent est laissé tel quel — c'est ce qui permet de changer
+       * le parent de tâches aux responsables différents sans les écraser.
+       */
+      kind: "bulk";
+      items: { taskId: string; patch: BulkPatch }[];
     };
+
+export interface BulkPatch {
+  activity?: string;
+  parentId?: string | null;
+  sortOrder?: number;
+  ownerId?: string | null;
+  contractId?: string | null;
+}
 
 /** Colonnes touchées par chaque type de changement simple. */
 const COLUMN: Record<string, string> = {
@@ -115,7 +141,11 @@ function movesDates(kind: BoardChange["kind"]): boolean {
     kind === "order" ||
     kind === "delete" ||
     kind === "restore" ||
-    kind === "fields"
+    kind === "deleteMany" ||
+    kind === "restoreMany" ||
+    kind === "fields" ||
+    // Retour anticipé dans le `case` si aucun parent ne change.
+    kind === "bulk"
   );
 }
 
@@ -138,6 +168,67 @@ async function restoreAnchors(
     if (error) return error.message;
   }
   return null;
+}
+
+/**
+ * Archive (ou ressuscite) une tâche ET ses descendants.
+ *
+ * `archived_at` et non un DELETE : une tâche retirée reste un fait de
+ * gestion, et l'annulation doit pouvoir la ressusciter.
+ *
+ * LES DESCENDANTS SUIVENT. L'écran retire la tâche ET tout ce qu'elle
+ * contient ; la base n'archivait que la tâche, si bien que ses enfants
+ * réapparaissaient au rechargement, orphelins. Ils reçoivent désormais le
+ * MÊME horodatage : c'est lui qui permet à l'annulation de ne ressusciter
+ * que ce geste-là, pas un enfant supprimé auparavant.
+ *
+ * @returns le message d'erreur, ou `null`.
+ */
+async function archiveTree(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  taskId: string,
+  mode: "delete" | "restore",
+): Promise<string | null> {
+  const { data: self, error: readSelf } = await supabase
+    .from("mg2030_task")
+    .select("scenario_id, archived_at")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (readSelf || !self) return readSelf?.message ?? "writeFailed";
+
+  const { data: all, error: readAll } = await supabase
+    .from("mg2030_task")
+    .select("id, parent_id, archived_at")
+    .eq("scenario_id", self.scenario_id);
+  if (readAll) return readAll.message;
+
+  const doomed = new Set<string>([taskId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const t of all ?? []) {
+      if (t.parent_id && doomed.has(t.parent_id) && !doomed.has(t.id)) {
+        doomed.add(t.id);
+        grew = true;
+      }
+    }
+  }
+
+  const stamp = mode === "delete" ? new Date().toISOString() : null;
+  const targets = (all ?? [])
+    .filter((t) => doomed.has(t.id))
+    .filter((t) =>
+      mode === "delete"
+        ? t.id === taskId || t.archived_at === null
+        : t.id === taskId || t.archived_at === self.archived_at,
+    )
+    .map((t) => t.id);
+
+  const { error } = await supabase
+    .from("mg2030_task")
+    .update({ archived_at: stamp })
+    .in("id", targets);
+  return error ? error.message : null;
 }
 
 export async function applyBoardChange(
@@ -180,6 +271,8 @@ export async function applyBoardChange(
           owner_id: change.ownerId,
           contract_id: change.contractId,
           site_id: change.siteId,
+          parent_id: change.parentId,
+          sort_order: change.sortOrder,
         })
         .eq("id", change.taskId);
       if (error) return { ok: false, error: error.message };
@@ -290,17 +383,44 @@ export async function applyBoardChange(
     case "order":
       return reorderTasks(scenarioCode, change.order, false);
 
+    case "bulk": {
+      for (const { taskId, patch } of change.items) {
+        const row: Record<string, unknown> = {};
+        if (patch.activity !== undefined) {
+          const activity = patch.activity.trim();
+          if (activity === "") return { ok: false, error: "emptyActivity" };
+          row.activity = activity;
+        }
+        if (patch.parentId !== undefined) row.parent_id = patch.parentId;
+        if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder;
+        if (patch.ownerId !== undefined) row.owner_id = patch.ownerId;
+        if (patch.contractId !== undefined) row.contract_id = patch.contractId;
+        if (Object.keys(row).length === 0) continue;
+        const { error } = await supabase.from("mg2030_task").update(row).eq("id", taskId);
+        if (error) return { ok: false, error: error.message };
+      }
+      // Seul un changement de parent déplace des dates (étendue des
+      // récapitulatifs) ; un libellé, un responsable ou un marché, non.
+      if (!change.items.some((i) => i.patch.parentId !== undefined)) {
+        return { ok: true, changed: 0 };
+      }
+      break;
+    }
+
     case "delete":
     case "restore": {
-      // `archived_at` et non un DELETE : une tâche retirée reste un fait de
-      // gestion, et l'annulation doit pouvoir la ressusciter.
-      const { error } = await supabase
-        .from("mg2030_task")
-        .update({
-          archived_at: change.kind === "delete" ? new Date().toISOString() : null,
-        })
-        .eq("id", change.taskId);
-      if (error) return { ok: false, error: error.message };
+      const failed = await archiveTree(supabase, change.taskId, change.kind);
+      if (failed) return { ok: false, error: failed };
+      break;
+    }
+
+    case "deleteMany":
+    case "restoreMany": {
+      const mode = change.kind === "deleteMany" ? "delete" : "restore";
+      for (const taskId of change.taskIds) {
+        const failed = await archiveTree(supabase, taskId, mode);
+        if (failed) return { ok: false, error: failed };
+      }
       break;
     }
   }

@@ -1,5 +1,5 @@
 // ============================================================
-// components/ui/table.tsx — tableau de liste (en-tête clair).
+// components/ui/table.tsx — tableau de liste (en-tête bleu nuit, texte blanc).
 // Spécification reprise de docs/UI_TOKENS.md §6.
 //
 // Le tableau de SYNTHÈSE (en-tête sombre, groupes de colonnes) et la grille
@@ -28,8 +28,8 @@ export function Thead({ children }: { children: React.ReactNode }) {
     <thead>
       <tr
         className={cn(
-          "border-b border-[var(--border)] bg-[var(--app-bg)] text-left",
-          "text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]",
+          "table-head border-b text-left",
+          "text-xs font-semibold uppercase tracking-wide",
         )}
       >
         {children}

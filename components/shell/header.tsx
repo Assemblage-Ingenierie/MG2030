@@ -27,12 +27,13 @@ export function Header({ onMenu, bell }: { onMenu: () => void; bell?: React.Reac
         <MenuIcon className="h-5 w-5" />
       </IconButton>
 
-      {/* Logos institutionnels : bailleur, séparateur, maître d'ouvrage */}
+      {/* Logos institutionnels : maître d'ouvrage, séparateur, bailleur —
+          même ordre que l'écran de connexion. */}
       <div className="flex items-center gap-3">
-        <FunderMark />
-        <span className="h-9 w-px bg-[var(--border)]" aria-hidden="true" />
         <KosovoEmblem className="h-[38px] w-auto sm:h-[42px]" />
         <span className="sr-only">{t("app.owner")}</span>
+        <span className="h-9 w-px bg-[var(--border)]" aria-hidden="true" />
+        <FunderMark />
       </div>
 
       <div className="ml-auto flex items-center gap-3">

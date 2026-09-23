@@ -14,13 +14,15 @@ export interface Person {
   id: string;
   fullName: string;
   roleCode: string;
+  /** Code de l'organisation : la grille en dérive la couleur de barre à l'affectation. */
+  orgCode: string | null;
 }
 
 export async function listPeople(): Promise<Person[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("mg2030_app_user")
-    .select("id, full_name, mg2030_functional_role!inner ( code )")
+    .select("id, full_name, mg2030_functional_role!inner ( code ), mg2030_organisation ( code )")
     .eq("is_active", true)
     .order("full_name");
 
@@ -31,7 +33,13 @@ export async function listPeople(): Promise<Person[]> {
       id: string;
       full_name: string;
       mg2030_functional_role: { code: string };
+      mg2030_organisation: { code: string } | null;
     };
-    return { id: r.id, fullName: r.full_name, roleCode: r.mg2030_functional_role.code };
+    return {
+      id: r.id,
+      fullName: r.full_name,
+      roleCode: r.mg2030_functional_role.code,
+      orgCode: r.mg2030_organisation?.code ?? null,
+    };
   });
 }

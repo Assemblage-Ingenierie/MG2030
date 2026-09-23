@@ -256,6 +256,24 @@ export function setField(
 }
 
 /**
+ * Plusieurs tâches modifiées d'un coup (sélection multiple) : tous les
+ * correctifs d'abord, UN SEUL recalcul ensuite.
+ */
+export function setFields(
+  model: BoardModel,
+  changes: { taskId: string; change: Partial<ModelTask> }[],
+): BoardModel {
+  const byId = new Map(changes.map((c) => [c.taskId, c.change]));
+  return recompute({
+    ...model,
+    tasks: model.tasks.map((t) => {
+      const change = byId.get(t.id);
+      return change ? { ...t, ...change } : t;
+    }),
+  });
+}
+
+/**
  * Remplace les précédences, désignées par NUMÉRO DE LIGNE.
  *
  * Rend une erreur nommée plutôt qu'un modèle silencieusement inchangé : un

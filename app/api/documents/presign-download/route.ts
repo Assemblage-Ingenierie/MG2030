@@ -58,6 +58,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  // Un PDF déposé depuis un navigateur qui n'en a pas reconnu le type est
+  // stocké en `application/octet-stream` : servi tel quel, il se TÉLÉCHARGE
+  // au lieu de s'afficher dans l'aperçu. En mode `inline`, on impose donc le
+  // type PDF à la réponse dès que le type enregistré ou le nom le désigne.
+  const filename = document.original_filename as string;
+  const isPdf =
+    document.mime_type === "application/pdf" || filename.toLowerCase().endsWith(".pdf");
+
   const downloadUrl = presignUrl(
     config,
     "GET",
@@ -65,10 +73,8 @@ export async function GET(request: Request) {
     EXPIRES_IN,
     {},
     {
-      "response-content-disposition": contentDisposition(
-        mode,
-        document.original_filename as string,
-      ),
+      "response-content-disposition": contentDisposition(mode, filename),
+      ...(mode === "inline" && isPdf ? { "response-content-type": "application/pdf" } : {}),
     },
   );
 

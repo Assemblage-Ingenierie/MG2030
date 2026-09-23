@@ -27,6 +27,8 @@
 
 import { useState, useTransition } from "react";
 import { useT } from "@/components/i18n/i18n-context";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 type Mode = "inline" | "attachment";
 
@@ -42,23 +44,35 @@ async function fetchDownloadUrl(documentId: string, mode: Mode): Promise<string>
   return downloadUrl;
 }
 
+/** Un PDF s'affiche DANS l'application ; le reste garde le comportement d'avant. */
+function isPdf(filename: string, mimeType: string | null): boolean {
+  return mimeType === "application/pdf" || filename.toLowerCase().endsWith(".pdf");
+}
+
 export function OpenDocumentLink({
   documentId,
   filename,
+  mimeType = null,
 }: {
   documentId: string;
   filename: string;
+  mimeType?: string | null;
 }) {
   const t = useT();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // URL pré-signée du PDF en cours d'aperçu. Elle expire en 5 minutes, mais
+  // le lecteur a déjà chargé le fichier : fermer puis rouvrir en redemande une.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const pdf = isPdf(filename, mimeType);
 
   function view() {
     setError(null);
     start(async () => {
       try {
         const url = await fetchDownloadUrl(documentId, "inline");
-        window.open(url, "_blank", "noopener,noreferrer");
+        if (pdf) setPreviewUrl(url);
+        else window.open(url, "_blank", "noopener,noreferrer");
       } catch (e) {
         setError(t(`library.error_${e instanceof Error ? e.message : "downloadFailed"}`));
       }
@@ -94,7 +108,7 @@ export function OpenDocumentLink({
           onClick={view}
           disabled={pending}
           className="min-w-0 truncate text-left font-medium text-[var(--text)] underline-offset-2 hover:underline disabled:opacity-60"
-          title={t("library.viewHint")}
+          title={pdf ? t("library.previewHint") : t("library.viewHint")}
         >
           {filename}
         </button>
@@ -116,6 +130,37 @@ export function OpenDocumentLink({
           {error}
         </span>
       )}
+      <Modal
+        open={previewUrl !== null}
+        onClose={() => setPreviewUrl(null)}
+        closeLabel={t("common.close")}
+        title={filename}
+        maxWidth="max-w-6xl"
+      >
+        {previewUrl && (
+          <div className="flex flex-col gap-3">
+            {/* Lecteur PDF natif du navigateur : aucune dépendance ajoutée. */}
+            <iframe
+              src={previewUrl}
+              title={filename}
+              className="h-[65vh] w-full rounded border border-[var(--border)]"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() => window.open(previewUrl, "_blank", "noopener,noreferrer")}
+              >
+                {t("library.openInNewTab")}
+              </Button>
+              <Button variant="primary" size="sm" type="button" onClick={download}>
+                {t("library.downloadHint")}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </span>
   );
 }

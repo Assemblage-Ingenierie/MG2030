@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { localToday } from "@/lib/schedule/dates";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import {
   cancelNoObjection,
   createNoObjection,
@@ -395,19 +396,19 @@ export function NoObjectionRowActions({
         {t("common.edit")}
       </Button>
 
-      <IconButton
-        label={t("common.delete")}
+      <ConfirmAction
+        message={t("noObjections.confirmDelete", { subject: row.subject })}
         disabled={pending}
-        onClick={() => {
-          if (window.confirm(t("noObjections.confirmDelete", { subject: row.subject }))) {
-            startTransition(() => void deleteNoObjection(id));
-          }
-        }}
+        onConfirm={() => startTransition(() => void deleteNoObjection(id))}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-        </svg>
-      </IconButton>
+        {(arm) => (
+          <IconButton label={t("common.delete")} disabled={pending} onClick={arm}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+            </svg>
+          </IconButton>
+        )}
+      </ConfirmAction>
 
       <FormModal
         open={open}
