@@ -154,7 +154,9 @@ export async function listNoObjectionTaskOptions(
     )
     .eq("mg2030_schedule_scenario.code", scenarioCode)
     .is("archived_at", null)
-    .ilike("activity", "%NoN%")
+    // NOC est la terminologie en vigueur depuis le 24/09/2026 ; NoN reste
+    // reconnu pour les tâches saisies avant.
+    .or("activity.ilike.%NOC%,activity.ilike.%NoN%")
     .order("wbs_code");
 
   if (error) throw new Error(`Lecture des taches d'avis : ${error.message}`);

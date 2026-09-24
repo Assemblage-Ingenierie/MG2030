@@ -4,7 +4,9 @@
     "title": "MG2030 — Project monitoring platform",
     "subtitle": "XXI Mediterranean Games · Prishtina 2030",
     "owner": "Ministry of Youth and Sports",
-    "funder": "Agence Française de Développement"
+    "funder": "Agence Française de Développement",
+    "gamesLogo": "XXI Mediterranean Games · Prishtina 2030",
+    "motto": "Kështu e bëjmë ne"
   },
   "nav": {
     "main": "Main navigation",
@@ -555,7 +557,7 @@
     "byContract": "By contract",
     "byContractIntro": "What is open, what is late, and what comes next for each of the 9 procedures.",
     "open": "Open",
-    "pendingNon": "Pending NoN",
+    "pendingNon": "Pending NOC",
     "nextDue": "Next due",
     "editTitle": "Edit deliverable",
     "createTitle": "Add a deliverable",
