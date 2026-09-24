@@ -3,6 +3,7 @@ import { listContractAnchors, listTemplates } from "@/lib/queries/procurement";
 import { listScenarios, loadSchedule } from "@/lib/queries/schedule";
 import { Card, Section } from "@/components/ui/card";
 import { Chip } from "@/components/ui/badge";
+import { Collapsible } from "@/components/ui/collapsible";
 import { SourceNote } from "@/components/referential/source-note";
 import {
   StepTable,
@@ -89,22 +90,29 @@ export default async function ProcurementPage() {
           </>
         )}
 
+        {/* Chaque gabarit est un bloc dépliable : replié, on lit sa ligne de
+            synthèse (procédure, étapes, durée totale) ; déplié, ses étapes. */}
         {templates.map((tpl) => (
-          <Card key={tpl.id} className="flex flex-col gap-3 p-4">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <Chip>{tpl.code}</Chip>
-              <span className="font-medium text-[var(--text)]">{tpl.name}</span>
-              <span className="text-xs text-[var(--text-muted)]">
-                {t("procurement.procedure")} {tpl.procedure}
-                {tpl.contractType ? ` · ${tpl.contractType}` : ""}
-                {tpl.selectionMethod ? ` · ${tpl.selectionMethod}` : ""}
-              </span>
-              {!tpl.isActive && (
-                <span className="text-xs font-medium" style={{ color: "var(--accent-2)" }}>
-                  {t("procurement.inactive")}
+          <Collapsible
+            key={tpl.id}
+            title={
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                <Chip>{tpl.code}</Chip>
+                <span className="font-medium text-[var(--text)]">{tpl.name}</span>
+                <span className="text-xs text-[var(--text-muted)]">
+                  {t("procurement.procedure")} {tpl.procedure}
+                  {tpl.contractType ? ` · ${tpl.contractType}` : ""}
+                  {tpl.selectionMethod ? ` · ${tpl.selectionMethod}` : ""}
                 </span>
-              )}
-              <span className="ml-auto flex items-center gap-3">
+                {!tpl.isActive && (
+                  <span className="text-xs font-medium" style={{ color: "var(--accent-2)" }}>
+                    {t("procurement.inactive")}
+                  </span>
+                )}
+              </span>
+            }
+            actions={
+              <>
                 <span className="text-xs tabular-nums text-[var(--text-muted)]">
                   {t("procurement.totalDays", {
                     steps: String(tpl.steps.length),
@@ -123,11 +131,11 @@ export default async function ProcurementPage() {
                     isActive: tpl.isActive,
                   }}
                 />
-              </span>
-            </div>
-
+              </>
+            }
+          >
             {tpl.description && (
-              <p className="text-xs text-[var(--text-muted)]">{tpl.description}</p>
+              <p className="mb-3 text-xs text-[var(--text-muted)]">{tpl.description}</p>
             )}
 
             <StepTable
@@ -141,7 +149,7 @@ export default async function ProcurementPage() {
                 contractDateAnchor: s.contractDateAnchor,
               }))}
             />
-          </Card>
+          </Collapsible>
         ))}
       </Section>
 
@@ -151,7 +159,7 @@ export default async function ProcurementPage() {
         <Card className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
+              <tr className="table-head border-b text-left text-[11px] uppercase tracking-wide">
                 <th className="px-3 py-2 font-semibold">{t("procurement.contract")}</th>
                 <th className="px-3 py-2 font-semibold">{t("procurement.anchor_spn_publication_date")}</th>
                 <th className="px-3 py-2 font-semibold">{t("procurement.anchor_bid_opening_date")}</th>

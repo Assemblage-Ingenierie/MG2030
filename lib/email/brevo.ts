@@ -126,7 +126,7 @@ export async function notifyAccessRequest(request: {
       `and a scope.</p>` +
       `<table style="border-collapse:collapse;margin:16px 0">${rows}</table>` +
       `<p style="font-size:14px"><a href="${request.appUrl}/admin/users" ` +
-      `style="color:#034ea2">Open the accounts screen</a></p>` +
+      `style="color:#003049">Open the accounts screen</a></p>` +
       `</div>`,
   });
 }

@@ -84,7 +84,9 @@ export default async function SchedulePage({
   // Jeu de colonnes réduit PAR DÉFAUT : toutes colonnes affichées, la grille
   // prend près de 1000 px et il ne reste presque rien pour le diagramme.
   const compact = params.cols !== "all";
-  const showNames = params.names === "1";
+  // Noms des tâches affichés PAR DÉFAUT : sans eux, une barre ne se lit qu'en
+  // suivant sa ligne jusqu'à la grille. `names=0` les masque.
+  const showNames = params.names !== "0";
 
   const constraintByTask = new Map(constraints.map((c) => [c.taskId, c.date]));
   const contractIdByCode = new Map(contracts.map((c) => [c.contractCode, c.id]));

@@ -58,6 +58,25 @@ export default async function NoObjectionsPage() {
           answered.reduce((sum, r) => sum + (r.turnaroundDays ?? 0), 0) / answered.length,
         );
 
+  // Regroupement par contrat, dans l'ordre des codes ; les avis sans contrat
+  // (le plan de passation lui-même, par exemple) ferment la liste.
+  const nameByCode = new Map(contracts.map((c) => [c.contractCode, c.name]));
+  const byContract = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const key = r.contractCode ?? "";
+    byContract.set(key, [...(byContract.get(key) ?? []), r]);
+  }
+  const groups = [...byContract.entries()]
+    .sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b)))
+    .map(([code, groupRows]) => ({
+      key: code || "none",
+      code: code || null,
+      name: code ? nameByCode.get(code) ?? code : null,
+      rows: groupRows,
+      awaiting: groupRows.filter((r) => isPending(r.status)).length,
+      overdue: groupRows.filter((r) => (r.overdueDays ?? 0) > 0).length,
+    }));
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <Section
@@ -83,7 +102,55 @@ export default async function NoObjectionsPage() {
           />
         </Card>
 
-        <Card className="overflow-x-auto">
+        {rows.length === 0 && (
+          <Card className="overflow-x-auto">
+            <Table>
+              <tbody>
+                <EmptyRow colSpan={8}>{t("noObjections.empty")}</EmptyRow>
+              </tbody>
+            </Table>
+          </Card>
+        )}
+
+        {/* UN MENU DÉROULANT PAR CONTRAT. `<details>` natif : dépliable sans
+            une ligne de JavaScript, et l'écran reste un Server Component. Le
+            résumé de chaque groupe porte ce qu'on y cherche d'abord — combien
+            d'avis attendent, combien dépassent — pour savoir lequel ouvrir. */}
+        {groups.map((group) => (
+          <details
+            key={group.key}
+            className="group overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+          >
+            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-[var(--app-bg)]">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                aria-hidden="true"
+                className="shrink-0 text-[var(--text-muted)] transition-transform group-open:rotate-90"
+              >
+                <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {group.code ? <Chip>{group.code}</Chip> : null}
+              <span className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">
+                {group.name ?? t("noObjections.noContract")}
+              </span>
+              <span className="ml-auto flex shrink-0 items-center gap-3 text-xs text-[var(--text-muted)]">
+                <span>{t("noObjections.groupCount", { count: String(group.rows.length) })}</span>
+                {group.awaiting > 0 && (
+                  <span>{t("noObjections.groupAwaiting", { count: String(group.awaiting) })}</span>
+                )}
+                {group.overdue > 0 && (
+                  <span className="font-medium" style={{ color: "var(--danger)" }}>
+                    {t("noObjections.groupOverdue", { count: String(group.overdue) })}
+                  </span>
+                )}
+              </span>
+            </summary>
+            <div className="overflow-x-auto border-t border-[var(--border)]">
           <Table>
             <Thead>
               <Th>{t("noObjections.subject")}</Th>
@@ -96,8 +163,7 @@ export default async function NoObjectionsPage() {
               <Th align="right">{t("common.actions")}</Th>
             </Thead>
             <tbody>
-              {rows.length === 0 && <EmptyRow colSpan={8}>{t("noObjections.empty")}</EmptyRow>}
-              {rows.map((r) => (
+              {group.rows.map((r) => (
                 <Tr key={r.id}>
                   <Td className="font-medium">
                     {r.subject}
@@ -182,7 +248,9 @@ export default async function NoObjectionsPage() {
               ))}
             </tbody>
           </Table>
-        </Card>
+            </div>
+          </details>
+        ))}
 
         {rows.length === 0 && <SourceNote>{t("noObjections.emptyNote")}</SourceNote>}
         {tasks.length > 0 && (

@@ -85,6 +85,14 @@ export function SiteMap({
 
         L.marker([site.latitude, site.longitude], { icon })
           .addTo(map)
+          // Nom du site affiché EN PERMANENCE à droite du repère : sans lui, il
+          // fallait cliquer chaque losange pour savoir de quel site il s'agit.
+          // Le détail (code, sous-projet, bâtiments) reste dans la bulle.
+          .bindTooltip(escapeHtml(site.name), {
+            permanent: true,
+            direction: "right",
+            offset: [10, 0],
+          })
           .bindPopup(
             `<strong>${escapeHtml(site.siteCode)}</strong> — ${escapeHtml(site.name)}<br/>` +
               `<span style="color:#6b7280">${escapeHtml(subprojectLabel)} · ` +

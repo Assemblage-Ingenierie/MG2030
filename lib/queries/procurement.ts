@@ -267,7 +267,7 @@ export async function listContractAnchors(): Promise<ContractAnchorRow[]> {
     .select(
       `id, contract_code, name, spn_publication_date, bid_opening_date,
        signature_date, completion_date,
-       mg2030_task ( id )`,
+       mg2030_task ( id, archived_at )`,
     )
     .is("archived_at", null)
     .order("contract_code");
@@ -283,6 +283,10 @@ export async function listContractAnchors(): Promise<ContractAnchorRow[]> {
     bidOpeningDate: (r.bid_opening_date as string) ?? null,
     signatureDate: (r.signature_date as string) ?? null,
     completionDate: (r.completion_date as string) ?? null,
-    generatedTaskCount: ((r.mg2030_task ?? []) as unknown[]).length,
+    // Tâches SUPPRIMÉES exclues : archivées, elles ne sont plus au plan, et
+    // l'application du gabarit les recrée.
+    generatedTaskCount: ((r.mg2030_task ?? []) as { archived_at: string | null }[]).filter(
+      (task) => task.archived_at === null,
+    ).length,
   }));
 }

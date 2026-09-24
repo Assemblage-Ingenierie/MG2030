@@ -155,7 +155,7 @@ export function ContractTable({
   );
 
   const head =
-    "border-b border-[var(--border)] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+    "border-b px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide";
   const cell = "border-b border-[var(--border)] px-3 py-2 align-top";
   const filterInput = "h-7 w-full rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 text-xs";
 
@@ -191,7 +191,7 @@ export function ContractTable({
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[1100px] text-sm">
           <thead>
-            <tr>
+            <tr className="table-head">
               <th className={head} style={{ width: 190 }}>{t("contracts.code")}</th>
               <th className={head}>{t("contracts.name")}</th>
               <th className={head} style={{ width: 70 }}>{t("contracts.type")}</th>

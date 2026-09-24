@@ -86,10 +86,12 @@ export const GanttPane = memo(function GanttPane({
         height={HEAD_H}
         viewBox={`0 0 ${width} ${HEAD_H}`}
         className="sticky top-0 z-[5]"
-        style={{ display: "block", background: "var(--app-bg)" }}
+        style={{ display: "block", background: "var(--table-head-bg)" }}
         aria-hidden="true"
       >
-        <rect x={0} y={0} width={width} height={HEAD_H} fill={GANTT.band} />
+        {/* Échelle de temps : même bleu nuit et même texte blanc que l'en-tête
+            de la grille qu'elle prolonge — une seule rangée d'en-têtes. */}
+        <rect x={0} y={0} width={width} height={HEAD_H} fill="var(--table-head-bg)" />
         {layout.ticks.map((tick) => {
           const x = tick.offsetDays * layout.pxPerDay;
           const w = tick.spanDays * layout.pxPerDay;
@@ -103,7 +105,8 @@ export const GanttPane = memo(function GanttPane({
               y={HEAD_H - 15}
               textAnchor="middle"
               fontSize={10}
-              fill={tick.major ? GANTT.text : GANTT.muted}
+              fill="var(--table-head-text)"
+              fillOpacity={tick.major ? 1 : 0.75}
               fontWeight={tick.major ? 600 : 400}
             >
               {tick.label}
@@ -115,7 +118,7 @@ export const GanttPane = memo(function GanttPane({
           y1={HEAD_H - 0.5}
           x2={width}
           y2={HEAD_H - 0.5}
-          stroke={GANTT.gridStrong}
+          stroke="var(--table-head-border)"
         />
       </svg>
 
@@ -241,8 +244,8 @@ export const GanttPane = memo(function GanttPane({
           // ORDRE DE PRÉCÉDENCE DES COULEURS, et il n'est pas arbitraire :
           //   1. le RETARD prime sur tout. Savoir qu'une tâche dérape importe
           //      plus que savoir à qui elle incombe ;
-          //   2. un récapitulatif garde son gris de structure : il n'est
-          //      responsable de rien, il agrège ;
+          //   2. un récapitulatif garde sa couleur de structure (jaune de la
+          //      charte) : il n'est responsable de rien, il agrège ;
           //   3. sinon, l'ENTITÉ RESPONSABLE, quand un responsable est nommé ;
           //   4. à défaut, l'accent : la majorité des tâches du plan n'ont pas
           //      encore de responsable, et les peindre d'une couleur d'entité
@@ -252,7 +255,7 @@ export const GanttPane = memo(function GanttPane({
             bar.status === "late"
               ? "#ea9999"
               : bar.type === "summary"
-                ? GANTT.text
+                ? GANTT.summary
                 : (entityColor ?? "var(--accent)");
 
           const unreported = bar.status === "unreported";

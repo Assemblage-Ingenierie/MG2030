@@ -15,11 +15,13 @@ import { usePermissions } from "@/components/auth/auth-context";
 import { Modal } from "@/components/ui/modal";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import {
   addStep,
   createTemplate,
   deleteStep,
   deleteTemplate,
+  reorderSteps,
   seedObservedTemplates,
   updateStep,
   updateTemplate,
@@ -235,19 +237,19 @@ export function TemplateRowActions({ template }: { template: TemplateValue }) {
       <Button size="sm" variant="quiet" onClick={() => setOpen(true)}>
         {t("common.edit")}
       </Button>
-      <IconButton
-        label={t("common.delete")}
+      <ConfirmAction
+        message={t("procurement.confirmDeleteTemplate", { code: template.code })}
         disabled={pending}
-        onClick={() => {
-          if (window.confirm(t("procurement.confirmDeleteTemplate", { code: template.code }))) {
-            startTransition(() => void deleteTemplate(template.id!));
-          }
-        }}
+        onConfirm={() => startTransition(() => void deleteTemplate(template.id!))}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-        </svg>
-      </IconButton>
+        {(arm) => (
+          <IconButton label={t("common.delete")} disabled={pending} onClick={arm}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+            </svg>
+          </IconButton>
+        )}
+      </ConfirmAction>
       <TemplateModal open={open} onClose={() => setOpen(false)} initial={template} />
     </span>
   );
@@ -270,16 +272,43 @@ function StepRow({
   templateId,
   step,
   onError,
+  maxNo,
+  reorder,
 }: {
   templateId: string;
   step: StepValue;
   onError: (message: string | null) => void;
+  /**
+   * Plus grand numéro permis : le nombre d'étapes du gabarit, ou ce nombre
+   * plus un pour la ligne d'ajout. Au-delà, la séquence aurait un trou.
+   */
+  maxNo: number;
+  /** Absent pour la ligne d'ajout, qui n'a pas encore de place à changer. */
+  reorder?: {
+    canUp: boolean;
+    canDown: boolean;
+    busy: boolean;
+    dragging: boolean;
+    onMove: (direction: -1 | 1) => void;
+    onDragStart: () => void;
+    onDragEnd: () => void;
+    onDrop: () => void;
+  };
 }) {
   const t = useT();
   const { can } = usePermissions();
   const editable = can("procurement.admin");
   const [draft, setDraft] = useState<StepValue>(step);
   const [pending, startTransition] = useTransition();
+
+  // L'étape a changé côté serveur (réordonnancement, décalage à l'insertion) :
+  // on reprend ses valeurs. Sans cela, la ligne affichait l'ANCIEN numéro, et
+  // la sortie du champ suivante le réécrivait en base.
+  const [synced, setSynced] = useState(step);
+  if (synced !== step) {
+    setSynced(step);
+    if (step.id) setDraft(step);
+  }
 
   const dirty =
     draft.name !== step.name ||
@@ -289,7 +318,12 @@ function StepRow({
     draft.contractDateAnchor !== step.contractDateAnchor;
 
   function save() {
-    if (!dirty) return;
+    // Chaque champ enregistre à la sortie : sans ce garde, passer d'un champ
+    // à l'autre pendant l'insertion d'une NOUVELLE étape l'insérait deux fois,
+    // sous le même numéro. Et une nouvelle ligne sans nom n'est pas encore
+    // une étape : on attend qu'elle en ait un plutôt que d'afficher une erreur.
+    if (!dirty || pending) return;
+    if (!draft.id && draft.name.trim() === "") return;
     startTransition(async () => {
       const result = draft.id
         ? await updateStep(draft.id, draft)
@@ -306,8 +340,27 @@ function StepRow({
 
   const input = "h-7 rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 text-sm";
 
+  const arrow = "rounded px-1 text-[var(--text-muted)] hover:bg-[var(--app-bg)] hover:text-[var(--text)] disabled:opacity-30";
+
   return (
-    <tr className="border-b border-[var(--border)]">
+    <tr
+      className={"border-b border-[var(--border)]" + (reorder?.dragging ? " opacity-40" : "")}
+      /* Glisser-déposer natif, comme dans le plan de charge : aucune
+         dépendance, et les flèches restent pour le clavier. */
+      draggable={editable && !!reorder && !reorder.busy}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        reorder?.onDragStart();
+      }}
+      onDragEnd={reorder?.onDragEnd}
+      onDragOver={(e) => {
+        if (editable && reorder) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        reorder?.onDrop();
+      }}
+    >
       <td className="px-2 py-1">
         {/* Chaque champ porte son propre libellé : l'en-tête de colonne ne
             nomme pas un champ pour un lecteur d'écran, et le texte d'invite
@@ -316,11 +369,18 @@ function StepRow({
         <input
           type="number"
           min={1}
+          max={maxNo}
           disabled={!editable}
           aria-label={t("procurement.stepNo")}
+          title={t("procurement.stepNoMax", { max: String(maxNo) })}
           className={input + " w-14 text-right tabular-nums"}
           value={draft.stepNo}
-          onChange={(e) => setDraft({ ...draft, stepNo: Number(e.target.value) })}
+          // Ramené dans [1, max] à la frappe : les flèches du champ respectent
+          // déjà `max`, mais pas un nombre tapé au clavier. Un champ vidé reste
+          // vide le temps de la saisie (0), et la validation serveur le refuse.
+          onChange={(e) =>
+            setDraft({ ...draft, stepNo: Math.min(Number(e.target.value), maxNo) })
+          }
           onBlur={save}
         />
       </td>
@@ -380,7 +440,31 @@ function StepRow({
           }}
         />
       </td>
-      <td className="px-2 py-1 text-right">
+      <td className="whitespace-nowrap px-2 py-1 text-right">
+        {editable && draft.id && reorder && (
+          <span className="mr-1 inline-flex items-center">
+            <button
+              type="button"
+              className={arrow}
+              disabled={!reorder.canUp || reorder.busy}
+              title={t("procurement.moveUp")}
+              aria-label={t("procurement.moveUp")}
+              onClick={() => reorder.onMove(-1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className={arrow}
+              disabled={!reorder.canDown || reorder.busy}
+              title={t("procurement.moveDown")}
+              aria-label={t("procurement.moveDown")}
+              onClick={() => reorder.onMove(1)}
+            >
+              ↓
+            </button>
+          </span>
+        )}
         {editable && draft.id && (
           <IconButton
             label={t("common.delete")}
@@ -421,8 +505,59 @@ export function StepTable({
   const t = useT();
   const { can } = usePermissions();
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [busy, startReorder] = useTransition();
 
-  const nextNo = steps.reduce((max, s) => Math.max(max, s.stepNo), 0) + 1;
+  // Ordre AFFICHÉ, appliqué tout de suite ; la base suit. Il repart des
+  // étapes reçues dès que le serveur en renvoie de nouvelles.
+  const [order, setOrder] = useState(steps);
+  const [received, setReceived] = useState(steps);
+  if (received !== steps) {
+    setReceived(steps);
+    setOrder(steps);
+  }
+
+  // Ligne d'ajout : la place qui suit la dernière étape.
+  const nextNo = steps.length + 1;
+
+  function persist(next: StepValue[]) {
+    const before = order;
+    // Numéros réattribués de 1 à n à l'écran aussi, comme en base.
+    setOrder(next.map((s, i) => ({ ...s, stepNo: i + 1 })));
+    startReorder(async () => {
+      const result = await reorderSteps(
+        templateId,
+        next.map((s) => s.id!),
+      );
+      if (!result.ok) {
+        setOrder(before);
+        const label = t(`procurement.error_${result.error}`);
+        setError(result.detail ? `${label} — ${result.detail}` : label);
+        return;
+      }
+      setError(null);
+    });
+  }
+
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= order.length) return;
+    const next = [...order];
+    [next[index], next[target]] = [next[target], next[index]];
+    persist(next);
+  }
+
+  /** Dépose l'étape glissée À LA PLACE de `targetId`, qui se décale d'un cran. */
+  function dropOn(targetId: string) {
+    const from = order.findIndex((s) => s.id === dragging);
+    const to = order.findIndex((s) => s.id === targetId);
+    setDragging(null);
+    if (from < 0 || to < 0 || from === to) return;
+    const next = [...order];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    persist(next);
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -433,7 +568,7 @@ export function StepTable({
       )}
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
+          <tr className="table-head border-b text-left text-[11px] uppercase tracking-wide">
             <th className="px-2 py-1 font-semibold">{t("procurement.stepNo")}</th>
             <th className="px-2 py-1 font-semibold">{t("procurement.stepName")}</th>
             <th className="px-2 py-1 font-semibold">{t("procurement.duration")}</th>
@@ -443,8 +578,24 @@ export function StepTable({
           </tr>
         </thead>
         <tbody>
-          {steps.map((step) => (
-            <StepRow key={step.id} templateId={templateId} step={step} onError={setError} />
+          {order.map((step, index) => (
+            <StepRow
+              key={step.id}
+              templateId={templateId}
+              step={step}
+              onError={setError}
+              maxNo={order.length}
+              reorder={{
+                canUp: index > 0,
+                canDown: index < order.length - 1,
+                busy,
+                dragging: dragging === step.id,
+                onMove: (direction) => move(index, direction),
+                onDragStart: () => setDragging(step.id),
+                onDragEnd: () => setDragging(null),
+                onDrop: () => dropOn(step.id!),
+              }}
+            />
           ))}
           {can("procurement.admin") && (
             <StepRow
@@ -452,6 +603,7 @@ export function StepTable({
               templateId={templateId}
               step={{ ...blankStep(), stepNo: nextNo }}
               onError={setError}
+              maxNo={order.length + 1}
             />
           )}
         </tbody>

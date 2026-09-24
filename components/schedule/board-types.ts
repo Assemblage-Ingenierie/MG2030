@@ -20,6 +20,8 @@ export interface PersonOption {
   id: string;
   fullName: string;
   roleCode: string;
+  /** Entité de rattachement (TA, AFD, PIU) : donne la couleur de la barre. */
+  orgCode: string | null;
 }
 
 export interface SiteChoice {

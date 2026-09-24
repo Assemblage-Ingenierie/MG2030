@@ -23,6 +23,21 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* En-tête de tableau : bleu nuit de la sidebar, texte blanc (charte du
+   23/09/2026). UNE classe pour tous les tableaux — liste, grille du plan,
+   gabarits, marchés — plutôt qu'une couleur répétée dans chaque composant.
+   Les traits entre cellules d'en-tête passent en blanc translucide : le gris
+   des bordures claires disparaîtrait sur le fond sombre. */
+.table-head {
+  background-color: var(--table-head-bg);
+  color: var(--table-head-text);
+}
+.table-head,
+.table-head > *,
+.table-head > * > * {
+  border-color: var(--table-head-border);
+}
+
 /* Accessibilité : focus clavier toujours visible. */
 :focus-visible {
   outline: 2px solid var(--focus);

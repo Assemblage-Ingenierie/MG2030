@@ -198,7 +198,7 @@ export function TaskGrid({
       <div className={cn("overflow-x-auto", pending && "opacity-70")}>
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-[var(--border)] bg-[var(--app-bg)] text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            <tr className="table-head border-b text-left text-xs font-semibold uppercase tracking-wide">
               <th scope="col" className="px-3 py-2 w-24">{t("schedule.wbs")}</th>
               <th scope="col" className="px-3 py-2">{t("schedule.activity")}</th>
               <th scope="col" className="px-3 py-2 text-right w-28">{t("schedule.duration")}</th>

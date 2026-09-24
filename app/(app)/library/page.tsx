@@ -74,7 +74,11 @@ export default async function LibraryPage({
                   {documents.map((doc) => (
                     <Tr key={doc.id}>
                       <Td>
-                        <OpenDocumentLink documentId={doc.id} filename={doc.originalFilename} />
+                        <OpenDocumentLink
+                          documentId={doc.id}
+                          filename={doc.originalFilename}
+                          mimeType={doc.mimeType}
+                        />
                         {doc.description && (
                           <span className="block text-xs text-[var(--text-muted)]">
                             {doc.description}

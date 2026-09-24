@@ -32,13 +32,18 @@ import {
   removeTask,
   rowNumbers,
   setField,
+  setFields,
   setPredecessorRows,
   setSuccessorRows,
   successorRows,
   type BoardModel,
   type ModelTask,
 } from "@/lib/schedule/board-model";
-import { applyBoardChange, type BoardChange } from "@/app/(app)/schedule/board-actions";
+import {
+  applyBoardChange,
+  type BoardChange,
+  type BulkPatch,
+} from "@/app/(app)/schedule/board-actions";
 import type { ContractChoice, PersonOption } from "./board-types";
 
 /** Une entrée de l'historique : l'état d'avant, celui d'après, et les deux écritures. */
@@ -313,7 +318,11 @@ export function useBoard({
       // pour que la cellule change sans attendre un recalcul serveur.
       const patch: Partial<ModelTask> = { [field]: value };
       if (field === "ownerId") {
-        patch.ownerName = value ? people.find((p) => p.id === value)?.fullName ?? null : null;
+        const person = value ? people.find((p) => p.id === value) : undefined;
+        patch.ownerName = person?.fullName ?? null;
+        // La couleur de barre suit l'entité du responsable : sans ce champ,
+        // elle gardait l'ancienne teinte jusqu'au rechargement.
+        patch.ownerOrgCode = person?.orgCode ?? null;
       } else if (field === "contractId") {
         patch.contractCode = value
           ? contracts.find((c) => c.id === value)?.contractCode ?? null
@@ -381,11 +390,53 @@ export function useBoard({
     [model, editable, commit],
   );
 
+  /**
+   * Supprime une sélection d'un seul geste : une entrée d'historique, un
+   * aller-retour. Une tâche dont un ancêtre est aussi sélectionné n'est pas
+   * envoyée à part — elle part avec lui, comme tout descendant.
+   */
+  const removeMany = useCallback(
+    (taskIds: string[]) => {
+      if (!editable || taskIds.length === 0) return;
+      const byId = new Map(model.tasks.map((t) => [t.id, t]));
+      const wanted = new Set(taskIds);
+      const roots = taskIds.filter((id) => {
+        let cursor = byId.get(id)?.parentId ?? null;
+        let guard = 0;
+        while (cursor && guard++ < 50) {
+          if (wanted.has(cursor)) return false;
+          cursor = byId.get(cursor)?.parentId ?? null;
+        }
+        return true;
+      });
+      const next = roots.reduce((m, id) => removeTask(m, id), model);
+      commit(
+        next,
+        { kind: "deleteMany", taskIds: roots },
+        { kind: "restoreMany", taskIds: roots },
+        null,
+      );
+    },
+    [model, editable, commit],
+  );
+
   const saveFields = useCallback(
     (taskId: string, fields: Partial<ModelTask>): boolean => {
       if (!editable) return false;
       const task = model.tasks.find((t) => t.id === taskId);
       if (!task) return false;
+      // Même dérivation que `assign` : le formulaire ne porte que l'identifiant
+      // du responsable, jamais son nom ni son entité.
+      if ("ownerId" in fields && fields.ownerId !== task.ownerId) {
+        const person = fields.ownerId ? people.find((p) => p.id === fields.ownerId) : undefined;
+        fields = { ...fields, ownerName: person?.fullName ?? null, ownerOrgCode: person?.orgCode ?? null };
+      }
+      // Changer de parent range la tâche EN FIN de sa nouvelle fratrie : un
+      // rang supérieur à tous les autres l'y place quel que soit le parent.
+      if ("parentId" in fields && fields.parentId !== task.parentId) {
+        const last = Math.max(0, ...model.tasks.map((t) => t.sortOrder));
+        fields = { ...fields, sortOrder: last + 1 };
+      }
       const merged = { ...task, ...fields };
       if (merged.activity.trim() === "") {
         setError({ code: "emptyActivity" });
@@ -403,12 +454,83 @@ export function useBoard({
         contractId: t.contractId,
         siteId: t.siteId,
         constraintDate: t.constraintDate,
+        parentId: t.parentId,
+        sortOrder: t.sortOrder,
       });
 
       commit(setField(model, taskId, fields), asChange(merged), asChange(task), taskId);
       return true;
     },
-    [model, editable, commit],
+    [model, editable, commit, people],
+  );
+
+  /**
+   * Sélection multiple : n'applique que les champs RENSEIGNÉS (`undefined` =
+   * laisser tel quel), à chaque tâche. Un seul geste, donc une seule entrée
+   * d'historique : Ctrl+Z défait la modification groupée en entier.
+   */
+  const saveBulk = useCallback(
+    (taskIds: string[], fields: BulkPatch): boolean => {
+      if (!editable || taskIds.length === 0) return false;
+      if (fields.activity !== undefined && fields.activity.trim() === "") {
+        setError({ code: "emptyActivity" });
+        return false;
+      }
+      const wanted = new Set(taskIds);
+      // Ordre d'affichage : des tâches déplacées ensemble gardent leur ordre
+      // relatif en fin de leur nouvelle fratrie.
+      const selected = ordered(model.tasks).filter((t) => wanted.has(t.id));
+      const last = Math.max(0, ...model.tasks.map((t) => t.sortOrder));
+      const person = fields.ownerId ? people.find((p) => p.id === fields.ownerId) : undefined;
+      const contract = fields.contractId
+        ? contracts.find((c) => c.id === fields.contractId)
+        : undefined;
+
+      const redo: { taskId: string; patch: BulkPatch }[] = [];
+      const undoItems: { taskId: string; patch: BulkPatch }[] = [];
+      const changes: { taskId: string; change: Partial<ModelTask> }[] = [];
+
+      selected.forEach((task, i) => {
+        const p: BulkPatch = {};
+        const back: BulkPatch = {};
+        const change: Partial<ModelTask> = {};
+        if (fields.activity !== undefined && fields.activity.trim() !== task.activity) {
+          p.activity = change.activity = fields.activity.trim();
+          back.activity = task.activity;
+        }
+        if (fields.parentId !== undefined && fields.parentId !== task.parentId) {
+          p.parentId = change.parentId = fields.parentId;
+          p.sortOrder = change.sortOrder = last + 10 * (i + 1);
+          back.parentId = task.parentId;
+          back.sortOrder = task.sortOrder;
+        }
+        if (fields.ownerId !== undefined && fields.ownerId !== task.ownerId) {
+          p.ownerId = change.ownerId = fields.ownerId;
+          change.ownerName = person?.fullName ?? null;
+          change.ownerOrgCode = person?.orgCode ?? null;
+          back.ownerId = task.ownerId;
+        }
+        if (fields.contractId !== undefined && fields.contractId !== task.contractId) {
+          p.contractId = change.contractId = fields.contractId;
+          change.contractCode = contract?.contractCode ?? null;
+          back.contractId = task.contractId;
+        }
+        if (Object.keys(p).length === 0) return;
+        redo.push({ taskId: task.id, patch: p });
+        undoItems.push({ taskId: task.id, patch: back });
+        changes.push({ taskId: task.id, change });
+      });
+
+      if (redo.length === 0) return true;
+      commit(
+        setFields(model, changes),
+        { kind: "bulk", items: redo },
+        { kind: "bulk", items: undoItems },
+        null,
+      );
+      return true;
+    },
+    [model, editable, commit, people, contracts],
   );
 
   // ── Annuler / rétablir ────────────────────────────────────────────────────
@@ -497,7 +619,9 @@ export function useBoard({
     move,
     dropOn,
     remove,
+    removeMany,
     saveFields,
+    saveBulk,
     hasPredecessor: useCallback(
       (taskId: string) => isDrivenByPredecessor(model, taskId),
       [model],

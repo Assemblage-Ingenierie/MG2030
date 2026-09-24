@@ -1,5 +1,5 @@
 import { getI18n, getMessages, countKeys, DICTIONARIES } from "@/lib/i18n/server";
-import { BRAND, FONT_SIZE, RADIUS, STATUS, UI } from "@/lib/tokens";
+import { FONT_SIZE, RADIUS, STATUS, UI } from "@/lib/tokens";
 import {
   formatAmount,
   formatAmountRange,
@@ -45,8 +45,8 @@ export default async function DesignSystemPage() {
             {t("demo.brandPalette")}
           </h3>
           <div className="flex flex-wrap gap-3">
-            <Swatch value={BRAND.blue} name="--accent" note={t("demo.accentNote")} />
-            <Swatch value={BRAND.gold} name="--accent-2" note={t("demo.accent2Note")} />
+            <Swatch value={UI.accent} name="--accent" note={t("demo.accentNote")} />
+            <Swatch value={UI.accent2} name="--accent-2" note={t("demo.accent2Note")} />
             <Swatch value={UI.danger} name="--danger" note={t("demo.dangerNote")} />
             <Swatch value={UI.ok} name="--ok" note={t("demo.okNote")} />
             <Swatch value={UI.focus} name="--focus" note={t("demo.focusNote")} />
