@@ -32,7 +32,8 @@ export default async function HomePage() {
         <p className="mt-1 text-sm text-[var(--text-muted)]">{t("app.subtitle")}</p>
       </div>
 
-      {/* Le cadre calendaire. Une échéance non négociable se lit en haut. */}
+      {/* L'échéance des Jeux, seule (demande du 24/09/2026) : la marge
+          terminale et le scénario de référence restent lisibles au Plan. */}
       {o.deadlineDate && (
         <Card className="flex flex-wrap items-center gap-x-10 gap-y-4 p-4">
           <Countdown
@@ -42,19 +43,6 @@ export default async function HomePage() {
             note={t("home.deadlineNote")}
             urgent
           />
-          {o.bufferStartDate && (
-            <Countdown
-              label={t("home.bufferStart")}
-              date={formatPlanDate(o.bufferStartDate)}
-              days={o.daysToBuffer}
-              note={t("home.bufferNote")}
-            />
-          )}
-          {o.scenarioName && (
-            <span className="text-xs text-[var(--text-muted)]">
-              {t("home.perScenario", { name: o.scenarioName })}
-            </span>
-          )}
         </Card>
       )}
 

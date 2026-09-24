@@ -95,3 +95,23 @@ export function FunderMark({ className }: { className?: string }) {
     />
   );
 }
+
+/**
+ * Logo officiel des XXIes Jeux méditerranéens, Prishtina 2030 — fichier fourni
+ * le 24/09/2026 (PNG 292 × 342, fond transparent), servi tel quel. Comme pour
+ * l'AFD, le verrou est gardé ENTIER : à la hauteur de l'en-tête, les mentions
+ * sous le monogramme ne se lisent plus, mais on ne recadre pas un logo officiel.
+ */
+export function GamesMark({ className }: { className?: string }) {
+  const t = useT();
+  return (
+    // Servi depuis public/, jamais transformé (brief §4).
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logos/mg2030-games.png"
+      alt={t("app.gamesLogo")}
+      title={t("app.gamesLogo")}
+      className={cn("h-[46px] w-auto sm:h-[52px]", className)}
+    />
+  );
+}

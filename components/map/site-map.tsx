@@ -71,6 +71,8 @@ export function SiteMap({
         maxZoom: 19,
       }).addTo(map);
 
+      const placed: { site: MapSite; marker: import("leaflet").Marker; side: Side }[] = [];
+
       for (const site of sites) {
         const color =
           site.subproject === "athletes_village" ? "var(--accent-2)" : "var(--accent)";
@@ -83,22 +85,57 @@ export function SiteMap({
         const subprojectLabel =
           site.subproject === "athletes_village" ? labels.athletesVillage : labels.trainingVenues;
 
-        L.marker([site.latitude, site.longitude], { icon })
+        const marker = L.marker([site.latitude, site.longitude], { icon })
           .addTo(map)
-          // Nom du site affiché EN PERMANENCE à droite du repère : sans lui, il
-          // fallait cliquer chaque losange pour savoir de quel site il s'agit.
-          // Le détail (code, sous-projet, bâtiments) reste dans la bulle.
-          .bindTooltip(escapeHtml(site.name), {
-            permanent: true,
-            direction: "right",
-            offset: [10, 0],
-          })
           .bindPopup(
             `<strong>${escapeHtml(site.siteCode)}</strong> — ${escapeHtml(site.name)}<br/>` +
               `<span style="color:#6b7280">${escapeHtml(subprojectLabel)} · ` +
               `${site.buildingCount} ${escapeHtml(labels.buildings)}</span>`,
           );
+        bindLabel(marker, site, "right");
+        placed.push({ site, marker, side: "right" });
       }
+
+      // Nom du site affiché EN PERMANENCE à côté du repère : sans lui, il
+      // fallait cliquer chaque losange pour savoir de quel site il s'agit.
+      //
+      // ÉVITEMENT DES CHEVAUCHEMENTS. Les salles du centre de Pristina sont à
+      // quelques centaines de mètres les unes des autres : toutes les
+      // étiquettes à droite se recouvraient. Chaque étiquette essaie donc, dans
+      // l'ordre, droite, gauche, dessus, dessous, et prend la première place
+      // libre — étiquettes déjà posées ET repères compris. Recalculé à chaque
+      // zoom, puisque les distances à l'écran changent avec lui.
+      const layout = () => {
+        const taken: Box[] = placed.map(({ marker }) => {
+          const p = map.latLngToContainerPoint(marker.getLatLng());
+          return { x: p.x - 9, y: p.y - 9, w: 18, h: 18 };
+        });
+        // De l'ouest vers l'est : les sites du bord gauche gardent la droite,
+        // ceux qu'ils gênent basculent à gauche.
+        const order = [...placed].sort(
+          (a, b) => a.site.longitude - b.site.longitude || b.site.latitude - a.site.latitude,
+        );
+        for (const entry of order) {
+          const p = map.latLngToContainerPoint(entry.marker.getLatLng());
+          const el = entry.marker.getTooltip()?.getElement();
+          const w = el?.offsetWidth || entry.site.name.length * 6.5 + 14;
+          const h = el?.offsetHeight || 22;
+          const candidates = SIDES.map((side) => ({ side, box: labelBox(side, p, w, h) }));
+          const scored = candidates.map((c) => ({
+            ...c,
+            overlap: taken.reduce((sum, t) => sum + overlapArea(c.box, t), 0),
+          }));
+          const best = scored.find((c) => c.overlap === 0) ?? scored.sort((a, b) => a.overlap - b.overlap)[0];
+          taken.push(best.box);
+          if (best.side !== entry.side) {
+            entry.marker.unbindTooltip();
+            bindLabel(entry.marker, entry.site, best.side);
+            entry.side = best.side;
+          }
+        }
+      };
+      layout();
+      map.on("zoomend", layout);
     });
 
     return () => {
@@ -118,6 +155,51 @@ export function SiteMap({
       style={{ background: "var(--app-bg)" }}
     />
   );
+}
+
+type Side = "right" | "left" | "top" | "bottom";
+const SIDES: Side[] = ["right", "left", "top", "bottom"];
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Décalage de l'étiquette par rapport au repère, selon le côté. */
+const OFFSET: Record<Side, [number, number]> = {
+  right: [10, 0],
+  left: [-10, 0],
+  top: [0, -10],
+  bottom: [0, 10],
+};
+
+function bindLabel(marker: import("leaflet").Marker, site: MapSite, side: Side) {
+  marker.bindTooltip(escapeHtml(site.name), {
+    permanent: true,
+    direction: side,
+    offset: OFFSET[side],
+  });
+}
+
+/** Rectangle qu'occuperait l'étiquette, en pixels d'écran. */
+function labelBox(side: Side, p: { x: number; y: number }, w: number, h: number): Box {
+  switch (side) {
+    case "right":
+      return { x: p.x + 10, y: p.y - h / 2, w, h };
+    case "left":
+      return { x: p.x - 10 - w, y: p.y - h / 2, w, h };
+    case "top":
+      return { x: p.x - w / 2, y: p.y - 10 - h, w, h };
+    case "bottom":
+      return { x: p.x - w / 2, y: p.y + 10, w, h };
+  }
+}
+
+function overlapArea(a: Box, b: Box): number {
+  const x = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const y = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return x * y;
 }
 
 /** Échappement minimal : les popups Leaflet reçoivent du HTML brut. */
