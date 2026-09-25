@@ -19,6 +19,8 @@ export interface NavItem {
   permission: string | null;
   /** Module pas encore livré : l'item est affiché en sourdine et non cliquable. */
   upcoming?: boolean;
+  /** Réservé à l'assistance technique (écrans internes) : masqué pour les autres. */
+  taOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -66,10 +68,10 @@ export const NAV: NavGroup[] = [
   {
     labelKey: "nav.administration",
     items: [
-      { href: "/notifications", labelKey: "nav.notifications", icon: "notifications", permission: null },
       { href: "/org-chart", labelKey: "nav.orgChart", icon: "orgChart", permission: null },
+      { href: "/data-flows", labelKey: "nav.dataFlows", icon: "flows", permission: null },
       { href: "/admin/users", labelKey: "nav.users", icon: "users", permission: "user.admin" },
-      { href: "/design-system", labelKey: "nav.designSystem", icon: "admin", permission: null },
+      { href: "/design-system", labelKey: "nav.designSystem", icon: "admin", permission: null, taOnly: true },
     ],
   },
 ];

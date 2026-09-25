@@ -7,7 +7,6 @@ import {
 } from "@/lib/queries/referential";
 import { listScenarios } from "@/lib/queries/schedule";
 import { Section } from "@/components/ui/card";
-import { SourceNote } from "@/components/referential/source-note";
 import { AddContractButton, AddLotButton } from "@/components/referential/contract-row-edit";
 import { ContractTable } from "@/components/referential/contract-table";
 
@@ -34,7 +33,6 @@ export default async function ContractsPage() {
     listLotBuildings(),
   ]);
 
-  const unassignedLots = lots.filter((l) => l.buildingCount === 0);
 
   const scenarioOptions = scenarios.map((s) => ({ id: s.id, code: s.code, name: s.name }));
   const contractOptions = contracts.map((c) => ({
@@ -95,13 +93,6 @@ export default async function ContractsPage() {
           assignments={assignments}
         />
 
-        <SourceNote>{t("contracts.numberNote")}</SourceNote>
-        <SourceNote>{t("contracts.estimateNote")}</SourceNote>
-        {unassignedLots.length > 0 && (
-          <SourceNote>
-            {t("lots.unassignedSummary", { count: String(unassignedLots.length) })}
-          </SourceNote>
-        )}
       </Section>
 
     </div>

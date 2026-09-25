@@ -9,6 +9,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "@/components/i18n/i18n-context";
+import { useAuthUser } from "@/components/auth/auth-context";
+import { isTechnicalAssistance } from "@/lib/auth/types";
 import { NavIcon } from "@/components/ui/icons";
 import { NAV, isActive } from "@/lib/nav";
 import { cn } from "@/lib/cn";
@@ -25,6 +27,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const t = useT();
+  const isTa = isTechnicalAssistance(useAuthUser());
 
   return (
     <aside
@@ -71,6 +74,8 @@ export function Sidebar({
             )}
             <ul className="space-y-1">
               {group.items.map((item) => {
+                // Écran interne : absent du menu hors assistance technique.
+                if (item.taOnly && !isTa) return null;
                 const active = isActive(pathname, item.href);
 
                 // Un module non livré est annoncé mais NON cliquable : mieux

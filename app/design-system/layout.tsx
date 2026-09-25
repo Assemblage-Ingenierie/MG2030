@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { getAuthState } from "@/lib/auth/server";
+import { isTechnicalAssistance } from "@/lib/auth/types";
+import { AuthUserProvider } from "@/components/auth/auth-context";
 
 /**
  * Revue de charte — cadre applicatif SANS garde d'accès.
@@ -20,10 +22,22 @@ export default async function DesignSystemLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (process.env.NODE_ENV === "production") {
-    const state = await getAuthState();
-    if (state.status !== "active") notFound();
+  const state = await getAuthState();
+  // En production, écran réservé à l'assistance technique (25/09/2026) : un
+  // autre compte reçoit une page introuvable, comme sans session.
+  if (
+    process.env.NODE_ENV === "production" &&
+    (state.status !== "active" || !isTechnicalAssistance(state.user))
+  ) {
+    notFound();
   }
 
-  return <AppShell>{children}</AppShell>;
+  const shell = <AppShell>{children}</AppShell>;
+  // Identité fournie au cadre, pour que la barre latérale sache quels items
+  // montrer — dont celui-ci.
+  return state.status === "active" ? (
+    <AuthUserProvider user={state.user}>{shell}</AuthUserProvider>
+  ) : (
+    shell
+  );
 }

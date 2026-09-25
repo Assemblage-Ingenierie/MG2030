@@ -4,7 +4,6 @@ import { formatAmount, formatNumber } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Chip } from "@/components/ui/badge";
-import { SourceNote } from "@/components/referential/source-note";
 import { Pagination } from "@/components/ui/pagination";
 import { AddBuildingButton, BuildingRowEdit } from "@/components/referential/building-row-edit";
 
@@ -35,7 +34,6 @@ export default async function BuildingsPage({
   // s'agit de la page, pas du total projet : additionner ce qu'on voit est le
   // réflexe naturel, et il serait faux.
   const pageEstimate = rows.reduce((sum, b) => sum + (b.worksEstimate ?? 0), 0);
-  const withoutArea = rows.filter((b) => b.netArea === null).length;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -166,7 +164,6 @@ export default async function BuildingsPage({
           </div>
         </Card>
 
-        {withoutArea > 0 && <SourceNote>{t("buildings.areaNote")}</SourceNote>}
       </Section>
     </div>
   );
