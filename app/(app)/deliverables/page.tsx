@@ -9,7 +9,6 @@ import { formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Badge, Chip } from "@/components/ui/badge";
-import { SourceNote } from "@/components/referential/source-note";
 
 /**
  * Livrables et retards.
@@ -139,7 +138,6 @@ export default async function DeliverablesPage() {
           </Table>
         </Card>
 
-        {deliverables.length === 0 && <SourceNote>{t("deliverables.emptyNote")}</SourceNote>}
       </Section>
 
       <Section title={t("deliverables.byContract")} description={t("deliverables.byContractIntro")}>

@@ -4,7 +4,6 @@ import { formatNumber } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Chip } from "@/components/ui/badge";
-import { SourceNote } from "@/components/referential/source-note";
 import { AddSiteButton, SiteRowEdit } from "@/components/referential/site-row-edit";
 
 /**
@@ -23,7 +22,6 @@ export default async function SitesPage({
   const { subproject } = await searchParams;
   const sites = await listSites(subproject);
 
-  const missingGeo = sites.filter((s) => !s.address && s.latitude === null).length;
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -105,7 +103,6 @@ export default async function SitesPage({
           </Table>
         </Card>
 
-        {missingGeo > 0 && <SourceNote>{t("sites.missingGeo")}</SourceNote>}
       </Section>
     </div>
   );

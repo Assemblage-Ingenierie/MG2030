@@ -156,6 +156,16 @@ export const AlertIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Trois blocs reliés : le schéma des flux de données entre onglets. */
+export const FlowIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="3" width="7" height="5" rx="1" />
+    <rect x="14" y="3" width="7" height="5" rx="1" />
+    <rect x="14" y="16" width="7" height="5" rx="1" />
+    <path d="M10 5.5h4M17.5 8v8" />
+  </Svg>
+);
+
 /** Table de correspondance nom → composant, pour une navigation déclarée en données. */
 export const NAV_ICONS = {
   dashboard: DashboardIcon,
@@ -171,6 +181,7 @@ export const NAV_ICONS = {
   admin: AdminIcon,
   users: UsersIcon,
   map: MapIcon,
+  flows: FlowIcon,
 } as const;
 
 export type NavIconName = keyof typeof NAV_ICONS;

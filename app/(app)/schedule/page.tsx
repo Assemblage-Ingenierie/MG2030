@@ -7,7 +7,6 @@ import { ScenarioSwitch } from "@/components/schedule/scenario-switch";
 import { UnschedulableNotice } from "@/components/schedule/unschedulable-notice";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { ScaleSwitch } from "@/components/schedule/scale-switch";
-import { SourceNote } from "@/components/referential/source-note";
 import { filterTree } from "@/components/schedule/board-types";
 import { recompute, type BoardModel, type ModelTask } from "@/lib/schedule/board-model";
 import type { ScaleUnit } from "@/lib/gantt/scale";
@@ -168,10 +167,6 @@ export default async function SchedulePage({
   // absent n'en est pas une.
   const subprojects = ["athletes_village", "training_venues"];
 
-  const unassigned = initial.tasks.filter(
-    (task) => task.type === "task" && task.ownerId === null,
-  ).length;
-
   const planId = tasks[0]?.planId ?? "";
 
   return (
@@ -223,18 +218,6 @@ export default async function SchedulePage({
             visibleIds={visibleIds}
           />
         </Card>
-
-        {visibleIds !== null && (
-          <SourceNote>
-            {t("schedule.filteredNote", {
-              shown: String(visibleIds.length),
-              total: String(initial.tasks.length),
-            })}
-          </SourceNote>
-        )}
-        {unassigned > 0 && (
-          <SourceNote>{t("schedule.unassignedNote", { count: String(unassigned) })}</SourceNote>
-        )}
       </Section>
     </div>
   );

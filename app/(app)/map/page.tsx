@@ -1,7 +1,6 @@
 import { getI18n } from "@/lib/i18n/server";
 import { listSites } from "@/lib/queries/referential";
 import { Card, Section } from "@/components/ui/card";
-import { SourceNote } from "@/components/referential/source-note";
 import { SiteMap, type MapSite } from "@/components/map/site-map";
 
 /**
@@ -30,8 +29,6 @@ export default async function MapPage() {
       buildingCount: s.buildingCount,
     }));
 
-  const missing = sites.length - located.length;
-
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <Section title={t("map.title")} description={t("map.intro")}>
@@ -49,11 +46,6 @@ export default async function MapPage() {
             }}
           />
         )}
-
-        {missing > 0 && (
-          <SourceNote>{t("map.missingCoordinates", { count: String(missing) })}</SourceNote>
-        )}
-        <SourceNote>{t("map.sourceNote")}</SourceNote>
       </Section>
     </div>
   );

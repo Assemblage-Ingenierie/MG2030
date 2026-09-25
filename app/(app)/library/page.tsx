@@ -10,7 +10,6 @@ import { formatDateTime } from "@/lib/i18n/format";
 import { readR2Config } from "@/lib/r2/presign";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
-import { SourceNote } from "@/components/referential/source-note";
 import { FolderTree } from "@/components/library/folder-tree";
 import { UploadPanel } from "@/components/library/upload-panel";
 import { DocumentTags } from "@/components/library/document-tags";
@@ -43,10 +42,6 @@ export default async function LibraryPage({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <Section title={t("library.title")} description={t("library.intro")}>
-        {/* Sans configuration R2, le dépôt est impossible. On le dit avant que
-            l'utilisateur ne cherche un bouton qui ne marcherait pas. */}
-        {!r2Ready && <SourceNote>{t("library.r2NotConfigured")}</SourceNote>}
-
         <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
           <Card className="p-2">
             <FolderTree nodes={tree} selectedId={folderId ?? null} />
@@ -114,7 +109,6 @@ export default async function LibraryPage({
               </Table>
             </Card>
 
-            {documents.length === 0 && <SourceNote>{t("library.emptyNote")}</SourceNote>}
           </div>
         </div>
       </Section>

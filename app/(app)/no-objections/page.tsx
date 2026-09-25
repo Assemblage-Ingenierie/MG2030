@@ -6,7 +6,6 @@ import { formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Badge, Chip } from "@/components/ui/badge";
-import { SourceNote } from "@/components/referential/source-note";
 import {
   AddNoObjectionButton,
   NoObjectionRowActions,
@@ -251,13 +250,6 @@ export default async function NoObjectionsPage() {
             </div>
           </details>
         ))}
-
-        {rows.length === 0 && <SourceNote>{t("noObjections.emptyNote")}</SourceNote>}
-        {tasks.length > 0 && (
-          <SourceNote>
-            {t("noObjections.taskSourceNote", { count: String(tasks.length) })}
-          </SourceNote>
-        )}
       </Section>
     </div>
   );

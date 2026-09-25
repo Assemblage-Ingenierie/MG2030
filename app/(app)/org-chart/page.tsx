@@ -2,7 +2,6 @@ import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { ENTITY_COLOR } from "@/lib/tokens";
 import { Section } from "@/components/ui/card";
-import { SourceNote } from "@/components/referential/source-note";
 
 interface Role {
   code: string;
@@ -80,7 +79,6 @@ export default async function OrgChartPage() {
     return role ? <RoleBox role={role} labels={labels} className={className} /> : null;
   };
 
-  const vacantCount = [...roles.values()].filter((r) => r.holders.length === 0).length;
   const taColor = ENTITY_COLOR.TA;
 
   return (
@@ -88,25 +86,9 @@ export default async function OrgChartPage() {
       <Section title={t("org.title")} description={t("org.intro")}>
         <div className="overflow-x-auto">
           <div className="flex min-w-[1080px] flex-col gap-4 py-2">
-            {/* ── Au-dessus du MYS : assistance technique, pilotage, bailleur ── */}
+            {/* ── Au-dessus du MYS : pilotage et bailleur ─────────────────── */}
             <div className="grid grid-cols-10 items-start gap-y-4">
-              <div className="col-span-3 pr-4">
-                <div
-                  className="rounded-lg border-2 border-dashed p-3"
-                  style={{
-                    borderColor: taColor,
-                    backgroundColor: `color-mix(in srgb, ${taColor} 7%, var(--surface))`,
-                  }}
-                >
-                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: taColor }}>
-                    {t("org.taTitle")}
-                  </p>
-                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">{t("org.taNote")}</p>
-                  {box("TA", "mt-2")}
-                </div>
-              </div>
-
-              <div className="col-span-4 px-2">
+              <div className="col-span-4 col-start-3 px-2">
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-center">
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--text)]">
                     {t("org.steeringTitle")}
@@ -122,7 +104,7 @@ export default async function OrgChartPage() {
                 </div>
               </div>
 
-              <div className="col-span-3 flex flex-col gap-3 pl-4">
+              <div className="col-span-3 col-start-8 flex flex-col gap-3 pl-4">
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--text)]">
                     {t("org.coOwnersTitle")}
@@ -213,20 +195,32 @@ export default async function OrgChartPage() {
               </div>
             </div>
 
-            {/* Rôle technique de la plateforme, absent du schéma d'organisation
-                mais porté par des comptes réels : on le montre à part. */}
-            {roles.has("ADMIN") && (
-              <div className="grid grid-cols-10">
-                <div className="col-span-3 px-2">
-                  <p className="mb-1 text-[11px] text-[var(--text-muted)]">{t("org.adminNote")}</p>
-                  {box("ADMIN")}
+            {/* ── Sous la PIU : l'assistance technique qui l'appuie ─────────
+                Le rôle d'administrateur de la plateforme y est rattaché : il
+                est tenu par l'assistance technique (demande du 25/09/2026). */}
+            <div className="grid grid-cols-10">
+              <div className="col-span-6 col-start-3 px-2">
+                <div
+                  className="rounded-lg border-2 border-dashed p-3"
+                  style={{
+                    borderColor: taColor,
+                    backgroundColor: `color-mix(in srgb, ${taColor} 7%, var(--surface))`,
+                  }}
+                >
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: taColor }}>
+                    {t("org.taTitle")}
+                  </p>
+                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">{t("org.taNote")}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    {box("TA")}
+                    {box("ADMIN")}
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {vacantCount > 0 && <SourceNote>{t("org.unfilledNote")}</SourceNote>}
       </Section>
     </div>
   );

@@ -4,7 +4,6 @@ import { listScenarios, loadSchedule } from "@/lib/queries/schedule";
 import { Card, Section } from "@/components/ui/card";
 import { Chip } from "@/components/ui/badge";
 import { Collapsible } from "@/components/ui/collapsible";
-import { SourceNote } from "@/components/referential/source-note";
 import {
   StepTable,
   TemplateRowActions,
@@ -82,12 +81,9 @@ export default async function ProcurementPage() {
         }
       >
         {templates.length === 0 && (
-          <>
-            <Card className="p-8 text-center text-sm text-[var(--text-muted)]">
-              {t("procurement.empty")}
-            </Card>
-            <SourceNote>{t("procurement.emptyNote")}</SourceNote>
-          </>
+          <Card className="p-8 text-center text-sm text-[var(--text-muted)]">
+            {t("procurement.empty")}
+          </Card>
         )}
 
         {/* Chaque gabarit est un bloc dépliable : replié, on lit sa ligne de

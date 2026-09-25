@@ -63,6 +63,14 @@ export type AuthState =
 export const isPlatformAdmin = (u: AppUser | null): boolean =>
   u?.role.isPlatformAdmin ?? false;
 
+/**
+ * Membre de l'assistance technique : organisation TA, ou administrateur de la
+ * plateforme — rôle tenu par la TA (organigramme, 25/09/2026). Sert à réserver
+ * les écrans internes, comme la revue de charte.
+ */
+export const isTechnicalAssistance = (u: AppUser | null): boolean =>
+  (u?.isActive ?? false) && (u?.organisation.code === "TA" || isPlatformAdmin(u));
+
 export const canWrite = (u: AppUser | null): boolean =>
   (u?.isActive ?? false) && u?.organisation.accessMode === "contributor";
 

@@ -1,7 +1,6 @@
 import { AppShell } from "@/components/shell/app-shell";
 import { AccessGuard } from "@/components/auth/access-guard";
 import { AuthUserProvider } from "@/components/auth/auth-context";
-import { NotificationBell } from "@/components/shell/notification-bell";
 import { getAuthState } from "@/lib/auth/server";
 
 /**
@@ -17,16 +16,14 @@ import { getAuthState } from "@/lib/auth/server";
  * jamais. Il doit envelopper `AppShell` pour que le header sache qui est
  * connecté.
  *
- * La cloche est un Server Component (elle lit le compteur en base) alors que le
- * cadre est client : elle est donc passée en NŒUD, pas importée par le header.
- * C'est le seul moyen de mêler les deux sans faire descendre une requête dans
- * le navigateur.
+ * L'onglet Notifications et sa cloche ont été retirés le 25/09/2026. La table
+ * et l'évaluation périodique restent en place côté serveur.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const state = await getAuthState();
 
   const shell = (
-    <AppShell bell={<NotificationBell />}>
+    <AppShell>
       <AccessGuard>{children}</AccessGuard>
     </AppShell>
   );
