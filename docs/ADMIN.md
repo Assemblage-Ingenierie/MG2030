@@ -195,3 +195,49 @@ ligne** sur les 29 tables MG2030.
 -- Doit toujours renvoyer zero ligne.
 select * from mg2030_private.check_policy_guardrail();
 ```
+
+---
+
+## 8. Donner à un développeur les moyens de modifier la base
+
+> Ajouté le 29/09/2026. Question posée : « qu'est-ce qu'il doit installer ? ».
+> **Le plus souvent, rien.** Ce qui manque est un DROIT, pas un logiciel.
+
+Le signe qui ne trompe pas : quelqu'un qui écrit ses migrations en les
+accompagnant de « à appliquer depuis l'éditeur SQL de Supabase » les rédige
+pour qu'un AUTRE les exécute — il n'atteint pas le tableau de bord. C'était le
+cas de la migration `0030`, restée non appliquée plusieurs jours.
+
+### Étape 1 — l'inviter à l'organisation Supabase
+
+Tableau de bord → **Organization settings → Team → Invite member**, sur
+l'organisation *Assemblage Ingenierie* (`amjedudflodlkbrteptt`).
+
+⚠ L'organisation héberge **deux** projets : `EXTERNAL`
+(`grnkbnldfzdzrgleorra`, celui de MG2030, partagé avec l'autre application) et
+`INTERNAL`. Une invitation porte sur l'organisation, donc sur les deux. Le
+rôle attribué est le seul garde-fou : `Developer` suffit pour écrire du SQL et
+appliquer une migration ; `Owner` n'est nécessaire à personne d'autre qu'au
+titulaire du compte.
+
+Sans cette étape, aucun des outils ci-dessous ne servira à rien : ils
+s'authentifient tous avec le compte Supabase de la personne.
+
+### Étape 2 — choisir COMMENT il modifie la base
+
+Trois voies, par ordre de simplicité. Aucune n'est obligatoire si la première
+suffit.
+
+| Voie | À installer | Quand la choisir |
+|------|-------------|------------------|
+| **Éditeur SQL du tableau de bord** | rien | Appliquer une migration ponctuelle, inspecter une table. C'est ce que décrit le reste de ce document |
+| **Serveur MCP Supabase** dans Claude Code | rien — `.mcp.json` est versionné à la racine | Travailler la base depuis l'éditeur, en même temps que le code. Au premier lancement, Claude Code propose de se connecter (OAuth) ; la personne accepte avec son propre compte |
+| **CLI Supabase** | `npm i -g supabase`, puis `supabase login` et `supabase link --project-ref grnkbnldfzdzrgleorra` | Diffs de schéma, migrations générées, tests RLS en local |
+
+Le `.mcp.json` du dépôt cadre volontairement le serveur sur le seul projet
+`EXTERNAL` (`?project_ref=grnkbnldfzdzrgleorra`) : un agent qui travaille sur
+MG2030 n'a alors aucun moyen d'atteindre le projet `INTERNAL`. Il ne contient
+**aucun secret** — chacun s'authentifie avec son propre compte.
+
+Pour une session de lecture seule (diagnostic, revue), ajouter `&read_only=true`
+à l'URL : les requêtes passent alors par un rôle Postgres en lecture seule.
