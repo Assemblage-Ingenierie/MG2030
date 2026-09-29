@@ -127,7 +127,12 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
       email,
       password,
       options: {
-        data: { full_name: fullName.trim() },
+        /**
+         * `app` choisit l'e-mail de confirmation : le modèle « Confirm sign up »
+         * est PARTAGÉ avec les applications PEEB et aiguille sur `.Data.app`.
+         * Sans lui, on reçoit l'e-mail de PEEB Jordan (branche par défaut).
+         */
+        data: { full_name: fullName.trim(), app: "mg2030" },
         /**
          * ⚠ SANS CETTE LIGNE, LE LIEN DE CONFIRMATION MÈNE À L'AUTRE
          * APPLICATION DU PROJET.
