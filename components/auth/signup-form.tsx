@@ -126,7 +126,37 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
     const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName.trim() } },
+      options: {
+        data: { full_name: fullName.trim() },
+        /**
+         * ⚠ SANS CETTE LIGNE, LE LIEN DE CONFIRMATION MÈNE À L'AUTRE
+         * APPLICATION DU PROJET.
+         *
+         * Le projet Supabase Auth est PARTAGÉ avec PEEB Jordan (GAPS 52) : il
+         * n'a qu'une seule « Site URL », et c'est celle de l'autre application.
+         * Faute de `emailRedirectTo`, Supabase y renvoie le lien de
+         * confirmation — la personne atterrit sur un site qu'elle ne connaît
+         * pas, ne confirme jamais son adresse, donc ne se connecte jamais, donc
+         * ne dépose jamais sa demande d'accès (la RLS exige une session pour
+         * l'écrire). Elle devient alors INVISIBLE pour les administrateurs :
+         * ni membre, ni demande en attente.
+         *
+         * Constaté le 29/09/2026 sur le compte de Kushtrim Krasniqi, inscrit
+         * depuis mg2030.vercel.app à 11 h 14 — `user_confirmation_requested`
+         * dans les journaux, puis plus rien, jamais de `/verify`.
+         *
+         * Le formulaire de mot de passe oublié posait déjà son `redirectTo` ;
+         * l'inscription, non. C'était la seule différence entre les deux.
+         *
+         * `window.location.origin` et non une URL en dur : le lien doit ramener
+         * à l'ENVIRONNEMENT d'où l'on s'inscrit — production, préproduction ou
+         * poste de développement. L'origine doit figurer dans la liste blanche
+         * de redirection du projet Supabase (« Redirect URLs », jokers admis) :
+         * une origine absente de cette liste n'est pas honorée, et le lien
+         * repart vers la Site URL — donc vers l'autre application.
+         */
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (authError) {
