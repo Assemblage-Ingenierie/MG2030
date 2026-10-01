@@ -79,6 +79,7 @@ export const NAV: NavGroup[] = [
       { href: "/data-flows", labelKey: "nav.dataFlows", icon: "flows" },
       { href: "/admin/users", labelKey: "nav.users", icon: "users", adminOnly: true },
       { href: "/admin/navigation", labelKey: "nav.tabs", icon: "admin", adminOnly: true },
+      { href: "/admin/tags", labelKey: "nav.tags", icon: "library", adminOnly: true },
       { href: "/design-system", labelKey: "nav.designSystem", icon: "admin", taOnly: true },
     ],
   },

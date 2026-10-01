@@ -160,3 +160,260 @@ export async function toggleDocumentTag(
   revalidatePath("/library");
   return { ok: true };
 }
+
+// ── Métadonnées d'un document ───────────────────────────────────────────────
+
+/**
+ * Renomme un document.
+ *
+ * ⚠ LE NOM AFFICHÉ, PAS LA CLÉ R2. `r2_object_key` identifie l'objet stocké et
+ * ne bouge jamais : la renommer casserait le lien vers le fichier. Seul
+ * `original_filename` change — c'est lui que l'écran montre, et c'est lui que
+ * la route de téléchargement pose en `Content-Disposition`.
+ */
+export async function renameDocument(
+  documentId: string,
+  filename: string,
+): Promise<ActionResult> {
+  const clean = filename.trim();
+  if (clean === "") return { ok: false, error: "emptyName" };
+
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("mg2030_document")
+    .update({ original_filename: clean }, { count: "exact" })
+    .eq("id", documentId);
+
+  if (error) return { ok: false, error: error.message };
+  // Zéro ligne : la RLS a refusé en silence. Sans ce test, l'écran annoncerait
+  // un renommage qui n'a pas eu lieu.
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+/** Version telle que le projet l'écrit — texte libre (migration 0044). */
+export async function setDocumentVersion(
+  documentId: string,
+  version: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const clean = version.trim();
+
+  const { error, count } = await supabase
+    .from("mg2030_document")
+    .update({ version: clean === "" ? null : clean }, { count: "exact" })
+    .eq("id", documentId);
+
+  if (error) return { ok: false, error: error.message };
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+// ── Dossiers ────────────────────────────────────────────────────────────────
+//
+// Les politiques existent depuis l'origine (`folder.admin`) : il n'y avait
+// simplement aucun écran pour les exercer, et créer un dossier demandait du
+// SQL. Depuis la migration 0037, `folder.admin` vaut pour tout éditeur.
+
+export async function createFolder(
+  parentId: string | null,
+  name: string,
+): Promise<ActionResult> {
+  const clean = name.trim();
+  if (clean === "") return { ok: false, error: "emptyName" };
+
+  const supabase = await createClient();
+
+  // Rang en queue de fratrie : un dossier créé s'ajoute à la fin, il ne
+  // s'insère pas au milieu de l'ordre que quelqu'un a posé.
+  const siblings = supabase.from("mg2030_folder").select("sort_order");
+  const { data: last } = await (parentId === null
+    ? siblings.is("parent_id", null)
+    : siblings.eq("parent_id", parentId)
+  )
+    .order("sort_order", { ascending: false })
+    .limit(1);
+
+  const rank = ((last?.[0]?.sort_order as number) ?? 0) + 10;
+
+  const { error } = await supabase
+    .from("mg2030_folder")
+    .insert({ parent_id: parentId, name: clean, sort_order: rank });
+
+  // `unique (parent_id, name)` : deux dossiers frères ne portent pas le même
+  // nom, sinon le chemin matérialisé entrerait en collision.
+  if (error) {
+    return { ok: false, error: error.code === "23505" ? "duplicateFolder" : error.message };
+  }
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+export async function renameFolder(folderId: string, name: string): Promise<ActionResult> {
+  const clean = name.trim();
+  if (clean === "") return { ok: false, error: "emptyName" };
+
+  const supabase = await createClient();
+  // `path` est recalculé par le déclencheur `folder_set_path` (migration 0012),
+  // pour ce dossier ET pour sa descendance : on ne l'écrit pas à la main.
+  const { error, count } = await supabase
+    .from("mg2030_folder")
+    .update({ name: clean }, { count: "exact" })
+    .eq("id", folderId);
+
+  if (error) {
+    return { ok: false, error: error.code === "23505" ? "duplicateFolder" : error.message };
+  }
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+/**
+ * Supprime un dossier VIDE.
+ *
+ * ⚠ ON NE SUPPRIME PAS CE QU'IL CONTIENT, et contrairement aux sujets de la
+ * roadmap on ne délie pas non plus. Un document sans dossier n'existe pas :
+ * `folder_id` est obligatoire, et le fichier lui-même vit dans R2 — une ligne
+ * orpheline laisserait un objet payant que plus aucune URL ne peut atteindre.
+ * La base refuse déjà (`on delete restrict`) ; on traduit son refus en une
+ * phrase plutôt qu'en un code d'erreur.
+ */
+export async function deleteFolder(folderId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const [{ count: docs }, { count: children }] = await Promise.all([
+    supabase
+      .from("mg2030_document")
+      .select("id", { count: "exact", head: true })
+      .eq("folder_id", folderId),
+    supabase
+      .from("mg2030_folder")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_id", folderId),
+  ]);
+
+  if ((docs ?? 0) > 0) return { ok: false, error: "folderHasDocuments" };
+  if ((children ?? 0) > 0) return { ok: false, error: "folderHasChildren" };
+
+  const { error, count } = await supabase
+    .from("mg2030_folder")
+    .delete({ count: "exact" })
+    .eq("id", folderId);
+
+  if (error) return { ok: false, error: error.message };
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+/**
+ * Déplace un dossier d'un rang parmi ses frères.
+ *
+ * On ÉCHANGE deux `sort_order`, on ne renumérote pas la fratrie : même raison
+ * que pour les sujets de la roadmap — une renumérotation écrit autant de lignes
+ * qu'il y a de frères à chaque clic, et deux personnes qui réordonnent en même
+ * temps se marchent dessus sur toute la fratrie au lieu de deux lignes.
+ */
+export async function moveFolder(
+  folderId: string,
+  direction: "up" | "down",
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("mg2030_folder")
+    .select("id, parent_id, sort_order")
+    .eq("id", folderId)
+    .maybeSingle();
+  if (!me) return { ok: false, error: "not_found" };
+
+  const parentId = (me.parent_id as string) ?? null;
+  const base = supabase.from("mg2030_folder").select("id, sort_order, path");
+  const { data: siblings } = await (parentId === null
+    ? base.is("parent_id", null)
+    : base.eq("parent_id", parentId)
+  )
+    .order("sort_order")
+    .order("path");
+
+  if (!siblings) return { ok: false, error: "not_found" };
+
+  const index = siblings.findIndex((s) => s.id === folderId);
+  const other = siblings[index + (direction === "up" ? -1 : 1)];
+  // Déjà au bout : rien à faire, et ce n'est pas une erreur.
+  if (index === -1 || !other) return { ok: true };
+
+  const [a, b] = await Promise.all([
+    supabase.from("mg2030_folder").update({ sort_order: other.sort_order }).eq("id", folderId),
+    supabase.from("mg2030_folder").update({ sort_order: me.sort_order }).eq("id", other.id),
+  ]);
+  if (a.error || b.error) return { ok: false, error: "writeFailed" };
+
+  revalidatePath("/library");
+  return { ok: true };
+}
+
+// ── Étiquettes ──────────────────────────────────────────────────────────────
+
+/**
+ * Crée une étiquette. Réservée à l'administrateur par la RLS.
+ *
+ * ⚠ CRÉER UNE ÉTIQUETTE NE DONNE ACCÈS À RIEN. La lecture documentaire est
+ * gouvernée par `mg2030_tag_access` : une étiquette neuve n'est accordée à
+ * personne, donc un document qui ne porterait qu'elle deviendrait invisible de
+ * tous sauf d'un administrateur. L'écran le dit — c'est le piège exact qui
+ * avait rendu la bibliothèque vide en septembre (migration 0026).
+ */
+export async function createTag(
+  code: string,
+  label: string,
+  color: string | null,
+): Promise<ActionResult> {
+  const cleanCode = code
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const cleanLabel = label.trim();
+
+  if (cleanCode === "" || cleanLabel === "") return { ok: false, error: "emptyName" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mg2030_tag")
+    .insert({ code: cleanCode, label: cleanLabel, color: color || null });
+
+  if (error) {
+    return { ok: false, error: error.code === "23505" ? "duplicateTag" : error.message };
+  }
+
+  revalidatePath("/library");
+  revalidatePath("/admin/tags");
+  return { ok: true };
+}
+
+export async function renameTag(tagId: string, label: string): Promise<ActionResult> {
+  const clean = label.trim();
+  if (clean === "") return { ok: false, error: "emptyName" };
+
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("mg2030_tag")
+    .update({ label: clean }, { count: "exact" })
+    .eq("id", tagId);
+
+  if (error) return { ok: false, error: error.message };
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  revalidatePath("/admin/tags");
+  return { ok: true };
+}

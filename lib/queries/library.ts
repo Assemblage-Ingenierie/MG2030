@@ -30,6 +30,8 @@ export interface DocumentRow {
   sizeBytes: number;
   mimeType: string;
   description: string | null;
+  /** Version telle que le projet l'écrit : V1.0, Rev B… (migration 0044). */
+  version: string | null;
   uploadedAt: string;
   uploadedByName: string | null;
   tags: { id: string; code: string; label: string; color: string | null }[];
@@ -46,6 +48,11 @@ export interface TagOption {
 export async function loadFolderTree(): Promise<FolderNode[]> {
   const supabase = await createClient();
 
+  /* ⚠ ORDRE PAR `sort_order`, PUIS par chemin. L'arbre se triait sur le seul
+     chemin, c'est-à-dire alphabétiquement : le rang existait en base mais rien
+     ne le lisait, et réordonner un dossier n'avait aucun effet visible. Le
+     chemin reste le départage — deux frères de même rang se rangent alors
+     comme avant, et l'ordre ne saute pas. */
   const { data, error } = await supabase
     .from("mg2030_folder")
     .select(
@@ -53,6 +60,7 @@ export async function loadFolderTree(): Promise<FolderNode[]> {
        mg2030_tag ( code ),
        mg2030_document ( count )`,
     )
+    .order("sort_order")
     .order("path");
 
   if (error) throw new Error(`Lecture de l'arborescence : ${error.message}`);
@@ -76,7 +84,10 @@ export async function loadFolderTree(): Promise<FolderNode[]> {
     });
   }
 
-  // Le tri par `path` garantit qu'un parent précède ses enfants.
+  /* Deux temps, et c'est nécessaire depuis le tri par rang : un parent ne
+     précède plus forcément ses enfants dans la liste, puisque les rangs sont
+     comparés sans tenir compte de la profondeur. On a d'abord créé TOUS les
+     nœuds (boucle ci-dessus), on les rattache seulement maintenant. */
   for (const node of nodes.values()) {
     if (node.parentId) nodes.get(node.parentId)?.children.push(node);
     else roots.push(node);
@@ -121,11 +132,46 @@ export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
       sizeBytes: r.size_bytes as number,
       mimeType: r.mime_type as string,
       description: (r.description as string) ?? null,
+      version: (r.version as string) ?? null,
       uploadedAt: r.uploaded_at as string,
       uploadedByName: r.uploader?.full_name ?? null,
       tags: (r.mg2030_document_tag ?? []).map((dt) => dt.mg2030_tag),
     };
   });
+}
+
+/**
+ * Nombre de documents d'un dossier ET de toute sa descendance.
+ *
+ * La colonne de gauche ne montre que les grandes parties : un « 0 » en face de
+ * « Procurement » alors que ses sous-dossiers en contiennent quarante ferait
+ * croire la partie vide, et personne ne cliquerait.
+ */
+export function branchCount(node: FolderNode): number {
+  return node.documentCount + node.children.reduce((n, c) => n + branchCount(c), 0);
+}
+
+/** Retrouve un dossier dans l'arbre, et la racine dont il descend. */
+export function locate(
+  nodes: FolderNode[],
+  id: string | null,
+): { folder: FolderNode | null; root: FolderNode | null } {
+  if (id === null) return { folder: null, root: null };
+
+  const walk = (node: FolderNode, root: FolderNode): FolderNode | null => {
+    if (node.id === id) return node;
+    for (const child of node.children) {
+      const found = walk(child, root);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  for (const root of nodes) {
+    const found = walk(root, root);
+    if (found) return { folder: found, root };
+  }
+  return { folder: null, root: null };
 }
 
 /**

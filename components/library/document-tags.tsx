@@ -17,6 +17,7 @@ import { useState, useTransition } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { Chip } from "@/components/ui/badge";
+import { PopoverPanel } from "@/components/ui/popover";
 import { toggleDocumentTag } from "@/app/(app)/library/actions";
 
 export interface TagChoice {
@@ -104,23 +105,16 @@ export function DocumentTags({
           </span>
         ))}
 
+        {/* ⚠ UN « + », PAS UNE LISTE DÉROULANTE. La liste occupait la largeur
+            de son plus long libellé sur CHAQUE ligne, soit une colonne de
+            boîtes vides en face de documents qui n'ont rien à étiqueter — et
+            elle se lisait comme un champ à remplir. Demandé le 01/10/2026. */}
         {available.length > 0 && (
-          <select
-            disabled={pending}
-            aria-label={t("library.addTag")}
-            className="h-6 rounded border border-[var(--border)] bg-[var(--surface)] px-1 text-xs"
-            value=""
-            onChange={(e) => {
-              if (e.target.value) toggle(e.target.value, true);
-            }}
-          >
-            <option value="">{t("library.addTag")}</option>
-            {available.map((tag) => (
-              <option key={tag.id} value={tag.id}>
-                {tag.label}
-              </option>
-            ))}
-          </select>
+          <AddTagButton
+            available={available}
+            pending={pending}
+            onPick={(tagId) => toggle(tagId, true)}
+          />
         )}
       </span>
 
@@ -130,5 +124,63 @@ export function DocumentTags({
         </span>
       )}
     </div>
+  );
+}
+
+function AddTagButton({
+  available,
+  pending,
+  onPick,
+}: {
+  available: TagChoice[];
+  pending: boolean;
+  onPick: (tagId: string) => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  /* En ÉTAT et non en ref : une ref lue pendant le rendu vaut `null` au premier
+     passage et ne redéclenche rien quand elle se remplit. */
+  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
+
+  return (
+    <>
+      <button
+        ref={setTrigger}
+        type="button"
+        disabled={pending}
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label={t("library.addTag")}
+        title={t("library.addTag")}
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border)] text-[13px] leading-none text-[var(--text-muted)] hover:bg-[var(--app-bg)] hover:text-[var(--text)] disabled:opacity-50"
+      >
+        +
+      </button>
+
+      {/* Par un portail : la cellule vit dans un tableau, que `Table` enveloppe
+          dans un `overflow-x-auto` — lequel rogne aussi en hauteur. */}
+      <PopoverPanel anchor={trigger} open={open} onClose={() => setOpen(false)} width={200}>
+        <div className="p-1">
+          {available.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => {
+                onPick(tag.id);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-[var(--text)] hover:bg-[var(--app-bg)]"
+            >
+              <span
+                aria-hidden="true"
+                className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                style={{ backgroundColor: tag.color ?? "var(--border)" }}
+              />
+              <span className="truncate">{tag.label}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverPanel>
+    </>
   );
 }

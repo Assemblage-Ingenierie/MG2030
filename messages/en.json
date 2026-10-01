@@ -43,7 +43,8 @@
     "hiddenTab": "This tab is hidden. An administrator has taken it out of the menu — usually because the module is still being built.",
     "hiddenForOthers": "Hidden from everyone else",
     "hideMenu": "Hide the menu",
-    "showMenu": "Show the menu"
+    "showMenu": "Show the menu",
+    "tags": "Tags"
   },
   "common": {
     "search": "Search",
@@ -723,7 +724,7 @@
     "phase_signing": "Preparing…",
     "phase_recording": "Recording…",
     "error_generic": "Upload failed. Please try again.",
-    "error_forbidden": "You do not have permission to upload documents.",
+    "error_forbidden": "You are not allowed to change this.",
     "error_r2_not_configured": "Cloudflare R2 is not configured on this environment.",
     "error_size_out_of_range": "File is empty or larger than 5 GB.",
     "error_mime_type_blocked": "This file type is not accepted in the library.",
@@ -733,7 +734,7 @@
     "addTag": "Add a tag…",
     "removeTag": "Remove tag {tag}",
     "error_missing_id": "No document identifier was given.",
-    "error_not_found": "This document does not exist, or you cannot access it.",
+    "error_not_found": "This folder no longer exists.",
     "error_unauthenticated": "Session expired. Sign in again.",
     "error_downloadFailed": "The download link could not be issued.",
     "error_tagFailed": "The tag change was refused.",
@@ -747,7 +748,30 @@
     "error_delete_generic": "Deletion failed.",
     "error_delete_forbidden": "Only the person who uploaded this document, or an administrator, can delete it.",
     "error_delete_not_found": "This document no longer exists.",
-    "actions": "Actions"
+    "actions": "Actions",
+    "version": "Version",
+    "versionPlaceholder": "V1.0, Rev B…",
+    "renameHint": "Click to rename",
+    "editHint": "Edit the details",
+    "noPreviewHint": "No in-browser preview for this format — download it. Office viewers would require sending the document to a third party.",
+    "expandDescription": "Show the whole description",
+    "collapseDescription": "Shorten the description",
+    "description": "Description",
+    "editTitle": "Document details",
+    "addPart": "+ Add a main part",
+    "addSubfolder": "+ Add a sub-folder",
+    "folderName": "Folder name",
+    "renameFolder": "Rename this folder",
+    "deleteFolder": "Delete this folder",
+    "folderUp": "Move this folder up",
+    "folderDown": "Move this folder down",
+    "confirmDeleteFolder": "Delete “{name}”?",
+    "error_emptyName": "A name is needed.",
+    "error_writeFailed": "The change was refused.",
+    "error_duplicateFolder": "A folder with this name already exists here.",
+    "error_duplicateTag": "A tag with this name already exists.",
+    "error_folderHasDocuments": "This folder still holds documents. Move or delete them first — a document cannot exist without a folder.",
+    "error_folderHasChildren": "This folder still has sub-folders. Delete them first."
   },
   "notifications": {
     "title": "Notifications",
@@ -1037,5 +1061,15 @@
     "error_writeFailed": "The change was refused.",
     "error_invalidEmail": "This does not look like an email address.",
     "error_sameEmail": "This is already your address."
+  },
+  "tags": {
+    "title": "Tags",
+    "intro": "Tags govern who can READ a document, independently of everything else.",
+    "warning": "Creating a tag grants nothing. Until it is granted to someone, a document carrying only this tag is invisible to everyone but an administrator — that is what emptied the library in September. Grants still live in the database (mg2030_tag_access).",
+    "label": "Label",
+    "code": "Code",
+    "colour": "Colour",
+    "add": "+ New tag",
+    "renameHint": "Click to rename"
   }
 }
