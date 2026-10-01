@@ -37,6 +37,8 @@ import {
   type RoadmapStatus,
 } from "@/lib/roadmap/types";
 import { patchRoadmapAction } from "@/app/(app)/roadmap/actions";
+import { ASSIGNEE_ENTITIES } from "@/lib/roadmap/types";
+import type { PersonOption } from "./assignee-picker";
 
 /** Enveloppe commune : le bouton d'ouverture, l'attente, le refus. */
 function useCell() {
@@ -274,6 +276,231 @@ function shiftDay(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+// ── Intitulé ────────────────────────────────────────────────────────────────
+
+export function InlineTitle({
+  actionId,
+  value,
+  comments,
+}: {
+  actionId: string;
+  value: string;
+  comments: string | null;
+}) {
+  const { editable, error, pending, run } = useCell();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const input = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (editing) input.current?.select();
+  }, [editing]);
+
+  const display = (
+    <>
+      <span className="text-[14px] text-[var(--text)]">{value}</span>
+      {comments && (
+        <span className="block text-xs text-[var(--text-muted)]">{comments}</span>
+      )}
+    </>
+  );
+
+  if (!editable) return display;
+
+  /**
+   * Un `textarea` et non un champ d'une ligne : certains intitulés font quatre-
+   * vingt-dix caractères (« Appoint a panel for the complaint mechanism… »), et
+   * les corriger dans une fenêtre où l'on n'en voit que le tiers est pénible.
+   *
+   * Entrée valide, Maj+Entrée passe à la ligne — l'inverse du réflexe d'un
+   * champ de texte, mais le bon ici : on vient corriger un mot, pas rédiger.
+   */
+  if (editing) {
+    return (
+      <textarea
+        ref={input}
+        rows={2}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setDraft(value);
+            setEditing(false);
+          } else if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            (e.target as HTMLTextAreaElement).blur();
+          }
+        }}
+        onBlur={() => {
+          setEditing(false);
+          if (draft.trim() === "" || draft === value) {
+            setDraft(value);
+            return;
+          }
+          run(() => patchRoadmapAction(actionId, { title: draft }));
+        }}
+        className="w-full rounded border bg-[var(--surface)] px-1.5 py-1 text-[14px] outline-none"
+        style={{ borderColor: "var(--focus)" }}
+      />
+    );
+  }
+
+  return (
+    <span className="relative block">
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(value);
+          setEditing(true);
+        }}
+        disabled={pending}
+        className={cn(TRIGGER, pending && "opacity-50")}
+      >
+        {display}
+      </button>
+      {error && (
+        <span
+          aria-hidden="true"
+          className="absolute -right-1 top-0 h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "var(--danger)" }}
+        />
+      )}
+    </span>
+  );
+}
+
+// ── Assignataires ───────────────────────────────────────────────────────────
+
+export function InlineAssignees({
+  actionId,
+  value,
+  people,
+  notSetLabel,
+}: {
+  actionId: string;
+  value: { label: string }[];
+  people: PersonOption[];
+  notSetLabel: string;
+}) {
+  const t = useT();
+  const { editable, open, setOpen, error, pending, run } = useCell();
+  const labels = value.map((a) => a.label);
+
+  const display =
+    labels.length === 0 ? (
+      <span className="text-[var(--text-muted)]">—</span>
+    ) : (
+      <span className="flex flex-wrap gap-1">
+        {labels.map((l) => (
+          <span
+            key={l}
+            className="inline-block rounded bg-[var(--app-bg)] px-1.5 py-0.5 text-xs text-[var(--text)]"
+          >
+            {l}
+          </span>
+        ))}
+      </span>
+    );
+
+  if (!editable) return display;
+
+  const toggle = (label: string) =>
+    run(() =>
+      patchRoadmapAction(actionId, {
+        assignees: labels.includes(label)
+          ? labels.filter((l) => l !== label)
+          : [...labels, label],
+      }),
+    );
+
+  // Tout libellé qui n'est ni une entité ni un compte reste listé pour pouvoir
+  // être RETIRÉ : sans cela, un nom saisi autrefois à la main deviendrait
+  // indécrochable depuis la liste.
+  const known = new Set<string>([...ASSIGNEE_ENTITIES, ...people.map((p) => p.fullName)]);
+  const extras = labels.filter((l) => !known.has(l));
+
+  return (
+    <Cell open={open} setOpen={setOpen} error={error} pending={pending} display={display} wide>
+      <div className="max-h-72 overflow-auto p-1">
+        <p className="px-2 pb-1 pt-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+          {t("roadmap.entities")}
+        </p>
+        {ASSIGNEE_ENTITIES.map((e) => (
+          <Pick key={e} label={e} on={labels.includes(e)} onClick={() => toggle(e)} />
+        ))}
+
+        {people.length > 0 && (
+          <>
+            <p className="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+              {t("roadmap.people")}
+            </p>
+            {people.map((p) => (
+              <Pick
+                key={p.id}
+                label={p.fullName}
+                on={labels.includes(p.fullName)}
+                onClick={() => toggle(p.fullName)}
+              />
+            ))}
+          </>
+        )}
+
+        {extras.length > 0 && (
+          <>
+            <p className="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+              {t("roadmap.otherAssignees")}
+            </p>
+            {extras.map((l) => (
+              <Pick key={l} label={l} on onClick={() => toggle(l)} />
+            ))}
+          </>
+        )}
+
+        {labels.length === 0 && (
+          <p className="px-2 py-1 text-xs text-[var(--text-muted)]">{notSetLabel}</p>
+        )}
+      </div>
+    </Cell>
+  );
+}
+
+function Pick({
+  label,
+  on,
+  onClick,
+}: {
+  label: string;
+  on: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs",
+        on ? "bg-[var(--app-bg)] font-medium" : "hover:bg-[var(--app-bg)]",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border",
+          on ? "border-transparent" : "border-[var(--border)]",
+        )}
+        style={on ? { backgroundColor: "var(--accent)" } : undefined}
+      >
+        {on && (
+          <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M1 5l2.5 2.5L9 2" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        )}
+      </span>
+      <span className="truncate text-[var(--text)]">{label}</span>
+    </button>
+  );
 }
 
 // ── Pièces communes ─────────────────────────────────────────────────────────

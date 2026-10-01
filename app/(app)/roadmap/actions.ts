@@ -72,8 +72,20 @@ function toRow(input: RoadmapInput) {
  *
  * On efface puis on repose, plutôt que de calculer un différentiel : à trois
  * noms par action, le différentiel coûterait une lecture de plus pour un gain
- * nul. Les doublons et les libellés vides sont écartés en amont — la contrainte
- * d'unicité (action, label) les refuserait de toute façon, mais en bloc.
+ * nul.
+ *
+ * ⚠ LE RATTACHEMENT AU COMPTE EST RÉSOLU ICI, PAR ÉGALITÉ EXACTE DU NOM.
+ *
+ * Une première version écrivait `app_user_id: null` systématiquement, pour ne
+ * pas « deviner » un compte. C'était trop prudent, et le prix s'est vu : le
+ * sélecteur insère le nom complet TEL QUE LE PORTE LE COMPTE, si bien qu'une
+ * égalité stricte n'a rien d'une devinette — mais chaque édition effaçait le
+ * lien, et la même personne s'est retrouvée sous trois libellés, donc trois
+ * entrées dans le filtre.
+ *
+ * Le garde-fou contre l'homonyme reste : on ne relie que si EXACTEMENT UN
+ * compte actif porte ce nom. Deux homonymes, et les deux lignes restent du
+ * texte libre — ce qui se voit, au lieu de rattacher l'action au mauvais.
  */
 async function replaceAssignees(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -89,11 +101,26 @@ async function replaceAssignees(
   const clean = [...new Set(labels.map((l) => l.trim()).filter(Boolean))];
   if (clean.length === 0) return null;
 
-  // Le rattachement à un compte est volontairement laissé NUL ici : il n'est
-  // posé qu'à la reprise initiale, où le rapprochement a été vérifié. Deviner
-  // un compte à chaque saisie finirait par relier un homonyme.
+  const { data: matches } = await supabase
+    .from("mg2030_app_user")
+    .select("id, full_name")
+    .in("full_name", clean)
+    .eq("is_active", true);
+
+  const byName = new Map<string, string | null>();
+  for (const u of matches ?? []) {
+    const name = u.full_name as string;
+    // Déjà vu : homonymes. On annule le rattachement des deux.
+    byName.set(name, byName.has(name) ? null : (u.id as string));
+  }
+
   const { error } = await supabase.from("mg2030_roadmap_assignee").insert(
-    clean.map((label, i) => ({ action_id: actionId, label, app_user_id: null, sort_order: i })),
+    clean.map((label, i) => ({
+      action_id: actionId,
+      label,
+      app_user_id: byName.get(label) ?? null,
+      sort_order: i,
+    })),
   );
   return error?.message ?? null;
 }
@@ -150,20 +177,129 @@ export async function updateRoadmapAction(
 }
 
 /**
- * Suppression RÉELLE, et non archivage.
+ * ARCHIVER plutôt que supprimer.
  *
- * La table porte pourtant `archived_at` : il sert au cas où l'on voudrait plus
- * tard garder trace d'une action retirée. Mais une roadmap se nettoie souvent,
- * et une ligne qu'on efface ici n'est pas un fait de gestion comme l'est une
- * demande d'avis retirée — personne n'a besoin d'en retrouver la trace.
+ * Une action retirée de la roadmap n'a pas forcément disparu du projet : elle
+ * a pu être abandonnée, reportée, absorbée par une autre. Six mois plus tard,
+ * « pourquoi avait-on arrêté de suivre ça ? » est une question qui se pose
+ * vraiment en revue, et une ligne effacée ne peut pas y répondre.
+ *
+ * `archived_at` existait depuis la création de la table sans être employé ;
+ * c'est maintenant le geste normal, et la suppression devient l'exception.
  */
-export async function deleteRoadmapAction(id: string): Promise<ActionResult> {
+export async function archiveRoadmapAction(id: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.from("mg2030_roadmap_action").delete().eq("id", id);
+  const { error } = await supabase
+    .from("mg2030_roadmap_action")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) return { ok: false, error: "writeFailed" };
 
   revalidatePath("/roadmap");
   return { ok: true };
+}
+
+/** Remet une action archivée dans la liste courante. */
+export async function restoreRoadmapAction(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mg2030_roadmap_action")
+    .update({ archived_at: null })
+    .eq("id", id);
+  if (error) return { ok: false, error: "writeFailed" };
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}
+
+/**
+ * Suppression DÉFINITIVE, et réservée aux actions déjà archivées.
+ *
+ * Deux gestes pour effacer, et c'est voulu : on archive, puis on supprime
+ * depuis la liste des archives. Une corbeille accessible d'un seul clic depuis
+ * la liste courante finit toujours par emporter une ligne qu'on relisait.
+ */
+export async function deleteRoadmapAction(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("mg2030_roadmap_action")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .not("archived_at", "is", null);
+
+  if (error) return { ok: false, error: "writeFailed" };
+  // Zéro ligne : soit la RLS a refusé, soit l'action n'était pas archivée.
+  if (count === 0) return { ok: false, error: "notArchived" };
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}
+
+// ── Sujets ──────────────────────────────────────────────────────────────────
+
+/**
+ * Crée un sujet, à la fin de la liste.
+ *
+ * Le `code` est dérivé du nom, en majuscules sans accent : il sert de clé
+ * naturelle et de garde-fou contre les doublons — « Student center » et
+ * « Student Center » rendraient le même code et le second serait refusé, ce
+ * qui vaut mieux que deux intertitres presque identiques.
+ */
+export async function createRoadmapSubject(name: string): Promise<ActionResult> {
+  const clean = name.trim();
+  if (clean === "") return { ok: false, error: "emptySubjectName" };
+
+  const supabase = await createClient();
+  const { data: last } = await supabase
+    .from("mg2030_roadmap_subject")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("mg2030_roadmap_subject").insert({
+    code: toCode(clean),
+    name: clean,
+    sort_order: ((last?.sort_order as number) ?? 0) + 10,
+  });
+  if (error) return { ok: false, error: "duplicateSubject" };
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}
+
+/**
+ * Renomme un sujet. Le `code` NE BOUGE PAS.
+ *
+ * Il identifie le sujet ; le changer ferait d'un simple rebaptême une
+ * migration. Corriger une faute de frappe dans un intitulé ne doit pas toucher
+ * à l'identité de la ligne.
+ */
+export async function renameRoadmapSubject(
+  id: string,
+  name: string,
+): Promise<ActionResult> {
+  const clean = name.trim();
+  if (clean === "") return { ok: false, error: "emptySubjectName" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mg2030_roadmap_subject")
+    .update({ name: clean })
+    .eq("id", id);
+  if (error) return { ok: false, error: "writeFailed" };
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}
+
+function toCode(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
 /**
@@ -182,6 +318,8 @@ export async function deleteRoadmapAction(id: string): Promise<ActionResult> {
 export async function patchRoadmapAction(
   id: string,
   patch: {
+    title?: string;
+    subjectId?: string;
     status?: RoadmapStatus | null;
     priority?: RoadmapPriority | null;
     timeline?: { kind: TimelineKind | null; anchor: string | null; rangeEnd: string | null };
@@ -191,6 +329,14 @@ export async function patchRoadmapAction(
   const supabase = await createClient();
   const row: Record<string, unknown> = {};
 
+  if (patch.title !== undefined) {
+    const title = patch.title.trim();
+    // Une action sans intitulé ne se retrouve plus dans la liste : on refuse
+    // plutôt que d'enregistrer une ligne muette.
+    if (title === "") return { ok: false, error: "emptyTitle" };
+    row.title = title;
+  }
+  if (patch.subjectId !== undefined) row.subject_id = patch.subjectId;
   if ("status" in patch) row.status = patch.status;
   if ("priority" in patch) row.priority = patch.priority;
 

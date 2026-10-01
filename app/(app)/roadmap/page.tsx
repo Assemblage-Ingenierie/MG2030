@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { getI18n } from "@/lib/i18n/server";
 import { localToday } from "@/lib/schedule/dates";
 import { listPeople } from "@/lib/queries/people";
@@ -11,13 +12,19 @@ import {
 } from "@/lib/roadmap/types";
 import { ROADMAP_PRIORITY, ROADMAP_STATUS } from "@/lib/tokens";
 import { Card, Section } from "@/components/ui/card";
-import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
-import { Chip, NotSet } from "@/components/ui/badge";
+import { Table, Thead, Th, Tr, Td } from "@/components/ui/table";
 import { ViewSwitch } from "@/components/roadmap/view-switch";
 import { ColumnHeader } from "@/components/roadmap/column-header";
-import { InlinePriority, InlineStatus, InlineTimeline } from "@/components/roadmap/inline-cell";
+import {
+  InlineAssignees,
+  InlinePriority,
+  InlineStatus,
+  InlineTimeline,
+  InlineTitle,
+} from "@/components/roadmap/inline-cell";
 import { RoadmapTimeline } from "@/components/roadmap/roadmap-timeline";
 import { AddActionButton, ActionRowActions } from "@/components/roadmap/action-form";
+import { AddSubject, SubjectTitle } from "@/components/roadmap/subject-row";
 import Link from "next/link";
 
 /**
@@ -39,10 +46,14 @@ export default async function RoadmapPage({
   const { t } = await getI18n();
   const params = parseRoadmapParams(await searchParams);
 
-  const [subjects, actions, people] = await Promise.all([
+  const [subjects, actions, people, archivedCount] = await Promise.all([
     listRoadmapSubjects(),
-    listRoadmapActions(),
+    listRoadmapActions(params.archived),
     listPeople(),
+    // Compté toujours, pour que le bouton des archives annonce combien il en
+    // contient : « Archives » tout court n'apprend pas s'il y a quelque chose
+    // à y voir.
+    listRoadmapActions(true).then((a) => a.length),
   ]);
 
   const { actions: visible, hiddenCompleted } = applyFilters(actions, params.filters);
@@ -85,16 +96,34 @@ export default async function RoadmapPage({
             {hiddenCompleted > 0 && (
               <span>{t("roadmap.completedHidden", { count: String(hiddenCompleted) })}</span>
             )}
-            <Link
-              href={buildRoadmapQuery(params, { showCompleted: !params.filters.showCompleted })}
-              className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 font-medium text-[var(--text)]"
-            >
-              {t(
-                params.filters.showCompleted
-                  ? "roadmap.hideCompleted"
-                  : "roadmap.showCompleted",
-              )}
-            </Link>
+            {!params.archived && (
+              <Link
+                href={buildRoadmapQuery(params, { showCompleted: !params.filters.showCompleted })}
+                className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 font-medium text-[var(--text)]"
+              >
+                {t(
+                  params.filters.showCompleted
+                    ? "roadmap.hideCompleted"
+                    : "roadmap.showCompleted",
+                )}
+              </Link>
+            )}
+            {(archivedCount > 0 || params.archived) && (
+              <Link
+                href={buildRoadmapQuery(params, { archived: !params.archived })}
+                aria-pressed={params.archived}
+                className="rounded border border-[var(--border)] px-2 py-1 font-medium text-[var(--text)]"
+                style={
+                  params.archived
+                    ? { backgroundColor: "var(--app-bg)" }
+                    : { backgroundColor: "var(--surface)" }
+                }
+              >
+                {params.archived
+                  ? t("roadmap.backToActive")
+                  : t("roadmap.showArchived", { count: String(archivedCount) })}
+              </Link>
+            )}
           </div>
         </div>
 
@@ -112,116 +141,133 @@ export default async function RoadmapPage({
             {actions.length === 0 ? t("roadmap.empty") : t("roadmap.emptyFiltered")}
           </Card>
         ) : (
-          groups.map((group) => (
-            <Card key={group.subjectId} className="overflow-visible">
-              <div className="border-b border-[var(--border)] bg-[var(--app-bg)] px-3 py-2">
-                <h3 className="text-sm font-semibold text-[var(--text)]">{group.subjectName}</h3>
+          /* UN SEUL TABLEAU, les sujets en lignes grises.
+             Chaque sujet avait sa propre carte et son propre tableau : les
+             colonnes se recalaient donc sur le contenu de chaque bloc, et
+             « Status » ne tombait pas à la même abscisse d'un sujet à l'autre.
+             L'œil ne pouvait plus descendre une colonne. Un tableau unique
+             partage ses largeurs par construction, et l'intertitre devient une
+             ligne de respiration plutôt qu'un nouveau départ.
+
+             `overflow-visible` : les menus de filtre et d'édition débordent de
+             la carte, un rognage les couperait net. */
+          <Card className="overflow-visible">
+            <Table>
+              <Thead>
+                <Th>
+                  <ColumnHeader
+                    label={t("roadmap.action")}
+                    column="action"
+                    kind={null}
+                    params={params}
+                  />
+                </Th>
+                <Th>
+                  <ColumnHeader
+                    label={t("roadmap.timeline")}
+                    column="timeline"
+                    kind={null}
+                    params={params}
+                  />
+                </Th>
+                <Th>
+                  <ColumnHeader
+                    label={t("roadmap.status")}
+                    column="status"
+                    kind="statuses"
+                    options={statusOptions}
+                    params={params}
+                  />
+                </Th>
+                <Th>
+                  <ColumnHeader
+                    label={t("roadmap.priority")}
+                    column="priority"
+                    kind="priorities"
+                    options={priorityOptions}
+                    params={params}
+                  />
+                </Th>
+                <Th>
+                  <ColumnHeader
+                    label={t("roadmap.assignee")}
+                    column="assignee"
+                    kind="assignees"
+                    options={assigneeOptions}
+                    params={params}
+                  />
+                </Th>
+                <Th align="right">{t("common.actions")}</Th>
+              </Thead>
+              <tbody>
+                {groups.map((group) => (
+                  <Fragment key={group.subjectId}>
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="border-b border-t border-[var(--border)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                      >
+                        <SubjectTitle
+                          subjectId={group.subjectId}
+                          name={group.subjectName}
+                          count={group.actions.length}
+                        />
+                      </td>
+                    </tr>
+                    {group.actions.map((action) => (
+                      <Tr key={action.id}>
+                        <Td>
+                          <InlineTitle
+                            actionId={action.id}
+                            value={action.title}
+                            comments={action.comments}
+                          />
+                        </Td>
+                        <Td>
+                          <InlineTimeline actionId={action.id} value={action.timeline} />
+                        </Td>
+                        <Td>
+                          <InlineStatus
+                            actionId={action.id}
+                            value={action.status}
+                            notSetLabel={t("roadmap.notSet")}
+                          />
+                        </Td>
+                        <Td>
+                          <InlinePriority
+                            actionId={action.id}
+                            value={action.priority}
+                            notSetLabel={t("roadmap.notSet")}
+                          />
+                        </Td>
+                        <Td>
+                          <InlineAssignees
+                            actionId={action.id}
+                            value={action.assignees}
+                            people={personOptions}
+                            notSetLabel={t("roadmap.notSet")}
+                          />
+                        </Td>
+                        <Td align="right">
+                          <ActionRowActions
+                            action={action}
+                            subjects={subjects}
+                            people={personOptions}
+                            archived={params.archived}
+                          />
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </Table>
+            {!params.archived && (
+              <div className="border-t border-[var(--border)] px-3 py-2">
+                <AddSubject />
               </div>
-              {/* `overflow-visible` et non `hidden` : les menus de filtre et
-                  d'édition en ligne débordent de la carte, et un rognage les
-                  couperait net. */}
-              <Table>
-                <Thead>
-                  <Th>
-                    <ColumnHeader
-                      label={t("roadmap.action")}
-                      column="action"
-                      kind={null}
-                      params={params}
-                    />
-                  </Th>
-                  <Th>
-                    <ColumnHeader
-                      label={t("roadmap.timeline")}
-                      column="timeline"
-                      kind={null}
-                      params={params}
-                    />
-                  </Th>
-                  <Th>
-                    <ColumnHeader
-                      label={t("roadmap.status")}
-                      column="status"
-                      kind="statuses"
-                      options={statusOptions}
-                      params={params}
-                    />
-                  </Th>
-                  <Th>
-                    <ColumnHeader
-                      label={t("roadmap.priority")}
-                      column="priority"
-                      kind="priorities"
-                      options={priorityOptions}
-                      params={params}
-                    />
-                  </Th>
-                  <Th>
-                    <ColumnHeader
-                      label={t("roadmap.assignee")}
-                      column="assignee"
-                      kind="assignees"
-                      options={assigneeOptions}
-                      params={params}
-                    />
-                  </Th>
-                  <Th align="right">{t("common.actions")}</Th>
-                </Thead>
-                <tbody>
-                  {group.actions.length === 0 && (
-                    <EmptyRow colSpan={6}>{t("roadmap.emptyFiltered")}</EmptyRow>
-                  )}
-                  {group.actions.map((action) => (
-                    <Tr key={action.id}>
-                      <Td>
-                        <span className="text-[14px] text-[var(--text)]">{action.title}</span>
-                        {action.comments && (
-                          <span className="block text-xs text-[var(--text-muted)]">
-                            {action.comments}
-                          </span>
-                        )}
-                      </Td>
-                      <Td>
-                        <InlineTimeline actionId={action.id} value={action.timeline} />
-                      </Td>
-                      <Td>
-                        <InlineStatus
-                          actionId={action.id}
-                          value={action.status}
-                          notSetLabel={t("roadmap.notSet")}
-                        />
-                      </Td>
-                      <Td>
-                        <InlinePriority
-                          actionId={action.id}
-                          value={action.priority}
-                          notSetLabel={t("roadmap.notSet")}
-                        />
-                      </Td>
-                      <Td>
-                        {action.assignees.length === 0 ? (
-                          <NotSet label={t("roadmap.notSet")} />
-                        ) : (
-                          <span className="flex flex-wrap gap-1">
-                            {action.assignees.map((a) => (
-                              <Chip key={a.label}>{a.label}</Chip>
-                            ))}
-                          </span>
-                        )}
-                      </Td>
-                      <Td align="right">
-                        <ActionRowActions
-                          action={action}
-                          subjects={subjects}
-                          people={personOptions}
-                        />
-                      </Td>
-                    </Tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card>
-          ))
+            )}
+          </Card>
         )}
       </Section>
     </div>

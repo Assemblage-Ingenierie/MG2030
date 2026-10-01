@@ -23,7 +23,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { ConfirmAction } from "@/components/ui/confirm-action";
-import { EditIcon, TrashIcon } from "@/components/ui/icons";
+import { ArchiveIcon, EditIcon, RestoreIcon, TrashIcon } from "@/components/ui/icons";
 import { IconButton } from "@/components/ui/button";
 import { AssigneePicker, type PersonOption } from "./assignee-picker";
 import {
@@ -41,8 +41,10 @@ import {
   type RoadmapSubjectRow,
 } from "@/lib/roadmap/types";
 import {
+  archiveRoadmapAction,
   createRoadmapAction,
   deleteRoadmapAction,
+  restoreRoadmapAction,
   updateRoadmapAction,
   type RoadmapInput,
 } from "@/app/(app)/roadmap/actions";
@@ -331,10 +333,13 @@ export function ActionRowActions({
   action,
   subjects,
   people,
+  archived = false,
 }: {
   action: RoadmapActionRow;
   subjects: RoadmapSubjectRow[];
   people: PersonOption[];
+  /** Une ligne archivée se restaure ou se supprime ; elle ne s'édite plus. */
+  archived?: boolean;
 }) {
   const t = useT();
   const { can } = usePermissions();
@@ -343,9 +348,45 @@ export function ActionRowActions({
 
   if (!can("roadmap.write")) return null;
 
-  /* Icônes et non libellés : « Edit » et « Delete » répétés sur chaque ligne
-     prenaient deux colonnes de texte et tiraient l'œil autant que le contenu.
-     `IconButton` EXIGE un `label` — l'icône est muette pour un lecteur
+  /* ARCHIVER, PAS SUPPRIMER (01/10/2026). Une action retirée de la roadmap n'a
+     pas disparu du projet : elle a été abandonnée, reportée ou absorbée, et
+     « pourquoi avait-on arrêté de suivre ça ? » se pose vraiment six mois plus
+     tard. L'archivage ne demande donc PAS de confirmation — il est réversible,
+     et une question posée à chaque geste courant finit par se cliquer sans
+     être lue. La suppression définitive, elle, en demande une, et n'existe que
+     sur une ligne déjà archivée. */
+  if (archived) {
+    return (
+      <span className="flex items-center justify-end gap-0.5">
+        <IconButton
+          label={t("roadmap.restore")}
+          disabled={pending}
+          onClick={() => start(() => void restoreRoadmapAction(action.id))}
+          className="h-7 w-7"
+        >
+          <RestoreIcon className="h-4 w-4" />
+        </IconButton>
+        <ConfirmAction
+          message={t("roadmap.confirmDelete", { title: action.title })}
+          disabled={pending}
+          onConfirm={() => start(() => void deleteRoadmapAction(action.id))}
+        >
+          {(arm) => (
+            <IconButton
+              label={t("common.delete")}
+              disabled={pending}
+              onClick={arm}
+              className="h-7 w-7"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </IconButton>
+          )}
+        </ConfirmAction>
+      </span>
+    );
+  }
+
+  /* `IconButton` EXIGE un `label` — l'icône est muette pour un lecteur
      d'écran, le nom de l'action reste donc porté par l'accessibilité et par
      l'infobulle. */
   return (
@@ -353,22 +394,14 @@ export function ActionRowActions({
       <IconButton label={t("common.edit")} onClick={() => setOpen(true)} className="h-7 w-7">
         <EditIcon className="h-4 w-4" />
       </IconButton>
-      <ConfirmAction
-        message={t("roadmap.confirmDelete", { title: action.title })}
+      <IconButton
+        label={t("roadmap.archive")}
         disabled={pending}
-        onConfirm={() => start(() => void deleteRoadmapAction(action.id))}
+        onClick={() => start(() => void archiveRoadmapAction(action.id))}
+        className="h-7 w-7"
       >
-        {(arm) => (
-          <IconButton
-            label={t("common.delete")}
-            disabled={pending}
-            onClick={arm}
-            className="h-7 w-7"
-          >
-            <TrashIcon className="h-4 w-4" />
-          </IconButton>
-        )}
-      </ConfirmAction>
+        <ArchiveIcon className="h-4 w-4" />
+      </IconButton>
       {open && (
         <FormModal
           open

@@ -63,9 +63,16 @@ export async function listRoadmapSubjects(): Promise<RoadmapSubjectRow[]> {
  * refaire l'aller-retour à chaque clic sur un filtre. L'écran filtre en
  * mémoire, et conserve ainsi les compteurs « combien sont masquées ».
  */
-export async function listRoadmapActions(): Promise<RoadmapActionRow[]> {
+export async function listRoadmapActions(
+  /**
+   * `false` (défaut) : les actions courantes. `true` : les ARCHIVÉES, et elles
+   * seules — on ne mélange jamais les deux dans une même liste, sinon une
+   * ligne archivée se relirait comme une ligne active.
+   */
+  archived = false,
+): Promise<RoadmapActionRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const query = supabase
     .from("mg2030_roadmap_action")
     .select(
       `id, subject_id, title, status, priority,
@@ -74,8 +81,11 @@ export async function listRoadmapActions(): Promise<RoadmapActionRow[]> {
        mg2030_roadmap_subject ( name ),
        mg2030_roadmap_assignee ( label, app_user_id, sort_order )`,
     )
-    .is("archived_at", null)
     .order("sort_order");
+
+  const { data, error } = archived
+    ? await query.not("archived_at", "is", null)
+    : await query.is("archived_at", null);
 
   if (error) throw new Error(`Lecture de la roadmap : ${error.message}`);
 

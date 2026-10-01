@@ -18,6 +18,8 @@ export type RoadmapView = "list" | "timeline";
 
 export interface RoadmapParams {
   view: RoadmapView;
+  /** La liste des ARCHIVES, qui ne se mélange jamais avec la liste courante. */
+  archived: boolean;
   filters: RoadmapFilters;
   sort: RoadmapSort;
 }
@@ -50,6 +52,7 @@ export function parseRoadmapParams(params: Record<string, Raw>): RoadmapParams {
 
   return {
     view: one(params.view) === "timeline" ? "timeline" : "list",
+    archived: one(params.archived) === "1",
     filters: {
       ...DEFAULT_FILTERS,
       priorities: list<RoadmapPriority>(params.priority, ROADMAP_PRIORITIES),
@@ -73,6 +76,7 @@ export function parseRoadmapParams(params: Record<string, Raw>): RoadmapParams {
 /** Ce qu'on peut changer. `undefined` = garder, et c'est le défaut. */
 export interface RoadmapPatch {
   view?: RoadmapView;
+  archived?: boolean;
   priorities?: RoadmapPriority[];
   statuses?: RoadmapStatus[];
   assignees?: string[];
@@ -95,6 +99,8 @@ export function buildRoadmapQuery(current: RoadmapParams, patch: RoadmapPatch = 
 
   const view = keep(patch.view, current.view);
   if (view !== "list") p.set("view", view);
+
+  if (keep(patch.archived, current.archived)) p.set("archived", "1");
 
   const priorities = keep(patch.priorities, current.filters.priorities);
   if (priorities.length > 0) p.set("priority", priorities.join(","));

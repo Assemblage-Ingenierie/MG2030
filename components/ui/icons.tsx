@@ -180,6 +180,22 @@ export const TrashIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Carton fermé. Archiver — retirer de la liste sans effacer. */
+export const ArchiveIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11h14V8M10 12h4" />
+  </Svg>
+);
+
+/** Flèche de retour. Désarchiver. */
+export const RestoreIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 10h11a5 5 0 0 1 0 10h-6" />
+    <path d="M3 10l4-4M3 10l4 4" />
+  </Svg>
+);
+
 /** Lignes empilées : la vue liste. */
 export const ListViewIcon = (p: IconProps) => (
   <Svg {...p}>

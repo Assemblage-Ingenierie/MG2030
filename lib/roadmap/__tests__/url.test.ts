@@ -65,9 +65,17 @@ describe("construction de l'URL", () => {
     expect(buildRoadmapQuery(current, { priorities: [] })).toBe("/roadmap");
   });
 
+  it("la liste des archives voyage dans l'URL", () => {
+    const current = parseRoadmapParams({ archived: "1" });
+    expect(current.archived).toBe(true);
+    expect(buildRoadmapQuery(current)).toBe("/roadmap?archived=1");
+    expect(buildRoadmapQuery(current, { archived: false })).toBe("/roadmap");
+  });
+
   it("fait l'aller-retour sans rien perdre", () => {
     const current = parseRoadmapParams({
       view: "timeline",
+      archived: "1",
       priority: "urgent,high",
       status: "blocked",
       assignee: "AFD",

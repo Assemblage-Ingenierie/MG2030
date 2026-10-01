@@ -899,7 +899,7 @@
     "addAction": "New action",
     "createTitle": "New action",
     "editTitle": "Edit action",
-    "confirmDelete": "Delete « {title} »? This cannot be undone.",
+    "confirmDelete": "Permanently delete « {title} »? This cannot be undone.",
     "titleField": "Action",
     "notSet": "Not set",
     "viewList": "List",
@@ -919,6 +919,18 @@
     "entities": "Entities",
     "people": "People",
     "otherAssignees": "Someone else",
-    "otherAssigneesHint": "For anyone with no account and outside the three entities. Separate with commas."
+    "otherAssigneesHint": "For anyone with no account and outside the three entities. Separate with commas.",
+    "archive": "Archive",
+    "restore": "Restore",
+    "showArchived": "Archived ({count})",
+    "backToActive": "Back to the roadmap",
+    "archivedEmpty": "Nothing archived",
+    "archivedIntro": "Actions withdrawn from the roadmap. They are kept, not erased — six months on, « why did we stop tracking this? » is a real question.",
+    "addSubject": "+ Add a main subject",
+    "subjectName": "Subject name",
+    "renameSubject": "Click to rename",
+    "error_emptySubjectName": "A subject needs a name.",
+    "error_duplicateSubject": "A subject with that name already exists.",
+    "error_notArchived": "Only an archived action can be deleted."
   }
 }
