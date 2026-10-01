@@ -95,7 +95,8 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
   const t = useT();
   const router = useRouter();
 
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [organisationId, setOrganisationId] = useState("");
   const [email, setEmail] = useState("");
@@ -112,7 +113,7 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
     setNotice(null);
     setExistingAccount(false);
 
-    if (fullName.trim() === "") {
+    if (firstName.trim() === "" || lastName.trim() === "") {
       setError(t("auth.error_emptyName"));
       return;
     }
@@ -132,7 +133,7 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
          * est PARTAGÉ avec les applications PEEB et aiguille sur `.Data.app`.
          * Sans lui, on reçoit l'e-mail de PEEB Jordan (branche par défaut).
          */
-        data: { full_name: fullName.trim(), app: "mg2030" },
+        data: { full_name: `${firstName.trim()} ${lastName.trim()}`, app: "mg2030" },
         /**
          * ⚠ SANS CETTE LIGNE, LE LIEN DE CONFIRMATION MÈNE À L'AUTRE
          * APPLICATION DU PROJET.
@@ -192,7 +193,8 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
     }
 
     const result = await submitAccessRequest({
-      fullName: fullName.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       jobTitle: jobTitle.trim() || null,
       organisationId: organisationId || null,
       message: message.trim() || null,
@@ -209,13 +211,25 @@ export function SignUpForm({ organisations }: { organisations: OrganisationChoic
 
   return (
     <form onSubmit={submit} className="mt-6 space-y-4">
-      <Field
-        label={t("auth.fullName")}
-        autoComplete="name"
-        required
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-      />
+      {/* Deux champs et non un : le prénom et le nom sont stockés séparément
+          (migration 0036), et demander « Prénom Nom » d'un bloc obligerait à
+          redécouper ce que l'utilisateur vient de distinguer. */}
+      <div className="grid grid-cols-2 gap-4">
+        <Field
+          label={t("auth.firstName")}
+          autoComplete="given-name"
+          required
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+        />
+        <Field
+          label={t("auth.lastName")}
+          autoComplete="family-name"
+          required
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+        />
+      </div>
       <Field
         label={t("auth.jobTitle")}
         optionalText={t("common.optional")}
@@ -325,7 +339,10 @@ export function AccessRequestForm({
   const t = useT();
   const router = useRouter();
 
-  const [fullName, setFullName] = useState(defaultName);
+  const [firstName, setFirstName] = useState(() => defaultName.split(" ")[0] ?? "");
+  const [lastName, setLastName] = useState(() =>
+    defaultName.split(" ").slice(1).join(" "),
+  );
   const [jobTitle, setJobTitle] = useState("");
   const [organisationId, setOrganisationId] = useState("");
   const [message, setMessage] = useState("");
@@ -345,7 +362,8 @@ export function AccessRequestForm({
     setError(null);
     setState("sending");
     const result = await submitAccessRequest({
-      fullName: fullName.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       jobTitle: jobTitle.trim() || null,
       organisationId: organisationId || null,
       message: message.trim() || null,
@@ -361,12 +379,22 @@ export function AccessRequestForm({
 
   return (
     <form onSubmit={submit} className="mt-6 space-y-3 text-left">
-      <Field
-        label={t("auth.fullName")}
-        required
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Field
+          label={t("auth.firstName")}
+          autoComplete="given-name"
+          required
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+        />
+        <Field
+          label={t("auth.lastName")}
+          autoComplete="family-name"
+          required
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+        />
+      </div>
       <Field
         label={t("auth.jobTitle")}
         optionalText={t("common.optional")}

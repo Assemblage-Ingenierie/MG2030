@@ -106,7 +106,7 @@
     "awaitingBody": "Your request has been recorded and the administrators have been notified. Your account carries no access to project data until one of them assigns it an organisation, a role and a scope. To follow it up, contact {admins}.",
     "rejectedTitle": "Access was not granted",
     "rejectedBody": "Your request was reviewed and not granted. If you believe this is a mistake, contact {admins}.",
-    "error_emptyName": "A full name is required.",
+    "error_emptyName": "A first name and a last name are required.",
     "error_shortPassword": "The password must be at least {min} characters.",
     "error_unauthenticated": "Session expired. Sign in again.",
     "error_alreadyMember": "This account is already a member of the project.",
@@ -127,7 +127,9 @@
     "error_passwordMismatch": "The two passwords do not match.",
     "entity": "Your entity",
     "entityHint": "Which side of the project you work for. It colours the tasks you own in the schedule. An administrator confirms it when granting access.",
-    "entityUnspecified": "Prefer not to say"
+    "entityUnspecified": "Prefer not to say",
+    "firstName": "First name",
+    "lastName": "Last name"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -853,7 +855,6 @@
   },
   "roadmap": {
     "title": "Roadmap",
-    "intro": "Operational tracking of the AMO workstreams. An action may carry a precise date, a period, or no date at all — the schedule says what it knows, never more.",
     "action": "Action",
     "subject": "Main subject",
     "status": "Status",
@@ -931,6 +932,7 @@
     "renameSubject": "Click to rename",
     "error_emptySubjectName": "A subject needs a name.",
     "error_duplicateSubject": "A subject with that name already exists.",
-    "error_notArchived": "Only an archived action can be deleted."
+    "error_notArchived": "Only an archived action can be deleted.",
+    "applyFilter": "Apply"
   }
 }

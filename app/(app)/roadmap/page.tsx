@@ -82,9 +82,11 @@ export default async function RoadmapPage({
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
+      {/* Sans sous-titre : la phrase d'intention se lisait une fois, puis
+          occupait deux lignes à chaque visite d'un écran consulté
+          quotidiennement. Retirée le 01/10/2026. */}
       <Section
         title={t("roadmap.title")}
-        description={t("roadmap.intro")}
         actions={<AddActionButton subjects={subjects} people={personOptions} />}
       >
         {/* La vue d'un côté, l'état du filtrage de l'autre. Le compte des

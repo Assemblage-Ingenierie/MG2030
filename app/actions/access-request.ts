@@ -45,7 +45,8 @@ function appUrl(): string {
  * heurter à une erreur technique.
  */
 export async function submitAccessRequest(input: {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   jobTitle: string | null;
   /**
    * Entité déclarée par le demandeur (TA, AFD, PIU) ou `null`.
@@ -58,8 +59,13 @@ export async function submitAccessRequest(input: {
   organisationId: string | null;
   message: string | null;
 }): Promise<RequestResult> {
-  const fullName = input.fullName.trim();
-  if (fullName === "") return { ok: false, error: "emptyName" };
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  if (firstName === "" || lastName === "") return { ok: false, error: "emptyName" };
+  // `full_name` reste écrit : il est dérivé par déclencheur (migration 0036),
+  // mais le renseigner garde la ligne lisible même si le déclencheur venait à
+  // être retiré, et sert au message envoyé aux administrateurs.
+  const fullName = `${firstName} ${lastName}`;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -79,6 +85,8 @@ export async function submitAccessRequest(input: {
     auth_user_id: auth.user.id,
     email: auth.user.email,
     full_name: fullName,
+    first_name: firstName,
+    last_name: lastName,
     job_title: input.jobTitle?.trim() || null,
     organisation_id: input.organisationId,
     message: input.message?.trim() || null,
@@ -123,7 +131,7 @@ export async function approveAccessRequest(
 
   const { data: request, error: readError } = await supabase
     .from("mg2030_access_request")
-    .select("id, auth_user_id, email, full_name, job_title, status")
+    .select("id, auth_user_id, email, full_name, first_name, last_name, job_title, status")
     .eq("id", requestId)
     .single();
   if (readError || !request) return { ok: false, error: "notFound" };
@@ -140,6 +148,8 @@ export async function approveAccessRequest(
     id: request.auth_user_id,
     email: request.email,
     full_name: request.full_name,
+    first_name: request.first_name,
+    last_name: request.last_name,
     job_title: request.job_title,
     organisation_id: organisationId,
     functional_role_id: functionalRoleId,

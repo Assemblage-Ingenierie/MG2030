@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useI18n, useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { cn } from "@/lib/cn";
+import { PopoverPanel } from "@/components/ui/popover";
 import { ROADMAP_PRIORITY, ROADMAP_STATUS } from "@/lib/tokens";
 import {
   TIMELINE_KINDS,
@@ -522,27 +523,19 @@ function Cell({
   children: React.ReactNode;
   wide?: boolean;
 }) {
-  const box = useRef<HTMLDivElement>(null);
+  /* En ÉTAT et non en ref : une ref lue pendant le rendu vaut `null` au
+     premier passage et ne redéclenche rien quand elle se remplit. */
+  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open, setOpen]);
-
+  /* ⚠ LE PANNEAU PASSE PAR UN PORTAIL (`PopoverPanel`), et ce n'est pas un
+     détail d'implémentation. En `absolute`, il était rogné par le
+     `overflow-x-auto` dont `Table` enveloppe tout tableau : avec peu de lignes,
+     le menu se trouvait tranché au milieu. Un portail le soustrait aux
+     `overflow` de ses ancêtres. */
   return (
-    <span ref={box} className="relative inline-block w-full">
+    <span className="relative inline-block w-full">
       <button
+        ref={setTrigger}
         type="button"
         onClick={() => setOpen(!open)}
         disabled={pending}
@@ -561,17 +554,14 @@ function Cell({
         />
       )}
 
-      {open && (
-        <div
-          className={cn(
-            "absolute left-0 z-30 mt-1 rounded-md border border-[var(--border)]",
-            "bg-[var(--surface)] shadow-lg",
-            wide ? "w-52" : "w-44",
-          )}
-        >
-          {children}
-        </div>
-      )}
+      <PopoverPanel
+        anchor={trigger}
+        open={open}
+        onClose={() => setOpen(false)}
+        width={wide ? 220 : 180}
+      >
+        {children}
+      </PopoverPanel>
     </span>
   );
 }
