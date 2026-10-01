@@ -166,9 +166,19 @@ export const FlowIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Jalons sur un chemin : une suite d'etapes datees, pas un calendrier. */
+export const RoadmapIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 7h11a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h11" />
+    <circle cx="4" cy="7" r="1.6" />
+    <circle cx="20" cy="19" r="1.6" />
+  </Svg>
+);
+
 /** Table de correspondance nom → composant, pour une navigation déclarée en données. */
 export const NAV_ICONS = {
   dashboard: DashboardIcon,
+  roadmap: RoadmapIcon,
   sites: SiteIcon,
   buildings: BuildingIcon,
   contracts: ContractIcon,
