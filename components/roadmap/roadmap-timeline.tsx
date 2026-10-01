@@ -1,15 +1,21 @@
 import { getI18n } from "@/lib/i18n/server";
 import { Card } from "@/components/ui/card";
 import { GANTT, ROADMAP_PRIORITY, ROADMAP_STATUS } from "@/lib/tokens";
-import { PX_PER_DAY, buildTicks, suggestScale } from "@/lib/gantt/scale";
+import { PX_PER_DAY, buildTicks, periodBand, suggestScale } from "@/lib/gantt/scale";
 import { addDays, daysBetween } from "@/lib/schedule/dates";
 import { timelineLabel } from "@/lib/roadmap/timeline";
 import { ROADMAP_STATUSES, type RoadmapActionRow, type RoadmapStatus } from "@/lib/roadmap/types";
 import type { RoadmapGroup } from "@/lib/roadmap/filter";
+import { TimelineRow } from "./timeline-row";
+import type { PersonOption } from "./assignee-picker";
 
-const ROW_H = 26;
-const HEAD_H = 36;
-const LABEL_W = 280;
+const ROW_H = 28;
+/** Bande des mois, au-dessus de l'échelle fine. */
+const BAND_H = 18;
+/** Bande de l'échelle choisie (jours, semaines…). */
+const TICK_H = 20;
+const HEAD_H = BAND_H + TICK_H;
+const LABEL_W = 360;
 
 /**
  * Frise de la roadmap.
@@ -44,10 +50,15 @@ export async function RoadmapTimeline({
   groups,
   undated,
   today,
+  people,
+  shortNames,
 }: {
   groups: RoadmapGroup[];
   undated: RoadmapActionRow[];
   today: string;
+  /** Pour le choix d'assignataire depuis la frise. */
+  people: PersonOption[];
+  shortNames: boolean;
 }) {
   const { t, locale } = await getI18n();
 
@@ -77,6 +88,16 @@ export async function RoadmapTimeline({
   // de quelques jours en silence.
   const { origin, ticks, totalDays } = buildTicks(scale, from, to, locale);
   const width = Math.max(totalDays * pxPerDay, 360);
+
+  /* ⚠ UNE BANDE DE MOIS AU-DESSUS DE L'ÉCHELLE FINE. « W41 » ne dit pas de
+     quel mois il s'agit, et la frise se lisait en comptant les semaines depuis
+     la dernière qu'on avait reconnue. La bande se cale sur la MÊME origine que
+     le corps (voir `periodBand`), sinon les mois flottent de quelques jours
+     au-dessus des semaines.
+
+     Trimestres plutôt que mois quand la frise est très longue : douze libellés
+     mensuels sur une année resserrée ne tiennent pas. */
+  const band = periodBand(totalDays > 540 ? "quarter" : "month", origin, totalDays, locale);
 
   const x = (iso: string) => daysBetween(origin, iso) * pxPerDay;
 
@@ -117,11 +138,17 @@ export async function RoadmapTimeline({
               ) : (
                 <div
                   key={row.action.id}
-                  className="flex items-center border-b border-r border-[var(--border)] px-2 pl-4 text-[13px]"
+                  className="flex items-center border-b border-r border-[var(--border)] px-2 pl-3 text-[13px]"
                   style={{ height: ROW_H }}
-                  title={row.action.title}
                 >
-                  <span className="truncate">{row.action.title}</span>
+                  <TimelineRow
+                    actionId={row.action.id}
+                    title={row.action.title}
+                    assignees={row.action.assignees}
+                    people={people}
+                    notSetLabel={t("roadmap.notSet")}
+                    shortNames={shortNames}
+                  />
                 </div>
               ),
             )}
@@ -136,17 +163,50 @@ export async function RoadmapTimeline({
               style={{ display: "block", background: GANTT.band }}
               aria-hidden="true"
             >
+              {/* ── Bande des mois ──────────────────────────────────────── */}
+              {band.map((tick) => {
+                const tx = tick.offsetDays * pxPerDay;
+                const tw = tick.spanDays * pxPerDay;
+                return (
+                  <g key={`b-${tick.date}`}>
+                    <line x1={tx} y1={0} x2={tx} y2={HEAD_H} stroke={GANTT.gridStrong} />
+                    {tw >= 30 && (
+                      <text
+                        x={tx + tw / 2}
+                        y={BAND_H - 5}
+                        textAnchor="middle"
+                        fontSize={10}
+                        fontWeight={600}
+                        fill={GANTT.text}
+                      >
+                        {tick.label}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <line x1={0} y1={BAND_H - 0.5} x2={width} y2={BAND_H - 0.5} stroke={GANTT.grid} />
+
+              {/* ── Échelle fine ────────────────────────────────────────── */}
               {ticks.map((tick) => {
                 const tx = tick.offsetDays * pxPerDay;
                 const tw = tick.spanDays * pxPerDay;
-                if (tw < 26) return null;
+                /* ⚠ LE SEUIL SUIT LA LARGEUR RÉELLE DE LA GRADUATION. Il valait
+                   26 px en dur : à l'échelle du JOUR, une graduation fait
+                   24 px, si bien que l'axe s'affichait entièrement MUET dès
+                   qu'un filtre resserrait la frise sous deux mois — signalé le
+                   01/10/2026 (« quand on filtre les Weeks disparaissent »).
+                   On n'écrit plus qu'un libellé sur deux lorsque la place
+                   manque, plutôt que de n'en écrire aucun. */
+                const everyOther = tw < 22 && tick.offsetDays % (2 * tick.spanDays) !== 0;
+                if (tw < 11 || everyOther) return null;
                 return (
                   <text
                     key={tick.date}
                     x={tx + tw / 2}
-                    y={HEAD_H - 13}
+                    y={HEAD_H - 6}
                     textAnchor="middle"
-                    fontSize={10}
+                    fontSize={9}
                     fill={tick.major ? GANTT.text : GANTT.muted}
                     fontWeight={tick.major ? 600 : 400}
                   >
@@ -196,18 +256,23 @@ export async function RoadmapTimeline({
                 const label = timelineLabel(a.timeline, locale);
                 return (
                   <g key={a.id}>
-                    {/* Le liseré d'urgence est un RECTANGLE À GAUCHE, pas un
-                        contour : un contour rouge autour d'une barre rouge
-                        — « bloqué » — ne se voyait pas, et autour d'une barre
-                        verte il se lisait comme un second statut. */}
+                    {/* ⚠ L'URGENCE CERCLE LA BARRE (01/10/2026). Elle était
+                        marquée par un trait à gauche, qui disparaissait sur une
+                        barre d'un jour — large de quatre pixels, le trait
+                        valait presque autant que la barre. Le contour tient sur
+                        n'importe quelle largeur ; il est épais et détaché de
+                        deux pixels, pour rester visible même sur le rouge de
+                        « bloqué ». */}
                     {a.priority === "urgent" && (
                       <rect
-                        x={bx - 3}
-                        y={i * ROW_H + 4}
-                        width={3}
-                        height={ROW_H - 8}
-                        rx={1}
-                        fill={ROADMAP_PRIORITY.urgent}
+                        x={bx - 2.5}
+                        y={i * ROW_H + 3.5}
+                        width={bw + 5}
+                        height={ROW_H - 7}
+                        rx={4}
+                        fill="none"
+                        stroke={ROADMAP_PRIORITY.urgent}
+                        strokeWidth={1.6}
                       />
                     )}
                     <rect
@@ -266,8 +331,8 @@ export async function RoadmapTimeline({
         <span className="inline-flex items-center gap-1.5">
           <span
             aria-hidden="true"
-            className="inline-block h-3 w-[3px] rounded-sm"
-            style={{ backgroundColor: ROADMAP_PRIORITY.urgent }}
+            className="inline-block h-2.5 w-4 rounded-sm border-[1.5px]"
+            style={{ borderColor: ROADMAP_PRIORITY.urgent }}
           />
           {t("roadmap.legendUrgent")}
         </span>
@@ -286,8 +351,8 @@ export async function RoadmapTimeline({
                 className="flex items-center gap-1.5 rounded border border-[var(--border)] bg-[var(--app-bg)] py-1 pr-2 text-xs text-[var(--text)]"
                 style={
                   a.priority === "urgent"
-                    ? { borderLeftColor: ROADMAP_PRIORITY.urgent, borderLeftWidth: 3 }
-                    : { paddingLeft: 2 }
+                    ? { borderColor: ROADMAP_PRIORITY.urgent, borderWidth: 1.5 }
+                    : undefined
                 }
               >
                 {/* La même pastille que dans la frise : une action sans date

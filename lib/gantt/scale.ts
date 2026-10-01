@@ -176,3 +176,56 @@ export function suggestScale(spanDays: number): ScaleUnit {
   if (spanDays <= 1500) return "month";
   return "quarter";
 }
+
+/**
+ * Une BANDE de périodes alignée sur une origine imposée.
+ *
+ * ⚠ `buildTicks` recale l'origine sur le début de sa propre période : demander
+ * des mois et des semaines sur la même frise donnerait deux origines
+ * différentes, donc deux systèmes d'abscisses, et les mois flotteraient de
+ * quelques jours au-dessus des semaines. Ici l'origine est DONNÉE, et la
+ * première période est rognée à gauche si elle commence avant.
+ *
+ * Sert à coiffer une échelle fine d'une échelle plus large : des semaines sans
+ * leurs mois obligent à compter « W41, c'est quel mois déjà ? ». Demandé le
+ * 01/10/2026.
+ */
+export function periodBand(
+  unit: "month" | "quarter",
+  origin: IsoDate,
+  totalDays: number,
+  locale: "en" | "sq" = "en",
+): Tick[] {
+  const months = locale === "sq" ? MONTHS_SQ : MONTHS_EN;
+  const originDay = toDayNumber(origin);
+  const endDay = originDay + totalDays;
+
+  let cursor = unit === "month" ? startOfMonth(origin) : startOfQuarter(origin);
+  const ticks: Tick[] = [];
+
+  for (let guard = 0; guard < 5_000 && toDayNumber(cursor) < endDay; guard += 1) {
+    const next = addMonths(cursor, unit === "month" ? 1 : 3);
+    const { y, m } = parts(cursor);
+
+    // Rognage aux deux bords : une période à cheval ne doit déborder ni à
+    // gauche de l'origine, ni à droite de la frise.
+    const start = Math.max(toDayNumber(cursor), originDay);
+    const stop = Math.min(toDayNumber(next), endDay);
+
+    if (stop > start) {
+      ticks.push({
+        offsetDays: start - originDay,
+        spanDays: stop - start,
+        date: cursor,
+        label:
+          unit === "month"
+            ? `${months[m - 1]} ${String(y).slice(2)}`
+            : `Q${Math.floor((m - 1) / 3) + 1} ${y}`,
+        major: unit === "month" ? m === 1 : m === 1,
+      });
+    }
+    cursor = next;
+  }
+
+  return ticks;
+}

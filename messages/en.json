@@ -286,7 +286,9 @@
     "levelsTitle": "What each level can do",
     "levelHint": "One attribute decides the right to write. The scope below decides WHAT it applies to — that is a different question.",
     "levelAfdNote": "Organisation access modes no longer grant anything. An AFD account can be made an editor one at a time, without changing anything for the rest of the organisation.",
-    "cannotDemoteSelf": "You cannot change your own access level: an administrator who demotes themselves by mistake leaves no one able to grant the right back."
+    "cannotDemoteSelf": "You cannot change your own access level: an administrator who demotes themselves by mistake leaves no one able to grant the right back.",
+    "emailNotConfirmed": "This address has not been confirmed yet, so the person still cannot sign in. Approving now is fine — the account will be ready the day they click their link. If the email never arrived, resend the confirmation from Supabase Auth.",
+    "jobTitle": "Job title"
   },
   "sites": {
     "title": "Sites",
@@ -1021,5 +1023,19 @@
     "hide": "Hide",
     "adminKept": "Administration screens stay visible to administrators whatever happens: hiding them would lock you out.",
     "error_writeFailed": "The change was refused."
+  },
+  "account": {
+    "title": "My account",
+    "intro": "Correct your own name, job title and sign-in address. ",
+    "managedTitle": "Set by an administrator",
+    "managedIntro": "These are decided when your account is opened. Ask an administrator to change them.",
+    "saved": "Saved",
+    "changeEmail": "Change the address",
+    "emailNotice": "Nothing changes until you click the link we send to the NEW address. Until then you keep signing in with the current one.",
+    "emailSent": "A confirmation link has been sent to {email}.",
+    "error_emptyName": "First name and last name are both needed.",
+    "error_writeFailed": "The change was refused.",
+    "error_invalidEmail": "This does not look like an email address.",
+    "error_sameEmail": "This is already your address."
   }
 }

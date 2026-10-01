@@ -3,6 +3,7 @@ import {
   addMonths,
   buildTicks,
   isoWeek,
+  periodBand,
   startOfMonth,
   startOfQuarter,
   startOfWeek,
@@ -207,5 +208,46 @@ describe("mise en page du Gantt", () => {
     });
     expect(layout.bars).toHaveLength(0);
     expect(layout.rows).toHaveLength(1);
+  });
+});
+
+describe("bande de periodes alignee", () => {
+  it("part de l'ORIGINE DONNEE, pas du debut de la periode", () => {
+    // Une frise hebdomadaire ouvre un lundi : les mois qui la coiffent doivent
+    // partir de ce lundi, sinon ils flottent de quelques jours au-dessus des
+    // semaines.
+    const band = periodBand("month", "2026-09-28", 60);
+    expect(band[0].offsetDays).toBe(0);
+    expect(band[0].date).toBe("2026-09-01");
+  });
+
+  it("rogne la premiere periode a gauche", () => {
+    // Septembre commence le 1er, la frise le 28 : il ne reste que 3 jours.
+    expect(periodBand("month", "2026-09-28", 60)[0].spanDays).toBe(3);
+  });
+
+  it("rogne la derniere periode a droite", () => {
+    const band = periodBand("month", "2026-09-28", 10);
+    const last = band[band.length - 1];
+    expect(last.offsetDays + last.spanDays).toBe(10);
+  });
+
+  it("couvre exactement la frise, sans trou ni recouvrement", () => {
+    const band = periodBand("month", "2026-09-28", 200);
+    let at = 0;
+    for (const tick of band) {
+      expect(tick.offsetDays).toBe(at);
+      at += tick.spanDays;
+    }
+    expect(at).toBe(200);
+  });
+
+  it("sait aussi compter en trimestres", () => {
+    const band = periodBand("quarter", "2026-01-01", 365);
+    expect(band.map((t) => t.label)).toEqual(["Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026"]);
+  });
+
+  it("ne rend rien sur une frise de duree nulle", () => {
+    expect(periodBand("month", "2026-09-28", 0)).toEqual([]);
   });
 });

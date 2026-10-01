@@ -134,6 +134,8 @@ export async function listRoles(): Promise<RoleOption[]> {
 // ── Demandes d'accès ────────────────────────────────────────────────────────
 
 export interface AccessRequestRow {
+  /** Faux tant que la personne n'a pas cliqué son lien de confirmation. */
+  emailConfirmed?: boolean;
   id: string;
   email: string;
   fullName: string;
@@ -153,13 +155,26 @@ export interface AccessRequestRow {
  */
 export async function listPendingAccessRequests(): Promise<AccessRequestRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("mg2030_access_request")
-    .select("id, email, full_name, job_title, organisation_id, message, created_at")
-    .eq("status", "pending")
-    .order("created_at", { ascending: true });
+
+  /* ⚠ L'ADRESSE CONFIRMÉE EST LA VRAIE CONDITION D'ENTRÉE, et elle ne vit pas
+     dans cette table. Depuis 0041 une demande apparaît dès l'inscription, donc
+     avant toute confirmation : approuver quelqu'un dont l'adresse n'est pas
+     confirmée ne lui ouvre rien, et sans ce signal l'administrateur n'aurait
+     aucun moyen de le savoir. `mg2030_unconfirmed_signups()` ne rend que des
+     identifiants qu'il voit déjà (migration 0042) — jamais `auth.users`, qui
+     exigerait la clé de service. */
+  const [{ data, error }, { data: unconfirmed }] = await Promise.all([
+    supabase
+      .from("mg2030_access_request")
+      .select("id, auth_user_id, email, full_name, job_title, organisation_id, message, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true }),
+    supabase.rpc("mg2030_unconfirmed_signups"),
+  ]);
 
   if (error) throw new Error(`Lecture des demandes d'acces : ${error.message}`);
+
+  const pending = new Set((unconfirmed ?? []) as string[]);
   return (data ?? []).map((r) => ({
     id: r.id as string,
     email: r.email as string,
@@ -168,6 +183,7 @@ export async function listPendingAccessRequests(): Promise<AccessRequestRow[]> {
     organisationId: (r.organisation_id as string) ?? null,
     message: (r.message as string) ?? null,
     createdAt: r.created_at as string,
+    emailConfirmed: !pending.has(r.auth_user_id as string),
   }));
 }
 

@@ -17,7 +17,8 @@ import { useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/i18n-context";
 import { useAuthUser } from "@/components/auth/auth-context";
-import { LogoutIcon } from "@/components/ui/icons";
+import Link from "next/link";
+import { LogoutIcon, UsersIcon } from "@/components/ui/icons";
 
 export function AccountMenu() {
   const t = useT();
@@ -68,6 +69,18 @@ export function AccountMenu() {
           <p className="truncate text-xs text-[var(--text-muted)]">{user.email}</p>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">{user.role.title}</p>
         </div>
+        {/* Sa fiche, depuis le menu qui porte déjà son nom : c'est là qu'on la
+            cherche. Un lien et non un bouton — on y navigue. */}
+        <Link
+          href="/account"
+          className={
+            "mt-1 flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm " +
+            "text-[var(--text)] hover:bg-[var(--app-bg)]"
+          }
+        >
+          <UsersIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {t("common.myAccount")}
+        </Link>
         <button
           type="button"
           disabled={pending}

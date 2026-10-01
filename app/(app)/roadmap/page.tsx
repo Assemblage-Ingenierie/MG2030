@@ -183,6 +183,8 @@ export default async function RoadmapPage({
               )}
               undated={sorted.filter((a) => a.timeline.kind === null)}
               today={localToday()}
+              people={personOptions}
+              shortNames={shortNames}
             />
           </>
         ) : (
@@ -210,22 +212,12 @@ export default async function RoadmapPage({
                 mots : la ligne devenait un paragraphe, et le tableau
                 illisible. `Table` offre déjà un défilement horizontal — mieux
                 vaut faire glisser que lire à la verticale. */}
-            <Table className="min-w-[1020px]">
+            <Table className="min-w-[960px]">
               <Thead>
-                <Th className="w-[22%]">
+                <Th className="w-[38%]">
                   <ColumnHeader
                     label={t("roadmap.action")}
                     column="action"
-                    kind={null}
-                    params={params}
-                  />
-                </Th>
-                {/* Le DÉTAIL contre l'intitulé : les deux se lisent ensemble
-                    — « relancer le MoF » n'a de sens qu'avec « sur quoi ». */}
-                <Th className="w-[22%]">
-                  <ColumnHeader
-                    label={t("roadmap.detail")}
-                    column={null}
                     kind={null}
                     params={params}
                   />
@@ -269,7 +261,7 @@ export default async function RoadmapPage({
               </Thead>
               <tbody>
                 {groups.length === 0 && (
-                  <EmptyRow colSpan={7}>
+                  <EmptyRow colSpan={6}>
                     {actions.length === 0 ? t("roadmap.empty") : t("roadmap.emptyFiltered")}
                   </EmptyRow>
                 )}
@@ -277,7 +269,7 @@ export default async function RoadmapPage({
                   <Fragment key={group.subjectId ?? "orphans"}>
                     <tr className="group">
                       <td
-                        colSpan={7}
+                        colSpan={6}
                         className="border-b border-t border-[var(--border)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
                       >
                         {/* Le groupe des ORPHELINES ne se renomme pas, ne se
@@ -325,9 +317,14 @@ export default async function RoadmapPage({
                               : undefined
                           }
                         >
+                          {/* ⚠ LE DÉTAIL EST DANS LA CELLULE DE L'ACTION, en
+                              plus petit. Il avait eu sa propre colonne le temps
+                              d'une version, pour lui donner une cible de clic ;
+                              mais il complète l'intitulé, il ne lui fait pas
+                              face — et une septième colonne écrasait l'action
+                              elle-même. Il garde sa cible : le clic porte sur
+                              la ligne de détail, pas sur le titre. */}
                           <InlineTitle actionId={action.id} value={action.title} />
-                        </Td>
-                        <Td>
                           <InlineDetail
                             actionId={action.id}
                             value={action.detail}

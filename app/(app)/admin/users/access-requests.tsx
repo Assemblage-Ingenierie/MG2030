@@ -27,6 +27,15 @@ export interface PendingRequest {
   createdAt: string;
   /** Entité déclarée par le demandeur, ou `null` s'il a préféré ne rien dire. */
   organisationId: string | null;
+  /**
+   * Adresse confirmée ?
+   *
+   * Une demande peut arriver AVANT la confirmation depuis la migration 0041 :
+   * c'était tout l'objet du correctif — voir quelqu'un attendre plutôt que de
+   * l'ignorer. Mais approuver ne lui ouvre rien tant qu'elle n'a pas cliqué
+   * son lien, et le taire ferait croire le compte ouvert.
+   */
+  emailConfirmed?: boolean;
 }
 
 export interface OrgChoice {
@@ -131,6 +140,19 @@ function RequestRow({
           {formatDateTime(request.createdAt)}
         </span>
       </div>
+
+      {/* ⚠ ON LE DIT, ON NE BLOQUE PAS. Approuver reste utile — le compte sera
+          prêt le jour où la personne confirme — mais sans ce rappel on croirait
+          l'accès ouvert, et c'est exactement le malentendu qui a fait attendre
+          deux inscrits sans que personne s'en aperçoive. */}
+      {request.emailConfirmed === false && (
+        <p
+          className="rounded border px-2 py-1.5 text-xs"
+          style={{ borderColor: "var(--accent-2)", color: "var(--text-muted)" }}
+        >
+          {t("users.emailNotConfirmed")}
+        </p>
+      )}
 
       {request.message && (
         <p className="text-sm text-[var(--text-muted)]">{request.message}</p>
