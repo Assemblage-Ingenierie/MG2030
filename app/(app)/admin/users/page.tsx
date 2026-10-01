@@ -74,21 +74,11 @@ export default async function UsersPage() {
         />
       </Section>
 
-      <Section title={t("users.title")} description={t("users.intro")}>
-        {/* Le pool d'authentification est partagé : c'est la première chose
-            qu'un administrateur doit comprendre en arrivant sur cet écran. */}
-        <Card
-          className="flex items-start gap-3 p-4"
-          style={{ borderColor: "var(--accent-2)" }}
-        >
-          <AlertIcon
-            className="mt-0.5 h-5 w-5 shrink-0"
-            style={{ color: "var(--accent-2)" }}
-            aria-hidden="true"
-          />
-          <p className="text-sm text-[var(--text-muted)]">{t("users.sharedAuthWarning")}</p>
-        </Card>
-
+      {/* Ni sous-titre ni bandeau d'avertissement (01/10/2026). Le pool
+          d'authentification partagé et le mode d'ouverture des comptes restent
+          écrits dans docs/ADMIN.md, où on les lit une fois ; répétés en haut
+          d'un écran qu'on ouvre chaque semaine, ils ne se lisaient plus. */}
+      <Section title={t("users.title")}>
         <Card className="overflow-hidden">
           <Table>
             <Thead>

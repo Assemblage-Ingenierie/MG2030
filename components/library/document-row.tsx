@@ -19,6 +19,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/components/i18n/i18n-context";
+import { Gloss } from "@/components/acronyms/glossary";
 import { usePermissions } from "@/components/auth/auth-context";
 import { Modal } from "@/components/ui/modal";
 import { Button, IconButton } from "@/components/ui/button";
@@ -152,11 +153,11 @@ export function DocumentName({ doc }: { doc: DocumentRowData }) {
             title={t("library.renameHint")}
             className="min-w-0 truncate rounded text-left font-medium text-[var(--text)] hover:bg-[var(--app-bg)] disabled:opacity-60"
           >
-            {doc.originalFilename}
+            <Gloss>{doc.originalFilename}</Gloss>
           </button>
         ) : (
           <span className="min-w-0 truncate font-medium text-[var(--text)]">
-            {doc.originalFilename}
+            <Gloss>{doc.originalFilename}</Gloss>
           </span>
         )}
         {error && (
@@ -182,7 +183,7 @@ export function DocumentName({ doc }: { doc: DocumentRowData }) {
           )}
           title={long ? t(expanded ? "library.collapseDescription" : "library.expandDescription") : undefined}
         >
-          {shown}
+          <Gloss>{shown}</Gloss>
         </button>
       )}
     </span>

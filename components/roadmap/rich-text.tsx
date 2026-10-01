@@ -18,6 +18,7 @@
 
 import { useRef, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
+import { Gloss } from "@/components/acronyms/glossary";
 import { BoldIcon, BulletIcon, ItalicIcon } from "@/components/ui/icons";
 import { fieldClasses } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
@@ -52,9 +53,23 @@ export function RichText({ source, className }: { source: string; className?: st
 function Spans({ spans }: { spans: RichSpan[] }) {
   return (
     <>
+      {/* Les sigles se développent au survol jusque dans le détail enrichi :
+          c'est là qu'on écrit « relancer l'AFD sur le NOC ». Le LIEN en est
+          exclu — son libellé est déjà porteur d'une action, et un `<abbr>`
+          pointillé sous un lien souligné donne deux traits. */}
       {spans.map((span, i) => {
-        if (span.kind === "bold") return <strong key={i}>{span.text}</strong>;
-        if (span.kind === "italic") return <em key={i}>{span.text}</em>;
+        if (span.kind === "bold")
+          return (
+            <strong key={i}>
+              <Gloss>{span.text}</Gloss>
+            </strong>
+          );
+        if (span.kind === "italic")
+          return (
+            <em key={i}>
+              <Gloss>{span.text}</Gloss>
+            </em>
+          );
         if (span.kind === "code")
           return (
             <code key={i} className="rounded bg-[var(--app-bg)] px-1 text-[0.9em]">
@@ -76,7 +91,11 @@ function Spans({ spans }: { spans: RichSpan[] }) {
               {span.text}
             </a>
           );
-        return <span key={i}>{span.text}</span>;
+        return (
+          <span key={i}>
+            <Gloss>{span.text}</Gloss>
+          </span>
+        );
       })}
     </>
   );

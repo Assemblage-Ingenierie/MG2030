@@ -22,6 +22,7 @@
 
 import { useCallback, useRef, useState, useTransition } from "react";
 import { useT } from "@/components/i18n/i18n-context";
+import { Gloss } from "@/components/acronyms/glossary";
 import { usePermissions } from "@/components/auth/auth-context";
 import { formatPlanDate } from "@/lib/i18n/format";
 import { daysToWeeks } from "@/lib/schedule/dates";
@@ -245,7 +246,7 @@ export function TaskGrid({
                         isHeader && "uppercase text-xs tracking-wide text-[var(--text-muted)]",
                       )}
                     >
-                      {task.activity}
+                      <Gloss>{task.activity}</Gloss>
                     </span>
                   </EditableCell>
 

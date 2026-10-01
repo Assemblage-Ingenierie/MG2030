@@ -12,7 +12,7 @@ import { useState, useTransition } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { EyeIcon, EyeOffIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
-import { setNavHidden } from "./actions";
+import { setNavHidden } from "@/app/(app)/settings/actions";
 
 export function TabToggle({ href, hidden }: { href: string; hidden: boolean }) {
   const t = useT();

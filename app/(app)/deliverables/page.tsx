@@ -9,6 +9,7 @@ import { formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Badge, Chip } from "@/components/ui/badge";
+import { Gloss } from "@/components/acronyms/glossary";
 
 /**
  * Livrables et retards.
@@ -72,7 +73,9 @@ export default async function DeliverablesPage() {
               )}
               {deliverables.map((d) => (
                 <Tr key={d.id}>
-                  <Td className="font-medium">{d.title}</Td>
+                  <Td className="font-medium">
+                    <Gloss>{d.title}</Gloss>
+                  </Td>
                   {/* L'émetteur est un TEXTE : ni les consultants ni les
                       entreprises ne sont utilisateurs de la plateforme. */}
                   <Td className="text-sm text-[var(--text-muted)]">{d.issuer ?? "—"}</Td>

@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
+import { Gloss } from "@/components/acronyms/glossary";
 import { usePermissions } from "@/components/auth/auth-context";
 import Link from "next/link";
 import { Button, IconButton } from "@/components/ui/button";
@@ -812,7 +813,7 @@ function GridRow(props: RowProps) {
                   : "text-[15px]",
               )}
             >
-              {task.activity}
+              <Gloss>{task.activity}</Gloss>
             </span>
             {hiddenCount > 0 && (
               <span className="shrink-0 text-[10px] text-[var(--text-muted)]">

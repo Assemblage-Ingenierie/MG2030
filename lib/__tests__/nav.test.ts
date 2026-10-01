@@ -50,8 +50,9 @@ describe("menu visible", () => {
 
 describe("routes masquables", () => {
   it("n'offre JAMAIS de masquer un ecran d'administration", () => {
-    // Masquer celui des onglets retirerait le seul moyen de revenir en arriere.
-    expect(HIDEABLE_HREFS).not.toContain("/admin/navigation");
+    // Masquer l'ecran des parametres retirerait le seul moyen de revenir en
+    // arriere : c'est lui qui porte les interrupteurs.
+    expect(HIDEABLE_HREFS).not.toContain("/settings");
     expect(HIDEABLE_HREFS).not.toContain("/admin/users");
   });
 

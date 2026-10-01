@@ -79,9 +79,11 @@ export const NAV: NavGroup[] = [
       { href: "/org-chart", labelKey: "nav.orgChart", icon: "orgChart" },
       { href: "/data-flows", labelKey: "nav.dataFlows", icon: "flows" },
       { href: "/admin/users", labelKey: "nav.users", icon: "users", adminOnly: true },
-      { href: "/admin/navigation", labelKey: "nav.tabs", icon: "admin", adminOnly: true },
-      { href: "/admin/tags", labelKey: "nav.tags", icon: "library", adminOnly: true },
       { href: "/admin/organisations", labelKey: "nav.organisations", icon: "orgChart", adminOnly: true },
+      /* Onglets, étiquettes et cadre des Jeux tenaient trois entrées de menu
+         pour des gestes qu'on fait quelques fois par an. Une seule page de
+         paramètres, en queue d'administration (01/10/2026). */
+      { href: "/settings", labelKey: "nav.settings", icon: "admin", adminOnly: true },
       { href: "/design-system", labelKey: "nav.designSystem", icon: "admin", taOnly: true },
     ],
   },

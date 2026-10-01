@@ -6,6 +6,7 @@ import { formatPlanDate } from "@/lib/i18n/format";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { Badge, Chip } from "@/components/ui/badge";
+import { Gloss } from "@/components/acronyms/glossary";
 import {
   AddNoObjectionButton,
   NoObjectionRowActions,
@@ -165,7 +166,7 @@ export default async function NoObjectionsPage() {
               {group.rows.map((r) => (
                 <Tr key={r.id}>
                   <Td className="font-medium">
-                    {r.subject}
+                    <Gloss>{r.subject}</Gloss>
                     {r.comments && (
                       <span className="mt-0.5 block text-xs font-normal text-[var(--text-muted)]">
                         {r.comments}

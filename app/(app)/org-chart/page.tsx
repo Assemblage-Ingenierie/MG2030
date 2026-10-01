@@ -2,15 +2,11 @@ import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { ENTITY_COLOR } from "@/lib/tokens";
 import { Section } from "@/components/ui/card";
-
-interface Role {
-  code: string;
-  title: string;
-  organisation: string;
-  posts: number;
-  timeType: string | null;
-  holders: string[];
-}
+import {
+  RoleBox,
+  type ChartPerson,
+  type ChartRole,
+} from "@/components/org/role-box";
 
 /**
  * Organigramme du projet.
@@ -38,45 +34,55 @@ export default async function OrgChartPage() {
   const { data, error } = await supabase
     .from("mg2030_functional_role")
     .select(
-      `code, title, posts, time_type,
+      `id, code, title, posts, time_type,
        mg2030_organisation!inner ( code ),
-       mg2030_app_user ( full_name, is_active )`,
+       mg2030_app_user ( id, full_name, is_active )`,
     );
 
   if (error) throw new Error(`Lecture de l'organigramme : ${error.message}`);
 
-  const roles = new Map<string, Role>();
+  const roles = new Map<string, ChartRole>();
+  /* La liste des comptes AFFECTABLES se construit au passage, depuis la même
+     lecture : un compte actif, le poste qu'il occupe aujourd'hui. Elle sert au
+     panneau « placer quelqu'un », qui est un TRANSFERT — d'où la nécessité de
+     montrer d'où vient la personne. */
+  const people: ChartPerson[] = [];
+
   for (const row of data ?? []) {
     const r = row as unknown as {
+      id: string;
       code: string;
       title: string;
       posts: number;
       time_type: string | null;
       mg2030_organisation: { code: string };
-      mg2030_app_user: { full_name: string; is_active: boolean }[];
+      mg2030_app_user: { id: string; full_name: string; is_active: boolean }[];
     };
+
+    const holders = (r.mg2030_app_user ?? [])
+      .filter((u) => u.is_active)
+      .map((u) => ({ id: u.id, name: u.full_name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
     roles.set(r.code, {
+      id: r.id,
       code: r.code,
       title: r.title,
       organisation: r.mg2030_organisation.code,
       posts: r.posts,
       timeType: r.time_type,
-      holders: (r.mg2030_app_user ?? [])
-        .filter((u) => u.is_active)
-        .map((u) => u.full_name)
-        .sort((a, b) => a.localeCompare(b)),
+      holders,
     });
-  }
 
-  const labels = {
-    vacant: t("org.vacant"),
-    filled: (n: number, of: number) => t("org.filled", { n: String(n), of: String(of) }),
-    time: (type: string | null) => (type ? t(`org.time_${type}`) : null),
-  };
+    for (const holder of holders) {
+      people.push({ id: holder.id, name: holder.name, roleTitle: r.title });
+    }
+  }
+  people.sort((a, b) => a.name.localeCompare(b.name));
 
   const box = (code: string, className?: string) => {
     const role = roles.get(code);
-    return role ? <RoleBox role={role} labels={labels} className={className} /> : null;
+    return role ? <RoleBox role={role} people={people} className={className} /> : null;
   };
 
   const taColor = ENTITY_COLOR.TA;
@@ -236,85 +242,5 @@ function Line({ style, horizontal = false }: { style: React.CSSProperties; horiz
         ...(horizontal ? { height: 1 } : { width: 1 }),
       }}
     />
-  );
-}
-
-/** Une case de poste : intitulé, régime, puis les titulaires — ou « vacant ». */
-function RoleBox({
-  role,
-  labels,
-  className,
-}: {
-  role: Role;
-  labels: {
-    vacant: string;
-    filled: (n: number, of: number) => string;
-    time: (type: string | null) => string | null;
-  };
-  className?: string;
-}) {
-  // Le coordinateur est la tête de la PIU : case sombre, comme au schéma.
-  const lead = role.code === "COORD";
-  const time = labels.time(role.timeType);
-
-  return (
-    <div
-      className={
-        "relative z-10 flex flex-col items-center rounded-lg border px-3 py-2 text-center " +
-        (className ?? "")
-      }
-      style={
-        lead
-          ? { backgroundColor: "var(--text)", borderColor: "var(--text)", color: "var(--surface)" }
-          : { backgroundColor: "var(--surface)", borderColor: "var(--border)" }
-      }
-    >
-      <p className={lead ? "text-sm font-bold" : "text-[13px] font-medium text-[var(--text)]"}>
-        {role.title}
-      </p>
-      {time && (
-        <p
-          className="text-[11px] italic"
-          style={{ color: lead ? "var(--surface)" : "var(--text-muted)", opacity: lead ? 0.85 : 1 }}
-        >
-          {time}
-        </p>
-      )}
-
-      <div className="mt-1.5 flex flex-wrap justify-center gap-1">
-        {role.holders.length > 0 ? (
-          role.holders.map((name) => (
-            <span
-              key={name}
-              className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-              style={
-                lead
-                  ? { backgroundColor: "var(--surface)", color: "var(--text)" }
-                  : {
-                      backgroundColor: "color-mix(in srgb, var(--accent) 10%, var(--surface))",
-                      color: "var(--accent)",
-                    }
-              }
-            >
-              {name}
-            </span>
-          ))
-        ) : (
-          <span
-            className="text-[11px] italic"
-            style={{ color: lead ? "var(--surface)" : "var(--text-muted)" }}
-          >
-            {labels.vacant}
-          </span>
-        )}
-      </div>
-
-      {/* Postes multiples (sites, AFD, TA) : combien sont pourvus. */}
-      {role.posts > 1 && (
-        <p className="mt-1 text-[10px] tabular-nums text-[var(--text-muted)]">
-          {labels.filled(role.holders.length, role.posts)}
-        </p>
-      )}
-    </div>
   );
 }

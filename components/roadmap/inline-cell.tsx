@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useT } from "@/components/i18n/i18n-context";
+import { Gloss } from "@/components/acronyms/glossary";
 import { usePermissions } from "@/components/auth/auth-context";
 import { cn } from "@/lib/cn";
 import { PopoverPanel } from "@/components/ui/popover";
@@ -300,7 +301,9 @@ export function InlineTitle({ actionId, value }: { actionId: string; value: stri
      cellule, et deux tailles de caractères ne suffisaient pas à les
      distinguer d'un coup d'œil sur quatre-vingts lignes. */
   const display = (
-    <span className="text-[14px] font-semibold text-[var(--text)]">{value}</span>
+    <span className="text-[14px] font-semibold text-[var(--text)]">
+      <Gloss>{value}</Gloss>
+    </span>
   );
 
   if (!editable) return display;

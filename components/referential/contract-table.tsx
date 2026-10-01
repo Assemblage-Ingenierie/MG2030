@@ -15,6 +15,7 @@
 
 import { useMemo, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
+import { Gloss } from "@/components/acronyms/glossary";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -397,7 +398,9 @@ function FragmentRows({
           </span>
         </td>
         <td className={cell}>
-          <span className="block">{c.name}</span>
+          <span className="block">
+            <Gloss>{c.name}</Gloss>
+          </span>
           <span className="block font-mono text-[11px] text-[var(--text-muted)]">
             {c.contractNumber}
           </span>

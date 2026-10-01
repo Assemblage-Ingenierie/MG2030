@@ -396,7 +396,7 @@ export async function createTag(
   }
 
   revalidatePath("/library");
-  revalidatePath("/admin/tags");
+  revalidatePath("/settings");
   return { ok: true };
 }
 
@@ -433,7 +433,7 @@ export async function setTagColour(
   if (count === 0) return { ok: false, error: "forbidden" };
 
   revalidatePath("/library");
-  revalidatePath("/admin/tags");
+  revalidatePath("/settings");
   return { ok: true };
 }
 
@@ -451,7 +451,7 @@ export async function renameTag(tagId: string, label: string): Promise<ActionRes
   if (count === 0) return { ok: false, error: "forbidden" };
 
   revalidatePath("/library");
-  revalidatePath("/admin/tags");
+  revalidatePath("/settings");
   return { ok: true };
 }
 

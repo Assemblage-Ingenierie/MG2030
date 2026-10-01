@@ -192,7 +192,7 @@ conservées le temps d'une version, puis seront supprimées.
 ## 6 bis. Masquer un onglet — décision du 01/10/2026
 
 Un module en cours de finition se retire du menu des autres comptes depuis
-`/admin/navigation`, sans mise en production. L'administrateur continue de le
+l'onglet **Settings** (`/settings`), sans mise en production. L'administrateur continue de le
 voir, marqué d'un œil barré.
 
 ⚠ **C'est de la présentation, pas de la protection.** Masquer un onglet ne

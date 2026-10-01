@@ -70,7 +70,7 @@ export default async function SchedulePage({
   if (!selected.isSchedulable) {
     return (
       <div className="mx-auto flex max-w-4xl flex-col gap-6">
-        <Section title={t("schedule.title")} description={t("schedule.intro")}>
+        <Section title={t("schedule.title")}>
           <UnschedulableNotice scenario={selected} />
         </Section>
       </div>
@@ -146,10 +146,10 @@ export default async function SchedulePage({
 
   return (
     <div className="flex max-w-full flex-col gap-4">
-      <Section
-        title={t("schedule.title")}
-        description={t("schedule.intro")}
-      >
+      {/* Sans sous-titre (01/10/2026) : le rappel « la grille et le Gantt sont
+          une seule page » était vrai le premier jour et n'apprenait plus rien
+          à personne, tout en poussant la grille d'une ligne vers le bas. */}
+      <Section title={t("schedule.title")}>
         {/* La marge terminale et l'échéance des Jeux sont le cadre dans lequel
             tout le reste doit tenir : affichées avant la grille. */}
         {scenario?.bufferStartDate && (

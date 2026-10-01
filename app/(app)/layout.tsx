@@ -4,6 +4,8 @@ import { AuthUserProvider } from "@/components/auth/auth-context";
 import { getAuthState } from "@/lib/auth/server";
 import { isPlatformAdmin, isTechnicalAssistance } from "@/lib/auth/types";
 import { listHiddenNav } from "@/lib/queries/nav";
+import { listAcronyms } from "@/lib/queries/acronyms";
+import { GlossaryProvider } from "@/components/acronyms/glossary";
 
 /**
  * Layout des écrans métier.
@@ -30,6 +32,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // refuserait la lecture.
   const hidden = user ? await listHiddenNav() : new Set<string>();
 
+  /* Le GLOSSAIRE accompagne le menu : les sigles se développent au survol sur
+     tous les écrans (01/10/2026), donc il se charge là où tous les écrans
+     passent. Une seule requête, trente-deux lignes, et `cache()` la partage
+     avec l'onglet Acronyms quand c'est lui qu'on ouvre. */
+  const acronyms = user ? await listAcronyms() : [];
+
   const shell = (
     <AppShell
       nav={{
@@ -38,7 +46,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         hidden: [...hidden],
       }}
     >
-      <AccessGuard>{children}</AccessGuard>
+      <AccessGuard>
+        <GlossaryProvider acronyms={acronyms}>{children}</GlossaryProvider>
+      </AccessGuard>
     </AppShell>
   );
 

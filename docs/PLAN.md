@@ -511,7 +511,7 @@ lib/r2/{client,presign,keys}.ts
 app/api/documents/presign-upload/route.ts
 app/api/documents/presign-download/route.ts
 app/library/{page.tsx,[folder]/page.tsx,actions.ts}
-app/admin/tags/{page.tsx,actions.ts}
+app/settings/{page.tsx,actions.ts}   # etiquettes, onglets, cadre des Jeux
 components/library/{folder-tree,document-table,upload-dropzone,tag-picker,tag-access-editor}.tsx
 .env.example
 ```
