@@ -35,7 +35,6 @@ import { formatDateTime } from "@/lib/i18n/format";
 import { cn } from "@/lib/cn";
 import { DocumentTags, type TagChoice } from "./document-tags";
 import { DocumentActions, DocumentName, DocumentVersion } from "./document-row";
-import { DeleteDocumentButton } from "./document-actions";
 import { FolderHeading, folderLabel, type FolderView } from "./folder-panel";
 import type { FolderChoice } from "./document-row";
 
@@ -209,10 +208,7 @@ export function DocumentTable({
               <span className="block text-[var(--text-muted)]">{doc.uploadedByName ?? "—"}</span>
             </Td>
             <Td align="right">
-              <span className="flex items-center justify-end gap-0.5">
-                <DocumentActions doc={doc} folders={folders} />
-                <DeleteDocumentButton documentId={doc.id} filename={doc.originalFilename} />
-              </span>
+              <DocumentActions doc={doc} folders={folders} />
             </Td>
           </Tr>
         ))}

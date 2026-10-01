@@ -70,6 +70,7 @@ export const NAV: NavGroup[] = [
     labelKey: "nav.documents",
     items: [
       { href: "/library", labelKey: "nav.library", icon: "library" },
+      { href: "/acronyms", labelKey: "nav.acronyms", icon: "contracts" },
     ],
   },
   {

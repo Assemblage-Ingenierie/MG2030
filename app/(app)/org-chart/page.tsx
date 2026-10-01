@@ -86,7 +86,7 @@ export default async function OrgChartPage() {
       <Section title={t("org.title")} description={t("org.intro")}>
         <div className="overflow-x-auto">
           <div className="flex min-w-[1080px] flex-col gap-4 py-2">
-            {/* ── Au-dessus du MYS : pilotage et bailleur ─────────────────── */}
+            {/* ── Au-dessus du MSY : pilotage et bailleur ─────────────────── */}
             <div className="grid grid-cols-10 items-start gap-y-4">
               <div className="col-span-4 col-start-3 px-2">
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-center">
@@ -122,13 +122,13 @@ export default async function OrgChartPage() {
               </div>
             </div>
 
-            {/* ── Le MYS, qui héberge la PIU ─────────────────────────────── */}
+            {/* ── Le MSY, qui héberge la PIU ─────────────────────────────── */}
             <div className="rounded-xl border-2 p-3" style={{ borderColor: "var(--accent)" }}>
               <p
                 className="mb-2 text-xs font-bold uppercase tracking-wide"
                 style={{ color: "var(--accent)" }}
               >
-                {t("org.mysLabel")}
+                {t("org.msyLabel")}
               </p>
 
               <div

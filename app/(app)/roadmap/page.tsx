@@ -268,9 +268,30 @@ export default async function RoadmapPage({
                 {groups.map((group, groupIndex) => (
                   <Fragment key={group.subjectId ?? "orphans"}>
                     <tr className="group">
+                      {/* ⚠ LE SUJET PORTE LE BLEU DE LA CHARTE (01/10/2026).
+                          L'intertitre était ivoire sur ivoire : sur une liste
+                          de quatre-vingts lignes, on ne voyait plus où un sujet
+                          commençait, et le tableau se lisait à plat.
+
+                          Le groupe des ORPHELINES garde le fond neutre : ce
+                          n'est pas un sujet mais une anomalie à résorber, et
+                          la peindre aux couleurs de la maison la rangerait
+                          parmi les autres. Son rouge d'avertissement, en
+                          prime, ne se lirait pas sur du bleu nuit. */}
                       <td
                         colSpan={6}
-                        className="border-b border-t border-[var(--border)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                        className={
+                          "border-b border-t border-[var(--border)] px-3 py-1.5 " +
+                          "text-xs font-semibold uppercase tracking-wide " +
+                          (group.subjectId === null
+                            ? "bg-[var(--app-bg)] text-[var(--text-muted)]"
+                            : "")
+                        }
+                        style={
+                          group.subjectId === null
+                            ? undefined
+                            : { backgroundColor: "var(--accent)", color: "var(--on-accent)" }
+                        }
                       >
                         {/* Le groupe des ORPHELINES ne se renomme pas, ne se
                             déplace pas et ne se supprime pas : ce n'est pas un

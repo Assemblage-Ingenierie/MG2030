@@ -25,6 +25,7 @@ import { Button, IconButton } from "@/components/ui/button";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { DownloadIcon, EditIcon, EyeIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
+import { DeleteDocumentButton } from "./document-actions";
 import {
   moveDocument,
   renameDocument,
@@ -293,27 +294,31 @@ export function DocumentActions({
         </span>
       )}
 
+      {/* ⚠ PLUS GRANDES QUE LES AUTRES ICÔNES DE L'APPLICATION, et c'est
+          voulu : ce sont les trois gestes qu'on vient faire ici, alors
+          qu'ailleurs une icône accompagne une ligne qu'on lit. À 28 px elles
+          se visaient mal, surtout au pavé tactile. Demandé le 01/10/2026. */}
       <IconButton
         label={previewable ? t("library.previewHint") : t("library.noPreviewHint")}
         disabled={pending || !previewable}
         onClick={() => open("inline")}
-        className="h-7 w-7"
+        className="h-9 w-9"
       >
-        <EyeIcon className="h-4 w-4" />
+        <EyeIcon className="h-5 w-5" />
       </IconButton>
 
       <IconButton
         label={t("library.downloadHint")}
         disabled={pending}
         onClick={() => open("attachment")}
-        className="h-7 w-7"
+        className="h-9 w-9"
       >
-        <DownloadIcon className="h-4 w-4" />
+        <DownloadIcon className="h-5 w-5" />
       </IconButton>
 
       {canEdit && (
-        <IconButton label={t("library.editHint")} onClick={() => setForm(true)} className="h-7 w-7">
-          <EditIcon className="h-4 w-4" />
+        <IconButton label={t("library.editHint")} onClick={() => setForm(true)} className="h-9 w-9">
+          <EditIcon className="h-5 w-5" />
         </IconButton>
       )}
 
@@ -469,13 +474,27 @@ function EditForm({
           </p>
         )}
 
-        <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="secondary" type="button" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button variant="primary" type="submit" disabled={pending}>
-            {pending ? t("common.saving") : t("common.save")}
-          </Button>
+        {/* ⚠ LA SUPPRESSION EST ICI, PAS DANS LE TABLEAU. Elle y occupait une
+            colonne entière à côté des trois icônes, pour un geste rare et
+            irréversible — le fichier part aussi de R2, il n'y a pas de
+            corbeille. La ranger dans la fiche demande d'ouvrir le document
+            avant de l'effacer, ce qui est exactement la précaution qu'on
+            veut. À GAUCHE et séparée : elle ne se clique pas en visant
+            « Enregistrer ». Demandé le 01/10/2026. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] pt-4">
+          <DeleteDocumentButton
+            documentId={doc.id}
+            filename={doc.originalFilename}
+            onDeleted={onClose}
+          />
+          <span className="flex gap-2">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" disabled={pending}>
+              {pending ? t("common.saving") : t("common.save")}
+            </Button>
+          </span>
         </div>
       </form>
     </Modal>

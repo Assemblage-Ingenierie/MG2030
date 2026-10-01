@@ -346,13 +346,13 @@ components/referential/{contract-table,contract-form,lot-table,lot-form,lot-buil
 
 **Critère de fin.**
 1. Les 9 marchés s'affichent avec leurs 4 dates clés et leur scénario.
-2. Les 3 marchés partageant `MYS/MG2030/C/2026/XX` coexistent sans conflit
+2. Les 3 marchés partageant `MSY/MG2030/C/2026/XX` coexistent sans conflit
    d'unicité (GAPS 19).
 3. `C-SC-DD` affiche publication et ouverture comme **« sans objet »** (gré à
    gré), pas comme manquantes (GAPS 6).
 4. Les 4 lots `W-TV-*` affichent explicitement « bâtiments non affectés »
    avec un renvoi documenté (GAPS 3), et non une liste vide muette.
-5. Le contrôle de format refuse `MYS/MG2030/X/2027/01` et accepte le suffixe `XX`.
+5. Le contrôle de format refuse `MSY/MG2030/X/2027/01` et accepte le suffixe `XX`.
 6. Les montants s'affichent en fourchette quand min ≠ max, en valeur unique sinon.
 
 ---

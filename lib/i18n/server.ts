@@ -19,11 +19,24 @@ const DICTIONARIES: Record<Locale, Messages> = {
   sq: sq as Messages,
 };
 
-/** Langue de la requête courante, depuis le cookie. Repli : anglais. */
+/**
+ * Langue de la requête courante.
+ *
+ * ⚠ TOUJOURS L'ANGLAIS, TANT QU'IL N'Y A QU'UNE LANGUE TRADUITE.
+ *
+ * `messages/sq.json` est un gabarit vide (`"_status": "not-populated"`) : en
+ * albanais, tout le texte retombe sur l'anglais SAUF ce qui ne passe pas par
+ * le dictionnaire — les noms de mois du Gantt, qui ont leur propre table. Un
+ * compte resté en `sq` voyait donc une interface anglaise avec « Sht 26 » et
+ * « Tet 26 » sur l'axe de temps. Signalé le 01/10/2026.
+ *
+ * Le sélecteur de langue ayant été retiré la veille, le cookie — posé pour un
+ * an — n'était plus modifiable : la préférence devenait une impasse. On cesse
+ * donc de l'honorer. La plomberie reste en place, et ce `return` redeviendra
+ * une lecture de cookie le jour où l'albanais sera réellement traduit.
+ */
 export async function getLocale(): Promise<Locale> {
-  const store = await cookies();
-  const value = store.get(LOCALE_COOKIE)?.value;
-  return isLocale(value) ? value : DEFAULT_LOCALE;
+  return DEFAULT_LOCALE;
 }
 
 /**

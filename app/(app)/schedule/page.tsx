@@ -3,7 +3,6 @@ import { listScenarios, loadSchedule } from "@/lib/queries/schedule";
 import { listPeople } from "@/lib/queries/people";
 import { listContracts } from "@/lib/queries/referential";
 import { Card, Section } from "@/components/ui/card";
-import { ScenarioSwitch } from "@/components/schedule/scenario-switch";
 import { UnschedulableNotice } from "@/components/schedule/unschedulable-notice";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { ScaleSwitch } from "@/components/schedule/scale-switch";
@@ -43,10 +42,19 @@ export default async function SchedulePage({
   const params = await searchParams;
 
   const scenarios = await listScenarios();
+
+  /* ⚠ UN SEUL SCÉNARIO À L'ÉCRAN, « base » (01/10/2026).
+     « Design-Bid-Build » n'a jamais porté une seule tâche, et « Design &
+     Build » n'en porte que dix : le sélecteur proposait donc trois vues dont
+     deux étaient vides ou partielles, ce qui se lit comme trois plans alors
+     qu'il n'y en a qu'un. Les LIGNES RESTENT EN BASE — les dix tâches de
+     « Design & Build » ne sont pas perdues, et rouvrir le choix ne demandera
+     que de rétablir ces quelques lignes. Un lien portant `?scenario=…` est
+     encore honoré, pour ne pas casser une capture d'écran partagée. */
   const selected =
     scenarios.find((s) => s.code === params.scenario) ??
+    scenarios.find((s) => s.code === "base") ??
     scenarios.find((s) => s.isActive && s.isSchedulable) ??
-    scenarios.find((s) => s.isSchedulable) ??
     null;
 
   if (!selected) {
@@ -63,7 +71,6 @@ export default async function SchedulePage({
     return (
       <div className="mx-auto flex max-w-4xl flex-col gap-6">
         <Section title={t("schedule.title")} description={t("schedule.intro")}>
-          <ScenarioSwitch scenarios={scenarios} current={selected.code} />
           <UnschedulableNotice scenario={selected} />
         </Section>
       </div>
@@ -81,11 +88,12 @@ export default async function SchedulePage({
     ? (params.scale as ScaleUnit)
     : "month";
 
-  // Jeu de colonnes réduit PAR DÉFAUT : toutes colonnes affichées, la grille
-  // prend près de 1000 px et il ne reste presque rien pour le diagramme.
-  // `cols=all` (ancien lien) continue de fonctionner, et `cols=bare` ne garde
-  // que l'activité.
-  const density: Density = isDensity(params.cols ?? "") ? (params.cols as Density) : "compact";
+  /* Jeu NU par défaut (01/10/2026) : l'activité et le diagramme. On vient
+     d'abord lire où tombent les barres ; durée, précédences et avancement sont
+     des colonnes de SAISIE, qu'on affiche quand on vient saisir. Toutes
+     colonnes affichées, la grille prend près de 1000 px et il ne reste presque
+     rien pour le diagramme. */
+  const density: Density = isDensity(params.cols ?? "") ? (params.cols as Density) : "bare";
   // Noms des tâches affichés PAR DÉFAUT : sans eux, une barre ne se lit qu'en
   // suivant sa ligne jusqu'à la grille. `names=0` les masque.
   const showNames = params.names !== "0";
@@ -125,12 +133,22 @@ export default async function SchedulePage({
 
   const planId = tasks[0]?.planId ?? "";
 
+  /* Ce que l'impression reprend de l'écran : échelle, filtres, colonnes. Le
+     REPLI s'y ajoute côté navigateur, seul endroit qui le connaisse. */
+  const printQuery = new URLSearchParams({
+    scenario: selected.code,
+    scale,
+    cols: density,
+    ...(params.contract ? { contract: params.contract } : {}),
+    ...(params.subproject ? { subproject: params.subproject } : {}),
+    ...(showNames ? {} : { names: "0" }),
+  }).toString();
+
   return (
     <div className="flex max-w-full flex-col gap-4">
       <Section
         title={t("schedule.title")}
         description={t("schedule.intro")}
-        actions={<ScenarioSwitch scenarios={scenarios} current={selected.code} />}
       >
         {/* La marge terminale et l'échéance des Jeux sont le cadre dans lequel
             tout le reste doit tenir : affichées avant la grille. */}
@@ -172,6 +190,7 @@ export default async function SchedulePage({
             density={density}
             showNames={showNames}
             visibleIds={visibleIds}
+            printQuery={printQuery}
           />
         </Card>
       </Section>

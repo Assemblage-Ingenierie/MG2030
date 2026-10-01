@@ -45,7 +45,8 @@
     "hideMenu": "Hide the menu",
     "showMenu": "Show the menu",
     "tags": "Tags",
-    "organisations": "Organisations"
+    "organisations": "Organisations",
+    "acronyms": "Acronyms"
   },
   "common": {
     "search": "Search",
@@ -370,11 +371,11 @@
     "estimateNote": "8 of the 9 contracts are marked TBD in the procurement plan (GAPS 5).",
     "editTitle": "Edit contract",
     "createTitle": "Add a contract",
-    "numberFormatHint": "Format: MYS/MG2030/{C|W|G|NC|DB}/{year}/XX. XX is accepted literally — the real suffix is not yet assigned.",
+    "numberFormatHint": "Format: MSY/MG2030/{C|W|G|NC|DB}/{year}/XX. XX is accepted literally — the real suffix is not yet assigned. Numbers already issued under the former MYS prefix stay valid.",
     "estimateHint": "Euros, excluding tax.",
     "error_emptyName": "Name is required.",
     "error_missingFields": "Code is required.",
-    "error_invalidNumberFormat": "Contract number must match MYS/MG2030/{C|W|G|NC|DB}/{year}/XX (brief §7).",
+    "error_invalidNumberFormat": "Contract number must match MSY/MG2030/{C|W|G|NC|DB}/{year}/XX (brief §7). The former MYS prefix is still accepted for numbers already issued.",
     "reviewPrior": "Prior",
     "reviewPost": "Post",
     "shownCount": "{contracts} of {total} contracts · {lots} lots shown",
@@ -382,7 +383,9 @@
     "filterAll": "All",
     "clearFilters": "Clear filters",
     "noMatch": "No contract matches these filters.",
-    "lotCount": "· {count} lots"
+    "lotCount": "· {count} lots",
+    "addContract": "Add a contract",
+    "addLot": "Add a lot"
   },
   "lots": {
     "title": "Lots",
@@ -563,7 +566,7 @@
     "entityLegend": "Responsible entity:",
     "entity_TA": "Technical assistance",
     "entity_AFD": "AFD",
-    "entity_PIU": "PIU (MYS)",
+    "entity_PIU": "PIU (MSY)",
     "entityNoOwner": "— tasks with no named owner keep the default colour.",
     "columnsBare": "Activity only",
     "columnsCompact": "Schedule",
@@ -580,7 +583,8 @@
     "printBack": "Back to the schedule",
     "printNow": "Print",
     "printPaperHint": "In the print dialog, choose landscape and “Save as PDF”.",
-    "printScaleWidened": "Printed by {used} rather than {asked}: at this width, {asked} labels would not fit."
+    "printScaleWidened": "Printed by {used} rather than {asked}: at this width, {asked} labels would not fit.",
+    "printColumnsDropped": "{count} column(s) left out: they would not fit beside the chart on this paper. Switch to A3 to keep them."
   },
   "deliverables": {
     "title": "Deliverables",
@@ -685,7 +689,7 @@
     "time_part_time": "Part time",
     "time_full_time_or_part_time": "Full or part time",
     "taTitle": "Technical Assistance (TA)",
-    "taNote": "Support, quality control and capacity building to the PIU. Does not replace the mandate or the authority of the MYS.",
+    "taNote": "Support, quality control and capacity building to the PIU. Does not replace the mandate or the authority of the MSY.",
     "steeringTitle": "Steering / technical committee",
     "steeringMembers": "Co-project owners + MFLT + OCMG + AFD",
     "ownerTitle": "Ministry of Youth and Sports — project owner",
@@ -695,8 +699,8 @@
     "coOwnerMunicipality": "Municipality of Pristina — owner of the school venues",
     "afdTitle": "AFD — donor",
     "afdNote": "Financing agreement · no-objection on activities subject to prior review · audits",
-    "mysLabel": "MYS",
-    "piuLabel": "Project Implementation Unit (PIU) — hosted within the MYS",
+    "msyLabel": "MSY",
+    "piuLabel": "Project Implementation Unit (PIU) — hosted within the MSY",
     "siteRepNote": "Director of the Student Center and directors of the 13 training venues, in addition to their existing duties.",
     "readOnly": "read-only",
     "reportsToExternal": "Reports to",
@@ -1037,6 +1041,8 @@
     "printNoFilter": "None",
     "printBack": "Back to the roadmap",
     "printNow": "Print",
+    "printTimelineTitle": "Roadmap timeline",
+    "printLandscapeHint": "In the print dialog, choose landscape and “Save as PDF”.",
     "printPaperHint": "In the print dialog, choose “Save as PDF”.",
     "printNothing": "Nothing to print with these filters.",
     "legendStatus": "Status",
@@ -1107,6 +1113,21 @@
     "error_emptyName": "A code and a name are both needed.",
     "error_duplicateCode": "This code is already taken.",
     "error_inUse": "Still in use by accounts or posts — it cannot be deleted.",
+    "error_writeFailed": "The change was refused."
+  },
+  "acronyms": {
+    "title": "Acronyms",
+    "intro": "The project glossary, taken from the POM. Anyone may correct or complete it.",
+    "code": "Acronym",
+    "meaning": "Meaning",
+    "searchPlaceholder": "Filter the glossary…",
+    "noMatch": "No acronym matches.",
+    "add": "+ New acronym",
+    "delete": "Delete this acronym",
+    "confirmDelete": "Delete “{code}”?",
+    "error_emptyField": "Both the acronym and its meaning are needed.",
+    "error_duplicateCode": "This acronym is already in the glossary.",
+    "error_forbidden": "You are not allowed to change the glossary.",
     "error_writeFailed": "The change was refused."
   }
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   descendantCount,
   expectedEnd,
+  foldToStructure,
   isCollapsible,
   isDrivenByPredecessor,
   moveTask,
@@ -370,5 +371,37 @@ describe("repliement", () => {
   it("compte les descendants masques", () => {
     expect(descendantCount(seedModel().tasks, "sum")).toBe(2);
     expect(descendantCount(seedModel().tasks, "a")).toBe(0);
+  });
+});
+
+describe("repli jusqu'a la structure", () => {
+  /** Intertitre > recapitulatif > taches : trois niveaux, comme le vrai plan. */
+  const tree = [
+    task("h", { parentId: null, type: "group_header" }),
+    task("s1", { parentId: "h", type: "summary" }),
+    task("t1", { parentId: "s1" }),
+    task("t2", { parentId: "s1" }),
+    task("s2", { parentId: "h", type: "summary" }),
+    task("t3", { parentId: "s2" }),
+  ];
+
+  it("ne replie QUE les parents de feuilles", () => {
+    // L'intertitre reste ouvert : le replier cacherait les recapitulatifs,
+    // c'est-a-dire tout le squelette du plan.
+    expect([...foldToStructure(tree)].sort()).toEqual(["s1", "s2"]);
+  });
+
+  it("laisse donc voir les recapitulatifs", () => {
+    const shown = visibleTasks(tree, foldToStructure(tree)).map((t) => t.id);
+    expect(shown).toEqual(["h", "s1", "s2"]);
+  });
+
+  it("ne replie rien quand le plan est plat", () => {
+    expect(foldToStructure([task("a"), task("b")]).size).toBe(0);
+  });
+
+  it("replie le parent direct quand il n'y a que deux niveaux", () => {
+    const flat = [task("p", { parentId: null }), task("c", { parentId: "p" })];
+    expect([...foldToStructure(flat)]).toEqual(["p"]);
   });
 });

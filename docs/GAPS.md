@@ -170,7 +170,7 @@ fin diffère du CSV.
 ### 13. 🟠 Signature du marché de conception détaillée des training venues
 Planning : **07/01/2027**. Plan de passation : **27/11/2026**. Écart : 6 semaines.
 
-Le décalage vient du chaînage : le planning enchaîne validation TA + MYS
+Le décalage vient du chaînage : le planning enchaîne validation TA + MSY
 (14 jours) puis négociation et NoN AFD (28 jours) après la remise des offres du
 26/11/2026, là où le plan de passation retient une signature **dès le lendemain**
 de la remise. La date du plan de passation est matériellement irréaliste, mais
@@ -227,15 +227,15 @@ La contrainte de format du numéro ne croise donc **volontairement pas** le type
 
 ### 19. 🟡 [NOUVEAU] `contract_number` n'est pas unique
 Le suffixe `XX` n'étant pas attribué, trois marchés partagent
-`MYS/MG2030/C/2026/XX`, trois autres `MYS/MG2030/C/2027/XX`, et deux autres
-`MYS/MG2030/W/2027/XX`. **Aucune contrainte d'unicité n'est posée** sur cette
+`MSY/MG2030/C/2026/XX`, trois autres `MSY/MG2030/C/2027/XX`, et deux autres
+`MSY/MG2030/W/2027/XX`. **Aucune contrainte d'unicité n'est posée** sur cette
 colonne ; la clé fonctionnelle est `contract_code`, identifiant technique créé
 pour le seed et **absent des documents projet**.
 **Impact** : à l'attribution des numéros définitifs, il faudra soit poser
 l'unicité, soit accepter qu'elle reste absente. À décider.
 
 ### 20. 🟡 [NOUVEAU] Marchés de fournitures numérotés 2027 mais lancés en 2029
-`G-SC` et `G-SPORT` portent `MYS/MG2030/C/2027/XX` alors que leur publication
+`G-SC` et `G-SPORT` portent `MSY/MG2030/C/2027/XX` alors que leur publication
 est prévue au 15/01/2029. L'année du numéro ne correspond ni à l'année de
 publication ni à celle de signature.
 
@@ -269,7 +269,7 @@ Trois tâches restent sans marché : `TV.1` et `SC.1` (« Schematic design », e
 amont de tout marché) et `SC.2.1` (« Schematic design adjustments »).
 
 ### 24. 🟡 Libellés d'étape à normaliser
-« TA + MYS validation » et « TA + MYS evaluation » désignent la même nature
+« TA + MSY validation » et « TA + MSY evaluation » désignent la même nature
 d'étape et sont employés indifféremment. Ces libellés alimenteront les gabarits
 de passation : à normaliser avant.
 
@@ -324,7 +324,7 @@ aussi un poste PIU) ? À clarifier pour dimensionner l'administration des compte
 
 ### 32. 🟠 PIU et AT ont-elles les mêmes droits ?
 Le brief §3 range les deux en « Contribution », sans les distinguer. Mais les
-libellés du planning (« TA + MYS validation ») suggèrent une AT qui **valide**
+libellés du planning (« TA + MSY validation ») suggèrent une AT qui **valide**
 conjointement. L'AT peut-elle créer un contrat ? Valider un livrable ?
 La proposition de matrice (`SCHEMA.md` §11) donne à `TA` des droits larges en
 écriture mais aucun droit de validation. **À confirmer.**
@@ -767,7 +767,7 @@ d'inscription est publique : n'importe qui peut créer un compte
 d'authentification dans le projet Supabase commun. Aucune donnée n'est
 atteignable, mais la table `auth.users` se remplit. **Deux garde-fous à régler
 dans Supabase** : exiger la confirmation par e-mail, et restreindre les domaines
-autorisés si l'AFD ou le MYS l'exigent.
+autorisés si l'AFD ou le MSY l'exigent.
 
 ### 64. 🟠 [NOUVEAU — 21/08/2026] Brevo n'est pas configuré
 

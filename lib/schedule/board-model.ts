@@ -554,6 +554,35 @@ export function visibleTasks(tasks: ModelTask[], collapsed: Set<string>): ModelT
   return out;
 }
 
+/**
+ * Les lignes à replier pour ne montrer QUE LA STRUCTURE.
+ *
+ * ⚠ « Tout replier » ne veut pas dire « tout cacher ». Replier chaque parent
+ * refermait aussi les récapitulatifs sous les intertitres de premier niveau :
+ * il ne restait que six lignes, et on ne voyait plus le plan, on voyait sa
+ * table des matières. Signalé le 01/10/2026 — « rends les summary visibles en
+ * mode collapse all ».
+ *
+ * On ne replie donc que les parents de FEUILLES : les récapitulatifs restent
+ * ouverts les uns sur les autres jusqu'au dernier niveau, et seules les tâches
+ * de détail disparaissent. Le squelette du plan reste lisible d'un bout à
+ * l'autre.
+ *
+ * Pur, donc testé.
+ */
+export function foldToStructure(tasks: ModelTask[]): Set<string> {
+  const hasChildren = new Set(
+    tasks.filter((t) => t.parentId !== null).map((t) => t.parentId as string),
+  );
+  return new Set(
+    tasks
+      .filter((task) => hasChildren.has(task.id))
+      // Aucun de ses enfants n'est lui-même parent : c'est le dernier palier.
+      .filter((task) => !tasks.some((c) => c.parentId === task.id && hasChildren.has(c.id)))
+      .map((task) => task.id),
+  );
+}
+
 /** Une ligne peut-elle se replier ? Seulement si elle masque quelque chose. */
 export function isCollapsible(tasks: ModelTask[], task: ModelTask): boolean {
   return tasks.some((t) => t.parentId === task.id);

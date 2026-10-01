@@ -163,9 +163,9 @@ export function instantiateTemplate(options: {
  * (docs/GAPS.md point 10). Les durées sont RELEVÉES sur la chaîne réelle de
  * C-TV-DD au planning — TV.2.1 à TV.2.6 — et non estimées :
  *
- *     EOI 21 · TA+MYS 14 · NoN AFD 10 · offres 42 · TA+MYS 14 · négociation 28
+ *     EOI 21 · TA+MSY 14 · NoN AFD 10 · offres 42 · TA+MSY 14 · négociation 28
  *
- * Les libellés « TA + MYS validation » et « TA + MYS evaluation » désignent la
+ * Les libellés « TA + MSY validation » et « TA + MSY evaluation » désignent la
  * même nature d'étape dans le fichier source et y sont employés
  * indifféremment : normalisés ici en un seul (GAPS 24).
  */
@@ -181,7 +181,7 @@ export const OBSERVED_CONSULTANT_SEQUENCE: Omit<TemplateStep, "id">[] = [
   },
   {
     stepNo: 2,
-    name: "TA and MYS review",
+    name: "TA and MSY review",
     defaultDurationDays: 14,
     isAfdNoObjection: false,
     contractDateAnchor: null,
@@ -208,7 +208,7 @@ export const OBSERVED_CONSULTANT_SEQUENCE: Omit<TemplateStep, "id">[] = [
   },
   {
     stepNo: 5,
-    name: "TA and MYS review",
+    name: "TA and MSY review",
     defaultDurationDays: 14,
     isAfdNoObjection: false,
     contractDateAnchor: null,
@@ -244,7 +244,7 @@ export const OBSERVED_CONSULTANT_SEQUENCE: Omit<TemplateStep, "id">[] = [
  * Relevée sur TV.3.1 au planning : pas de manifestation d'intérêt ni d'avis
  * AFD préalable — l'appel est ouvert. L'avis AFD est joint à la négociation.
  *
- *     appel d'offres 56 · TA+MYS 14 · NoN AFD + négociation 28
+ *     appel d'offres 56 · TA+MSY 14 · NoN AFD + négociation 28
  */
 export const OBSERVED_WORKS_SEQUENCE: Omit<TemplateStep, "id">[] = [
   {
@@ -258,7 +258,7 @@ export const OBSERVED_WORKS_SEQUENCE: Omit<TemplateStep, "id">[] = [
   },
   {
     stepNo: 2,
-    name: "TA and MYS evaluation",
+    name: "TA and MSY evaluation",
     defaultDurationDays: 14,
     isAfdNoObjection: false,
     contractDateAnchor: null,

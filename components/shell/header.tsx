@@ -61,15 +61,6 @@ export function Header({
         <GamesMark />
         <span className="h-9 w-px bg-[var(--border)]" aria-hidden="true" />
         <FunderMark />
-        {/* Devise officielle, en albanais dans toutes les langues de
-            l'interface : c'est un slogan, pas un libellé à traduire. */}
-        <span
-          lang="sq"
-          className="ml-2 hidden text-base font-semibold italic md:inline"
-          style={{ color: "var(--accent)" }}
-        >
-          {t("app.motto")}
-        </span>
       </div>
 
       <div className="ml-auto flex items-center gap-3">

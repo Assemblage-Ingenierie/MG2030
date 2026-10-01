@@ -22,12 +22,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
+import Link from "next/link";
 import { Button, IconButton } from "@/components/ui/button";
+import { PrinterIcon } from "@/components/ui/icons";
 import { formatPlanDate } from "@/lib/i18n/format";
 import { daysBetween, daysToWeeks } from "@/lib/schedule/dates";
 import { ROW_H } from "@/lib/gantt/layout";
 import {
   descendantCount,
+  foldToStructure,
   isCollapsible,
   visibleTasks,
   type BoardModel,
@@ -74,6 +77,7 @@ export function ScheduleBoard({
   density,
   showNames,
   visibleIds,
+  printQuery,
 }: {
   initial: BoardModel;
   people: PersonOption[];
@@ -99,6 +103,8 @@ export function ScheduleBoard({
    * la saisie.
    */
   visibleIds: string[] | null;
+  /** La requête de l'écran (échelle, filtres, colonnes), sans l'état de repli. */
+  printQuery: string;
 }) {
   const t = useT();
   const { can } = usePermissions();
@@ -109,7 +115,12 @@ export function ScheduleBoard({
   const [active, setActive] = useState<Cell | null>(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  /* ⚠ REPLIÉ AU PREMIER AFFICHAGE. Quatre-vingt-cinq lignes déroulées
+     ouvraient l'écran sur un mur de tâches de détail, alors qu'on vient
+     d'abord y lire la structure. Demandé le 01/10/2026. */
+  const [collapsed, setCollapsed] = useState<Set<string>>(() =>
+    foldToStructure(initial.tasks),
+  );
   const [dragging, setDragging] = useState<string | null>(null);
   // Sélection de lignes, à la manière d'un tableur : clic sur le numéro de
   // ligne, Maj+clic pour une plage, Ctrl+clic pour ajouter ou retirer.
@@ -183,14 +194,10 @@ export function ScheduleBoard({
     });
   }, []);
 
+  // Voir `foldToStructure` : on replie jusqu'aux récapitulatifs, pas jusqu'aux
+  // intertitres — sinon « tout replier » ne laisse que la table des matières.
   const collapseAll = useCallback(() => {
-    setCollapsed(
-      new Set(
-        board.model.tasks
-          .filter((task) => isCollapsible(board.model.tasks, task))
-          .map((task) => task.id),
-      ),
-    );
+    setCollapsed(foldToStructure(board.model.tasks));
   }, [board.model.tasks]);
 
   /** Déplace le focus après validation, en sautant les cellules non éditables. */
@@ -274,6 +281,25 @@ export function ScheduleBoard({
             {t("schedule.addTask")}
           </Button>
         )}
+
+        {/* ⚠ L'IMPRESSION PART DE LA VUE AFFICHÉE, et le lien est donc ICI et
+            non dans la barre d'outils : celle-ci est rendue par le serveur,
+            qui ignore le repli — un état du navigateur. Il emporte les
+            colonnes, les filtres ET le repli. Hors du bloc `editable` :
+            imprimer n'est pas modifier. Demandé le 01/10/2026. */}
+        <Link
+          href={`/schedule/print?${printQuery}&fold=${collapsed.size > 0 ? "structure" : "all"}`}
+          target="_blank"
+          rel="noopener"
+          title={t("gantt.printHint")}
+          className={
+            "inline-flex items-center gap-1.5 rounded border border-[var(--border)] " +
+            "bg-[var(--surface)] px-2 py-1 text-xs font-medium text-[var(--text)]"
+          }
+        >
+          <PrinterIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          {t("gantt.print")}
+        </Link>
 
         {editable && (
           <span className="inline-flex items-center gap-1">

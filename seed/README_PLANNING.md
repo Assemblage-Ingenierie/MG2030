@@ -48,7 +48,7 @@ Aucune date n'a été recalculée : les valeurs sont celles produites par Excel.
 
 Les chaînes travaux des deux onglets concordent au jour près avec le plan de passation.
 Seule la signature du marché de conception détaillée des training venues diverge de six
-semaines. Le décalage vient du chaînage : le planning enchaîne validation TA et MYS
+semaines. Le décalage vient du chaînage : le planning enchaîne validation TA et MSY
 (14 jours), puis négociation et avis de non-objection (28 jours) après la remise des offres
 du 26/11/2026, là où le plan de passation retient une signature dès le 27/11/2026, soit le
 lendemain de la remise. La date du plan de passation paraît donc irréaliste, mais c'est elle
@@ -106,6 +106,6 @@ Aucune n'a été corrigée. Elles justifient à elles seules l'abandon du fichie
   des libellés. Les couples certains sont renseignés, les autres laissés vides. À valider.
 - **Aucune ressource ni responsable** n'est renseigné dans le fichier. Les colonnes `owner`
   et `validator` du modèle de données restent donc vides au chargement initial.
-- **Les libellés « TA + MYS validation » et « TA + MYS evaluation »** sont employés
+- **Les libellés « TA + MSY validation » et « TA + MSY evaluation »** sont employés
   indifféremment pour la même nature d'étape. À normaliser, puisque ces libellés alimenteront
   les gabarits de passation.

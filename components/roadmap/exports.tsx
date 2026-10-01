@@ -7,7 +7,7 @@
 //     on ne le retouche pas. Passe par une page mise en pages pour le papier,
 //     puis par la boîte d'impression du navigateur, qui sait déjà écrire un
 //     PDF — même parti pris que le plan de charge.
-//   • EXCEL — ce que l'AFD ou le MYS veulent trier, filtrer, recopier. Un
+//   • EXCEL — ce que l'AFD ou le MSY veulent trier, filtrer, recopier. Un
 //     vrai `.xlsx`, construit par `lib/export/xlsx.ts`.
 //
 // ⚠ LES DEUX EMPORTENT LES FILTRES EN COURS. Un export qui rendrait tout

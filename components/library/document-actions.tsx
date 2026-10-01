@@ -22,9 +22,16 @@ import { deleteDocument } from "@/app/(app)/library/actions";
 export function DeleteDocumentButton({
   documentId,
   filename,
+  onDeleted,
 }: {
   documentId: string;
   filename: string;
+  /**
+   * Appelé après une suppression réussie. La fiche s'en sert pour se fermer :
+   * rester ouverte sur un document qui n'existe plus laisserait un formulaire
+   * dont « Enregistrer » ne peut qu'échouer.
+   */
+  onDeleted?: () => void;
 }) {
   const t = useT();
   const router = useRouter();
@@ -45,6 +52,7 @@ export function DeleteDocumentButton({
         setArmed(false);
         return;
       }
+      onDeleted?.();
       router.refresh();
     });
   }

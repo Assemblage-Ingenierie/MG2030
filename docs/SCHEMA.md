@@ -288,7 +288,7 @@ create table mg2030_org_unit (
   code                text not null unique,      -- identique à functional_role.code
   functional_role_id  uuid not null references mg2030_functional_role(id),
   parent_id           uuid references mg2030_org_unit(id) on delete set null,
-  -- COORD reports_to = « MYS hierarchical superior (to be specified) » : hors
+  -- COORD reports_to = « MSY hierarchical superior (to be specified) » : hors
   -- périmètre applicatif, conservé en texte plutôt qu'en FK orpheline.
   reports_to_external text,
   supervises_note     text,                      -- COORD : « All PIU members »
@@ -467,8 +467,8 @@ comment on column mg2030_building.year_of_construction is
 create table mg2030_contract (
   id                    uuid primary key default gen_random_uuid(),
   contract_code         text not null unique,      -- C-TA, W-TV, DB-SC… (clé technique du seed)
-  -- ⚠ PAS unique : 3 marchés partagent « MYS/MG2030/C/2026/XX », 3 autres
-  -- « MYS/MG2030/C/2027/XX », 2 autres « MYS/MG2030/W/2027/XX ». Le suffixe XX
+  -- ⚠ PAS unique : 3 marchés partagent « MSY/MG2030/C/2026/XX », 3 autres
+  -- « MSY/MG2030/C/2027/XX », 2 autres « MSY/MG2030/W/2027/XX ». Le suffixe XX
   -- n'est pas encore attribué (GAPS 19).
   contract_number       text not null,
   name                  text not null,
@@ -490,7 +490,7 @@ create table mg2030_contract (
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now(),
   constraint mg2030_contract_number_format check (
-    contract_number ~ '^MYS/MG2030/(C|W|G|NC|DB)/[0-9]{4}/([0-9]{2}|XX)$'
+    contract_number ~ '^MSY/MG2030/(C|W|G|NC|DB)/[0-9]{4}/([0-9]{2}|XX)$'
   ),
   constraint mg2030_contract_dates_ordered check (
     (spn_publication_date is null or bid_opening_date  is null or spn_publication_date <= bid_opening_date) and
@@ -1749,14 +1749,14 @@ Directives AFD de février 2024 (`docs/source/Directives PM - 2024.pdf`) :
 | # | Étape | Durée observée | Correspondance Directives AFD |
 |---|---|---|---|
 | 1 | EOI / avis de publicité | 20–21 j | §5.1 Appel à Manifestations d'Intérêt |
-| 2 | Validation TA + MYS | 14–15 j | §3.1.3 Évaluation des candidatures |
+| 2 | Validation TA + MSY | 14–15 j | §3.1.3 Évaluation des candidatures |
 | 3 | Avis de non-objection AFD | 10 j | §1.6 Revue préalable |
 | 4 | Préparation des offres / propositions | 42–84 j | §3.2.6 Délais de soumission |
-| 5 | Évaluation TA + MYS | 14 j | §5.4 Évaluation des propositions |
+| 5 | Évaluation TA + MSY | 14 j | §5.4 Évaluation des propositions |
 | 6 | Négociation + NoN AFD | 28–30 j | §5.5 Négociations |
 | 7 | Exécution | variable | — |
 
-> Les libellés « TA + MYS validation » et « TA + MYS evaluation » désignent la
+> Les libellés « TA + MSY validation » et « TA + MSY evaluation » désignent la
 > même nature d'étape et sont employés indifféremment dans le fichier source.
 > **À normaliser** avant d'en faire un gabarit (GAPS 24).
 

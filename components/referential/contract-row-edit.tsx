@@ -39,8 +39,11 @@ export function AddContractButton({ scenarios }: { scenarios: ScenarioOption[] }
 
   return (
     <>
+      {/* Le libellé NOMME ce qu'on ajoute. Deux boutons « Add » sur la même
+          page, l'un sous les marchés et l'autre sous les lots, obligeaient à
+          déduire de leur position ce qu'ils faisaient. */}
       <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
-        {t("common.add")}
+        {t("contracts.addContract")}
       </Button>
       <ContractFormModal open={open} onClose={() => setOpen(false)} initial={null} scenarios={scenarios} />
     </>
@@ -80,7 +83,7 @@ export function AddLotButton({ contracts }: { contracts: ContractOption[] }) {
   return (
     <>
       <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
-        {t("common.add")}
+        {t("contracts.addLot")}
       </Button>
       <LotFormModal open={open} onClose={() => setOpen(false)} initial={null} contracts={contracts} />
     </>

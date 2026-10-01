@@ -65,10 +65,12 @@ export function SubjectTitle({
   const label = (
     <>
       {name}
-      {/* Le compte dit tout de suite si un filtre a vidé le sujet. */}
-      <span className="ml-2 font-normal normal-case tabular-nums text-[var(--text-muted)]">
-        {count}
-      </span>
+      {/* Le compte dit tout de suite si un filtre a vidé le sujet.
+
+          Couleur héritée et simplement ATTÉNUÉE, depuis que la ligne est bleu
+          nuit (01/10/2026) : `--text-muted` est un gris pensé pour un fond
+          clair, il disparaissait. */}
+      <span className="ml-2 font-normal normal-case tabular-nums opacity-70">{count}</span>
     </>
   );
 
@@ -104,7 +106,9 @@ export function SubjectTitle({
             } else router.refresh();
           });
         }}
-        className="w-64 rounded border bg-[var(--surface)] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide outline-none"
+        /* `text-[var(--text)]`: la ligne de sujet est bleu nuit et donne sa
+           couleur de texte en héritage — sans cela, on tape en blanc sur blanc. */
+        className="w-64 rounded border bg-[var(--surface)] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--text)] outline-none"
         style={{ borderColor: "var(--focus)" }}
       />
     );
@@ -123,7 +127,10 @@ export function SubjectTitle({
         }}
         disabled={pending}
         title={t("roadmap.renameSubject")}
-        className={cn("rounded px-1 hover:bg-[var(--border)]", pending && "opacity-50")}
+        className={cn(
+          "rounded px-1 hover:bg-[rgba(255,255,255,0.14)]",
+          pending && "opacity-50",
+        )}
       >
         {label}
         {error && (
@@ -159,7 +166,7 @@ export function SubjectTitle({
             phrase de confirmation en héritait — une question de deux lignes
             tout en majuscules se lit mal et crie. */}
         <ConfirmAction
-          className="normal-case tracking-normal"
+          className="rounded bg-[var(--surface)] px-2 py-0.5 normal-case tracking-normal"
           message={t("roadmap.confirmDeleteSubject", { name, count: String(count) })}
           disabled={pending}
           onConfirm={() =>

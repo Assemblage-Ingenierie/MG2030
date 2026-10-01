@@ -296,7 +296,12 @@ export function InlineTitle({ actionId, value }: { actionId: string; value: stri
   /* Le DÉTAIL a quitté cette cellule le 01/10/2026. Écrit en petit sous
      l'intitulé, il n'avait pas de cible propre : cliquer dessus ouvrait
      l'édition du titre. Il a maintenant sa colonne, donc son clic. */
-  const display = <span className="text-[14px] text-[var(--text)]">{value}</span>;
+  /* GRAS depuis le 01/10/2026 : l'intitulé et son détail partagent la même
+     cellule, et deux tailles de caractères ne suffisaient pas à les
+     distinguer d'un coup d'œil sur quatre-vingts lignes. */
+  const display = (
+    <span className="text-[14px] font-semibold text-[var(--text)]">{value}</span>
+  );
 
   if (!editable) return display;
 

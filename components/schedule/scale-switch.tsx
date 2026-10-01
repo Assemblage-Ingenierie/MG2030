@@ -4,7 +4,6 @@ import { ENTITY_COLOR, GANTT } from "@/lib/tokens";
 import { cn } from "@/lib/cn";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 import { DENSITIES, type Density } from "./board-types";
-import { PrinterIcon } from "@/components/ui/icons";
 
 /**
  * Barre d'outils du plan de charge : échelle, filtres, légende.
@@ -187,24 +186,6 @@ export async function ScaleSwitch({
           </Link>
         ))}
       </div>
-
-      {/* Impression. Une page à part plutôt qu'une feuille de style : le
-          diagramme doit être RECALCULÉ pour tenir dans la largeur du papier,
-          et une mise à l'échelle CSS d'un SVG de 3 000 px donnerait des
-          libellés illisibles. Voir app/(app)/schedule/print/page.tsx. */}
-      <Link
-        href={`/schedule/print?${query({})}`}
-        target="_blank"
-        rel="noopener"
-        title={t("gantt.printHint")}
-        className={
-          "inline-flex items-center gap-1.5 rounded border border-[var(--border)] " +
-          "bg-[var(--surface)] px-2 py-1 text-xs font-medium text-[var(--text)]"
-        }
-      >
-        <PrinterIcon className="h-3.5 w-3.5" aria-hidden="true" />
-        {t("gantt.print")}
-      </Link>
 
       <div className="ml-auto flex flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">
         <LegendItem color="var(--accent)" label={t("gantt.task")} />

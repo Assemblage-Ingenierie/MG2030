@@ -26,7 +26,7 @@ truncate table
 
 -- ── Organisations ─────────────────────────────────────────────
 insert into mg2030_organisation (code, name, access_mode) values
-  ('PIU','Project Implementation Unit (MYS)','contributor'),
+  ('PIU','Project Implementation Unit (MSY)','contributor'),
   ('TA','Technical Assistance','contributor'),
   ('AFD','Agence Francaise de Developpement','read_only');
 
@@ -56,7 +56,7 @@ join mg2030_organisation o on o.code = v.org;
 insert into mg2030_org_unit (code, functional_role_id, supervises_note, reports_to_external, sort_order)
 select v.code, r.id, v.supervises, v.external, v.ord
 from (values
-  ('COORD','All PIU members','MYS hierarchical superior (to be specified)',0),
+  ('COORD','All PIU members','MSY hierarchical superior (to be specified)',0),
   ('CONSTR',null,null,1),
   ('CONSTR-DEP',null,null,2),
   ('PROC',null,null,3),
@@ -190,15 +190,15 @@ select v.code, v.number, v.name, v.ctype::mg2030_contract_type,
        v.selection::mg2030_selection_method, v.review::mg2030_afd_review, s.id,
        v.amount, v.spn, v.opening, v.signature, v.completion, v.source
 from (values
-  ('C-TA','MYS/MG2030/C/2026/XX','Technical Assistance','C','IPC','REOI','QCBS','prior','base',null,'2026-11-15','2027-02-09','2027-03-23','2030-06-15','PS 3.3'),
-  ('C-TV-DD','MYS/MG2030/C/2026/XX','Training venues - Detailed Design and works supervision','C','IPC','REOI','QCBS','prior','base',null,'2026-09-01','2026-11-13','2026-11-27','2028-10-31','PS 3.3'),
-  ('C-SC-DD','MYS/MG2030/C/2026/XX','Student Center - Detailed Design','C',null,'DC',null,'prior','design_bid_build',null,null,null,'2026-10-20','2027-05-18','PS 3.3'),
-  ('C-SC-SUP','MYS/MG2030/C/2027/XX','Student Center - Works supervision','C','IPC','REOI','QCBS','prior','design_bid_build',null,'2027-03-02','2027-05-14','2027-06-25','2029-09-12','PS 3.3'),
-  ('W-TV','MYS/MG2030/W/2027/XX','Training venues - Works','W','NPC','IB','lowest_evaluated_compliant_bid','prior','base',null,'2027-08-05','2027-09-30','2027-11-11','2029-02-01','PS 3.3'),
-  ('W-SC','MYS/MG2030/W/2027/XX','Student Center - Works','W','IPC','PQL+IB','lowest_evaluated_compliant_bid','prior','design_bid_build',null,'2027-03-27','2027-07-13','2027-08-24','2029-09-12','PS 3.3'),
-  ('DB-SC','MYS/MG2030/DB/2027/XX','Student Center - Design and Build','DB','IPC','PQL+IB','QCBS','prior','design_build',44400000,'2026-09-01','2027-01-14','2027-02-27','2029-05-29','PS 3.3'),
-  ('G-SC','MYS/MG2030/C/2027/XX','Student Center - Furniture and equipment','G','IPC','IB','lowest_evaluated_compliant_bid','prior','base',null,'2029-01-15','2029-03-15','2029-05-01','2030-01-31','PS 3.3'),
-  ('G-SPORT','MYS/MG2030/C/2027/XX','Sport equipment - 13 training venues, FEFS hall, swimming pool','G','IPC','IB','lowest_evaluated_compliant_bid','prior','base',null,'2029-01-15','2029-03-15','2029-05-01','2030-01-31','PS 3.3')
+  ('C-TA','MSY/MG2030/C/2026/XX','Technical Assistance','C','IPC','REOI','QCBS','prior','base',null,'2026-11-15','2027-02-09','2027-03-23','2030-06-15','PS 3.3'),
+  ('C-TV-DD','MSY/MG2030/C/2026/XX','Training venues - Detailed Design and works supervision','C','IPC','REOI','QCBS','prior','base',null,'2026-09-01','2026-11-13','2026-11-27','2028-10-31','PS 3.3'),
+  ('C-SC-DD','MSY/MG2030/C/2026/XX','Student Center - Detailed Design','C',null,'DC',null,'prior','design_bid_build',null,null,null,'2026-10-20','2027-05-18','PS 3.3'),
+  ('C-SC-SUP','MSY/MG2030/C/2027/XX','Student Center - Works supervision','C','IPC','REOI','QCBS','prior','design_bid_build',null,'2027-03-02','2027-05-14','2027-06-25','2029-09-12','PS 3.3'),
+  ('W-TV','MSY/MG2030/W/2027/XX','Training venues - Works','W','NPC','IB','lowest_evaluated_compliant_bid','prior','base',null,'2027-08-05','2027-09-30','2027-11-11','2029-02-01','PS 3.3'),
+  ('W-SC','MSY/MG2030/W/2027/XX','Student Center - Works','W','IPC','PQL+IB','lowest_evaluated_compliant_bid','prior','design_bid_build',null,'2027-03-27','2027-07-13','2027-08-24','2029-09-12','PS 3.3'),
+  ('DB-SC','MSY/MG2030/DB/2027/XX','Student Center - Design and Build','DB','IPC','PQL+IB','QCBS','prior','design_build',44400000,'2026-09-01','2027-01-14','2027-02-27','2029-05-29','PS 3.3'),
+  ('G-SC','MSY/MG2030/C/2027/XX','Student Center - Furniture and equipment','G','IPC','IB','lowest_evaluated_compliant_bid','prior','base',null,'2029-01-15','2029-03-15','2029-05-01','2030-01-31','PS 3.3'),
+  ('G-SPORT','MSY/MG2030/C/2027/XX','Sport equipment - 13 training venues, FEFS hall, swimming pool','G','IPC','IB','lowest_evaluated_compliant_bid','prior','base',null,'2029-01-15','2029-03-15','2029-05-01','2030-01-31','PS 3.3')
 ) as v(code, number, name, ctype, competition, procedure, selection, review, scenario, amount, spn, opening, signature, completion, source)
 join mg2030_schedule_scenario s on s.code = v.scenario;
 
@@ -300,26 +300,26 @@ from (values
   ('TV.1','TV','base','task','Design','Schematic design',98,'2026-07-01','2026-10-07',null,'TV','15',0),
   ('TV.2','TV','base','summary','Design','Detail Design',null,'2026-09-01','2027-08-05','C-TV-DD','TV','22',1),
   ('TV.2.1','TV','base','task','Design','EOI',20,'2026-09-01','2026-09-21','C-TV-DD','TV','24',2),
-  ('TV.2.2','TV','base','task','Design','TA + MYS validation',14,'2026-09-21','2026-10-05','C-TV-DD','TV','25',3),
+  ('TV.2.2','TV','base','task','Design','TA + MSY validation',14,'2026-09-21','2026-10-05','C-TV-DD','TV','25',3),
   ('TV.2.3','TV','base','task','Design','AFD''s NoN',10,'2026-10-05','2026-10-15','C-TV-DD','TV','26',4),
   ('TV.2.4','TV','base','task','Design','Proposal Preparation',42,'2026-10-15','2026-11-26','C-TV-DD','TV','27',5),
-  ('TV.2.5','TV','base','task','Design','TA + MYS validation',14,'2026-11-26','2026-12-10','C-TV-DD','TV','28',6),
+  ('TV.2.5','TV','base','task','Design','TA + MSY validation',14,'2026-11-26','2026-12-10','C-TV-DD','TV','28',6),
   ('TV.2.6','TV','base','task','Design','Contracts negociation + AFD''s NoNs',28,'2026-12-10','2027-01-07','C-TV-DD','TV','29',7),
   ('TV.2.7','TV','base','task','Design','Detail Design studies',210,'2027-01-07','2027-08-05','C-TV-DD','TV','30',8),
   ('TV.3','TV','base','group_header','Works','Works',null,null,null,null,'TV','38',9),
   ('TV.3.1','TV','base','summary','Works','Training venues tender',null,'2027-08-05','2027-11-11','W-TV','TV','39',10),
   ('TV.3.1.1','TV','base','task','Works','Call for bids training venues',56,'2027-08-05','2027-09-30','W-TV','TV','40',11),
-  ('TV.3.1.2','TV','base','task','Works','TA + MYS evaluation',14,'2027-09-30','2027-10-14','W-TV','TV','41',12),
+  ('TV.3.1.2','TV','base','task','Works','TA + MSY evaluation',14,'2027-09-30','2027-10-14','W-TV','TV','41',12),
   ('TV.3.1.3','TV','base','task','Works','AFD''s NoN + contracts negociation',28,'2027-10-14','2027-11-11','W-TV','TV','42',13),
   ('TV.3.2','TV','base','task','Works','Training venues works',448,'2027-11-11','2029-02-01','W-TV','TV','43',14),
   ('SC.1','SC-DB','design_build','task','DESIGN & BUILD','Schematic design',98,'2026-07-01','2026-10-07',null,'SC','15',15),
   ('SC.2','SC-DB','design_build','summary','DESIGN & BUILD','Detail Design',null,'2026-09-01','2029-05-29','DB-SC','SC','22',16),
   ('SC.2.1','SC-DB','design_build','task','DESIGN & BUILD','Schematic design adjustments',15,'2026-10-07','2026-10-22',null,'SC','23',17),
   ('SC.2.2','SC-DB','design_build','task','DESIGN & BUILD','Initial Selection',20,'2026-09-01','2026-09-21','DB-SC','SC','24',18),
-  ('SC.2.3','SC-DB','design_build','task','DESIGN & BUILD','TA + MYS validation',15,'2026-09-21','2026-10-06','DB-SC','SC','25',19),
+  ('SC.2.3','SC-DB','design_build','task','DESIGN & BUILD','TA + MSY validation',15,'2026-09-21','2026-10-06','DB-SC','SC','25',19),
   ('SC.2.4','SC-DB','design_build','task','DESIGN & BUILD','AFD''s NoN',10,'2026-10-06','2026-10-16','DB-SC','SC','26',20),
   ('SC.2.5','SC-DB','design_build','task','DESIGN & BUILD','Proposal Preparation',84,'2026-10-22','2027-01-14','DB-SC','SC','27',21),
-  ('SC.2.6','SC-DB','design_build','task','DESIGN & BUILD','TA + MYS evaluation',14,'2027-01-14','2027-01-28','DB-SC','SC','28',22),
+  ('SC.2.6','SC-DB','design_build','task','DESIGN & BUILD','TA + MSY evaluation',14,'2027-01-14','2027-01-28','DB-SC','SC','28',22),
   ('SC.2.7','SC-DB','design_build','task','DESIGN & BUILD','Contract negociation + AFD''s NoNs',30,'2027-01-28','2027-02-27','DB-SC','SC','29',23),
   ('SC.2.8','SC-DB','design_build','task','DESIGN & BUILD','Design and build',822,'2027-02-27','2029-05-29','DB-SC','SC','30',24),
   ('MS.1','TV','base','milestone',null,'MG2030 buffer start (4 months buffer)',null,'2029-09-01','2029-09-01',null,'TV','AY6',25),

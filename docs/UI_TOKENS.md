@@ -419,7 +419,7 @@ Composition retenue pour MG2030 :
 | Emplacement | Logo | Fichier | Statut |
 |---|---|---|---|
 | Header, à gauche | **AFD** (bailleur) | `public/logos/afd.png` | Repris du dépôt de charte |
-| Header, après le séparateur | **République du Kosovo** (maître d'ouvrage, MYS) | `assets/logos/kosovo-emblem.svg` | **Fourni**, vectoriel, dans le dépôt |
+| Header, après le séparateur | **République du Kosovo** (maître d'ouvrage, MSY) | `assets/logos/kosovo-emblem.svg` | **Fourni**, vectoriel, dans le dépôt |
 | Header, à droite | **XXI Mediterranean Games Prishtina 2030** | `components/shell/brand-mark.tsx` | ⚠ Vectoriel indisponible → **bloc typographique**, remplaçable en un fichier |
 | Sidebar, en haut | **Assemblage ingénierie** | `public/logos/assemblage.png` | Repris du dépôt de charte |
 | Sidebar, filigrane bas | Sigle `.A` | `public/logos/assemblage-a.png` | Repris du dépôt de charte |

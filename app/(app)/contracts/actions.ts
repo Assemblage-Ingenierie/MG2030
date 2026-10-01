@@ -38,8 +38,20 @@ export interface ContractInput {
   completionDate: string | null;
 }
 
-/** Format imposé au brief §7 : MYS/MG2030/{C|W|G|NC|DB}/{année}/XX. */
-const NUMBER_FORMAT = /^MYS\/MG2030\/(C|W|G|NC|DB)\/[0-9]{4}\/([0-9]{2}|XX)$/;
+/**
+ * Format imposé au brief §7 : MSY/MG2030/{C|W|G|NC|DB}/{année}/XX.
+ *
+ * ⚠ L'ANCIEN SIGLE RESTE ACCEPTÉ. Le ministère s'appelait MYS avant de devenir
+ * MSY (migration 0046) : un marché réellement notifié sous l'ancien numéro le
+ * garde, et un format qui le refuserait rendrait sa fiche immodifiable. Les
+ * neuf numéros du seed, tous en `/XX` — donc jamais émis —, ont été renommés ;
+ * ce qui est sorti, non.
+ *
+ * La même règle existe en CONTRAINTE DE BASE (`mg2030_contract_number_format`).
+ * Les deux doivent rester d'accord : c'est la base qui a refusé le renommage
+ * quand seul le code avait été changé.
+ */
+const NUMBER_FORMAT = /^(MSY|MYS)\/MG2030\/(C|W|G|NC|DB)\/[0-9]{4}\/([0-9]{2}|XX)$/;
 
 function toContractRow(input: ContractInput) {
   return {

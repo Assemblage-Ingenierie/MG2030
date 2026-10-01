@@ -1,5 +1,5 @@
 role_code,title,organisation,reports_to,supervises,time_type,posts,level_of_effort,source
-COORD,Project Coordinator,PIU,MYS hierarchical superior (to be specified),All PIU members,full_time,1,,JD 3.1
+COORD,Project Coordinator,PIU,MSY hierarchical superior (to be specified),All PIU members,full_time,1,,JD 3.1
 CONSTR,Construction Specialist (with energy efficiency expertise),PIU,COORD,,full_time,1,,JD 3.2
 CONSTR-DEP,Deputy to the Construction Specialist,PIU,CONSTR,,full_time,1,,JD 3.3
 PROC,Procurement Specialist,PIU,COORD,,full_time,1,,JD 3.4
