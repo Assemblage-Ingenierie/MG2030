@@ -771,7 +771,13 @@
     "error_duplicateFolder": "A folder with this name already exists here.",
     "error_duplicateTag": "A tag with this name already exists.",
     "error_folderHasDocuments": "This folder still holds documents. Move or delete them first — a document cannot exist without a folder.",
-    "error_folderHasChildren": "This folder still has sub-folders. Delete them first."
+    "error_folderHasChildren": "This folder still has sub-folders. Delete them first.",
+    "location": "Location",
+    "searchPlaceholder": "Search a document…",
+    "searchResults": "{count} document(s) matching “{query}”",
+    "searchEmpty": "Nothing matches. Try part of the file name, or a word from its description.",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
   },
   "notifications": {
     "title": "Notifications",

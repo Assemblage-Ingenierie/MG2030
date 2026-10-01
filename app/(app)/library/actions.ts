@@ -417,3 +417,28 @@ export async function renameTag(tagId: string, label: string): Promise<ActionRes
   revalidatePath("/admin/tags");
   return { ok: true };
 }
+
+/**
+ * Deplace un document dans un autre dossier.
+ *
+ * La CLE R2 NE BOUGE PAS : elle identifie l objet stocke, pas son rangement.
+ * La renommer voudrait dire recopier le fichier puis effacer l ancien, pour un
+ * resultat identique a l ecran et une fenetre pendant laquelle le document
+ * existe en double ou pas du tout.
+ */
+export async function moveDocument(
+  documentId: string,
+  folderId: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("mg2030_document")
+    .update({ folder_id: folderId }, { count: "exact" })
+    .eq("id", documentId);
+
+  if (error) return { ok: false, error: error.message };
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  return { ok: true };
+}

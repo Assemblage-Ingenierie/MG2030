@@ -96,13 +96,29 @@ export async function loadFolderTree(): Promise<FolderNode[]> {
   return roots;
 }
 
-export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
+export interface DocumentQuery {
+  /**
+   * Dossiers retenus. On charge la BRANCHE ENTIÈRE d'une partie et non un seul
+   * dossier : l'écran montre les documents sous chaque sous-partie, et les
+   * demander dossier par dossier voudrait dire un aller-retour serveur à
+   * chaque dépliement — c'est précisément la lenteur signalée le 01/10/2026.
+   */
+  folderIds?: string[];
+  /** Recherche libre, sur le nom de fichier et sur la description. */
+  search?: string;
+}
+
+export async function listDocuments(q: DocumentQuery = {}): Promise<DocumentRow[]> {
   const supabase = await createClient();
+
+  // Une liste de dossiers VIDE veut dire « aucun », pas « tous ». Sans ce
+  // court-circuit, une partie sans dossier afficherait toute la bibliothèque.
+  if (q.folderIds && q.folderIds.length === 0) return [];
 
   let query = supabase
     .from("mg2030_document")
     .select(
-      `id, folder_id, original_filename, size_bytes, mime_type, description, uploaded_at,
+      `id, folder_id, original_filename, size_bytes, mime_type, description, version, uploaded_at,
        mg2030_folder!inner ( path ),
        uploader:mg2030_app_user!mg2030_document_uploaded_by_fkey ( full_name ),
        mg2030_document_tag ( mg2030_tag ( id, code, label, color ) )`,
@@ -111,7 +127,18 @@ export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
     .order("uploaded_at", { ascending: false })
     .limit(200);
 
-  if (folderId) query = query.eq("folder_id", folderId);
+  if (q.folderIds) query = query.in("folder_id", q.folderIds);
+
+  const search = q.search?.trim() ?? "";
+  if (search !== "") {
+    /* ⚠ LES JOKERS DE L'UTILISATEUR SONT ÉCHAPPÉS. Un `%` tapé dans la barre
+       de recherche signifierait « n'importe quoi » et un `_` « n'importe quel
+       caractère » : la recherche rendrait des résultats que personne ne
+       comprend. La barre oblique inverse d'abord, sinon on échapperait les
+       échappements eux-mêmes. */
+    const safe = search.replace(/\\/g, "\\\\").replace(/[%_]/g, (c) => `\\${c}`);
+    query = query.or(`original_filename.ilike.%${safe}%,description.ilike.%${safe}%`);
+  }
 
   const { data, error } = await query;
   if (error) throw new Error(`Lecture des documents : ${error.message}`);
@@ -138,6 +165,25 @@ export async function listDocuments(folderId?: string): Promise<DocumentRow[]> {
       tags: (r.mg2030_document_tag ?? []).map((dt) => dt.mg2030_tag),
     };
   });
+}
+
+/** Identifiants d'un dossier et de toute sa descendance, lui compris. */
+export function branchIds(node: FolderNode): string[] {
+  return [node.id, ...node.children.flatMap(branchIds)];
+}
+
+/**
+ * Tous les dossiers à plat, indentés, pour un sélecteur d'emplacement.
+ *
+ * L'indentation tient lieu de chemin : « Procurement » tout court serait
+ * ambigu dès qu'un sous-dossier du même nom existe ailleurs, et choisir un
+ * emplacement demande précisément de savoir où l'on est.
+ */
+export function flatten(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
+  return nodes.flatMap((node) => [
+    { id: node.id, label: `${"\u00a0\u00a0\u00a0".repeat(depth)}${node.name}` },
+    ...flatten(node.children, depth + 1),
+  ]);
 }
 
 /**

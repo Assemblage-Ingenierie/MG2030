@@ -113,83 +113,37 @@ export function RootList({
   );
 }
 
-// ── Panneau de droite : les sous-parties, repliables ───────────────────────
+// ── Intertitre d'un dossier, avec ses commandes de tenue ──────────────────
+//
+// Rendu par `browser.tsx`, qui sait quels documents il contient. L'intertitre
+// ne NAVIGUE plus : il déplie. C'est tout l'objet du changement — cliquer un
+// sous-dossier ne recharge plus la page.
 
-export function SubfolderPanel({
-  root,
-  openId,
-}: {
-  root: FolderView;
-  /** Sous-dossier déplié, dont les documents s'affichent. */
-  openId: string | null;
-}) {
-  const t = useT();
-  const { can } = usePermissions();
-  const editable = can("document.upload");
-
-  /* ⚠ LE RANG SE CALCULE ICI, à partir des données reçues. Une première
-     version recevait une FONCTION `siblingsOf` fabriquée par la page : or la
-     page est un composant SERVEUR, et une fonction ne traverse pas la
-     frontière serveur / client. React refusait l'écran à l'exécution — ce que
-     ni le typage ni le build ne voient, la frontière n'étant pas une affaire
-     de types. Deuxième fois dans ce fichier le même jour. */
-  const siblingsOf = (id: string) => {
-    const index = root.children.findIndex((c) => c.id === id);
-    return { first: index <= 0, last: index === root.children.length - 1 };
-  };
-
-  return (
-    <div className="flex flex-col">
-      <FolderHeading
-        folder={root}
-        href={`/library?folder=${root.id}`}
-        active={openId === root.id || openId === null}
-        depth={0}
-        editable={editable}
-        position={{ first: true, last: true }}
-        isRoot
-      />
-
-      {root.children.map((child) => (
-        <FolderHeading
-          key={child.id}
-          folder={child}
-          href={`/library?folder=${child.id}`}
-          active={child.id === openId}
-          depth={1}
-          editable={editable}
-          position={siblingsOf(child.id)}
-        />
-      ))}
-
-      {editable && (
-        <div className="px-2 py-1.5">
-          <AddFolder parentId={root.id} label={t("library.addSubfolder")} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FolderHeading({
+export function FolderHeading({
   folder,
-  href,
-  active,
-  depth,
-  editable,
-  position,
+  expanded,
+  onToggle,
+  siblings,
   isRoot = false,
 }: {
   folder: FolderView;
-  href: string;
-  active: boolean;
-  depth: number;
-  editable: boolean;
-  position: { first: boolean; last: boolean };
+  /** `null` quand le dossier est vide : il n'y a rien à déplier. */
+  expanded: boolean | null;
+  onToggle: () => void;
+  /** La fratrie, pour griser les flèches aux extrémités. */
+  siblings: FolderView[];
   isRoot?: boolean;
 }) {
   const t = useT();
   const router = useRouter();
+  const { can } = usePermissions();
+  const editable = can("document.upload");
+
+  const index = siblings.findIndex((c) => c.id === folder.id);
+  const position = {
+    first: isRoot || index <= 0,
+    last: isRoot || index === siblings.length - 1,
+  };
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(folder.name);
   const [error, setError] = useState<string | null>(null);
@@ -208,10 +162,13 @@ function FolderHeading({
     <div
       className={cn(
         "group flex flex-col border-b border-[var(--border)]",
-        active && "bg-[var(--app-bg)]",
+        isRoot ? "bg-[var(--app-bg)]" : "bg-[var(--surface)]",
       )}
     >
-      <div className="flex items-center gap-1 px-2 py-1.5" style={{ paddingLeft: 8 + depth * 14 }}>
+      <div
+        className="flex items-center gap-1 px-2 py-1.5"
+        style={{ paddingLeft: isRoot ? 8 : 10 }}
+      >
         {renaming ? (
           <input
             autoFocus
@@ -235,21 +192,30 @@ function FolderHeading({
             style={{ borderColor: "var(--focus)" }}
           />
         ) : (
-          <Link
-            href={href}
-            aria-current={active ? "true" : undefined}
+          /* Un BOUTON et non un lien : déplier n'est pas naviguer, et
+             l'ancienne version rechargeait la page pour n'en changer qu'un
+             tableau. Un dossier vide n'est pas cliquable — un chevron qui
+             ne déplie rien se clique deux fois. */
+          <button
+            type="button"
+            onClick={onToggle}
+            disabled={expanded === null}
+            aria-expanded={expanded ?? undefined}
             className={cn(
-              "min-w-0 flex-1 truncate rounded px-1 text-sm",
+              "flex min-w-0 flex-1 items-center gap-1.5 rounded px-1 text-left text-sm",
+              expanded !== null && "hover:bg-[var(--border)]",
               isRoot ? "font-semibold text-[var(--text)]" : "text-[var(--text)]",
+              expanded === null && "cursor-default text-[var(--text-muted)]",
             )}
           >
-            {folderLabel(folder.name)}
+            <Chevron open={expanded === true} hidden={expanded === null} />
+            <span className="truncate">{folderLabel(folder.name)}</span>
             {folder.documentCount > 0 && (
-              <span className="ml-2 text-[11px] tabular-nums text-[var(--text-muted)]">
+              <span className="text-[11px] tabular-nums text-[var(--text-muted)]">
                 {folder.documentCount}
               </span>
             )}
-          </Link>
+          </button>
         )}
 
         {editable && !renaming && (
@@ -383,6 +349,22 @@ function AddFolder({ parentId, label }: { parentId: string | null; label: string
         </span>
       )}
     </span>
+  );
+}
+
+/** Chevron de dépliement. Invisible — mais présent — quand il n'y a rien à ouvrir. */
+function Chevron({ open, hidden }: { open: boolean; hidden: boolean }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      aria-hidden="true"
+      className={cn("shrink-0 transition-transform", hidden && "invisible")}
+      style={{ transform: open ? "rotate(90deg)" : undefined }}
+    >
+      <path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

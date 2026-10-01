@@ -26,12 +26,21 @@ import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { DownloadIcon, EditIcon, EyeIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import {
+  moveDocument,
   renameDocument,
   setDocumentDescription,
   setDocumentVersion,
 } from "@/app/(app)/library/actions";
 
+/** Un dossier proposé comme emplacement, déjà indenté. */
+export interface FolderChoice {
+  id: string;
+  label: string;
+}
+
 export interface DocumentRowData {
+  /** Emplacement actuel, pour que la fiche sache d'où l'on part. */
+  folderId: string;
   id: string;
   originalFilename: string;
   mimeType: string;
@@ -237,7 +246,13 @@ export function DocumentVersion({ doc }: { doc: DocumentRowData }) {
 }
 
 /** Aperçu, téléchargement, fiche. Trois icônes, trois gestes distincts. */
-export function DocumentActions({ doc }: { doc: DocumentRowData }) {
+export function DocumentActions({
+  doc,
+  folders,
+}: {
+  doc: DocumentRowData;
+  folders: FolderChoice[];
+}) {
   const t = useT();
   const canEdit = useCanEditLibrary();
   const router = useRouter();
@@ -338,6 +353,7 @@ export function DocumentActions({ doc }: { doc: DocumentRowData }) {
       {form && (
         <EditForm
           doc={doc}
+          folders={folders}
           onClose={() => {
             setForm(false);
             router.refresh();
@@ -349,11 +365,20 @@ export function DocumentActions({ doc }: { doc: DocumentRowData }) {
 }
 
 /** La fiche : ce qui se modifie sans re-téléverser le fichier. */
-function EditForm({ doc, onClose }: { doc: DocumentRowData; onClose: () => void }) {
+function EditForm({
+  doc,
+  folders,
+  onClose,
+}: {
+  doc: DocumentRowData;
+  folders: FolderChoice[];
+  onClose: () => void;
+}) {
   const t = useT();
   const [name, setName] = useState(doc.originalFilename);
   const [version, setVersion] = useState(doc.version ?? "");
   const [description, setDescription] = useState(doc.description ?? "");
+  const [folderId, setFolderId] = useState(doc.folderId);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -372,6 +397,11 @@ function EditForm({ doc, onClose }: { doc: DocumentRowData; onClose: () => void 
         description !== (doc.description ?? "")
           ? setDocumentDescription(doc.id, description)
           : { ok: true as const },
+        // ⚠ DÉPLACER NE TOUCHE PAS AU FICHIER. La clé R2 ne bouge pas : elle
+        // identifie l'objet stocké, pas son rangement. Seul `folder_id`
+        // change — le document se retrouve ailleurs dans l'arborescence, et
+        // le fichier reste exactement là où il a été déposé.
+        folderId !== doc.folderId ? moveDocument(doc.id, folderId) : { ok: true as const },
       ]);
       const failed = results.find((r) => !r.ok);
       if (failed) {
@@ -404,6 +434,22 @@ function EditForm({ doc, onClose }: { doc: DocumentRowData; onClose: () => void 
           value={version}
           onChange={(e) => setVersion(e.target.value)}
         />
+        <div>
+          <Label htmlFor="doc-folder">{t("library.location")}</Label>
+          <select
+            id="doc-folder"
+            className={fieldClasses() + " mt-1"}
+            value={folderId}
+            onChange={(e) => setFolderId(e.target.value)}
+          >
+            {folders.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <Label htmlFor="doc-description" optionalText={t("common.optional")}>
             {t("library.description")}

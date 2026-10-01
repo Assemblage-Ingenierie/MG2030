@@ -37,7 +37,13 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+    /* ⚠ `text-left` EXPLICITE. La fenêtre est `fixed`, mais elle reste un
+       DESCENDANT du nœud qui l'a ouverte : ouverte depuis une cellule de
+       tableau alignée à droite, elle héritait de cet alignement et tous ses
+       libellés sortaient collés à droite. Constaté le 01/10/2026 sur la fiche
+       d'un document. L'alignement d'une fenêtre ne dépend pas de l'endroit
+       d'où on l'a appelée. */
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 text-left">
       <button
         type="button"
         aria-label={closeLabel}
