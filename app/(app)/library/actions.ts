@@ -400,6 +400,43 @@ export async function createTag(
   return { ok: true };
 }
 
+/**
+ * Couleur d'une étiquette.
+ *
+ * ⚠ SÉPARÉE DU RENOMMAGE, et c'est voulu. Le libellé se corrige au clavier, la
+ * couleur se choisit dans un nuancier : les mêler dans une seule action
+ * obligerait à envoyer les deux à chaque fois, donc à écraser le libellé que
+ * quelqu'un vient de corriger parce qu'on a touché au nuancier.
+ *
+ * `null` est accepté : une étiquette sans couleur retombe sur le gris neutre
+ * de l'interface, ce qui vaut mieux qu'une couleur imposée au hasard.
+ */
+export async function setTagColour(
+  tagId: string,
+  colour: string | null,
+): Promise<ActionResult> {
+  const clean = colour?.trim().toLowerCase() ?? "";
+
+  // Six chiffres hexadécimaux, et rien d'autre : la valeur part telle quelle
+  // dans un `style`, et une chaîne arbitraire y serait au mieux ignorée.
+  if (clean !== "" && !/^#[0-9a-f]{6}$/.test(clean)) {
+    return { ok: false, error: "invalidColour" };
+  }
+
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("mg2030_tag")
+    .update({ color: clean === "" ? null : clean }, { count: "exact" })
+    .eq("id", tagId);
+
+  if (error) return { ok: false, error: error.message };
+  if (count === 0) return { ok: false, error: "forbidden" };
+
+  revalidatePath("/library");
+  revalidatePath("/admin/tags");
+  return { ok: true };
+}
+
 export async function renameTag(tagId: string, label: string): Promise<ActionResult> {
   const clean = label.trim();
   if (clean === "") return { ok: false, error: "emptyName" };

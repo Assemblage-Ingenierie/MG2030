@@ -5,7 +5,7 @@ import { listTagOptions } from "@/lib/queries/library";
 import { Card, Section } from "@/components/ui/card";
 import { Table, Thead, Th, Tr, Td, EmptyRow } from "@/components/ui/table";
 import { AlertIcon } from "@/components/ui/icons";
-import { TagName, NewTag } from "@/components/library/tag-admin";
+import { TagColour, TagName, NewTag } from "@/components/library/tag-admin";
 
 /**
  * Étiquettes documentaires.
@@ -73,20 +73,7 @@ export default async function TagsAdminPage() {
                       Le renommer ferait d'un rebaptême une migration. */}
                   <Td className="font-mono text-xs text-[var(--text-muted)]">{tag.code}</Td>
                   <Td align="right">
-                    {tag.color ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-3 w-3 rounded-sm"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                        <span className="font-mono text-xs text-[var(--text-muted)]">
-                          {tag.color}
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="text-[var(--text-muted)]">—</span>
-                    )}
+                    <TagColour tagId={tag.id} colour={tag.color} />
                   </Td>
                 </Tr>
               ))}

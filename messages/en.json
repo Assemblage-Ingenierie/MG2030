@@ -44,7 +44,8 @@
     "hiddenForOthers": "Hidden from everyone else",
     "hideMenu": "Hide the menu",
     "showMenu": "Show the menu",
-    "tags": "Tags"
+    "tags": "Tags",
+    "organisations": "Organisations"
   },
   "common": {
     "search": "Search",
@@ -777,7 +778,8 @@
     "searchResults": "{count} document(s) matching “{query}”",
     "searchEmpty": "Nothing matches. Try part of the file name, or a word from its description.",
     "expandAll": "Expand all",
-    "collapseAll": "Collapse all"
+    "collapseAll": "Collapse all",
+    "error_invalidColour": "This colour is not valid."
   },
   "notifications": {
     "title": "Notifications",
@@ -1076,6 +1078,33 @@
     "code": "Code",
     "colour": "Colour",
     "add": "+ New tag",
-    "renameHint": "Click to rename"
+    "renameHint": "Click to rename",
+    "clearColour": "Remove the colour"
+  },
+  "orgs": {
+    "title": "Organisations",
+    "intro": "The partners of the project. One organisation, several posts.",
+    "warning": "Neither of these grants any right. Since the three access levels, what a person may do is set on their account. An organisation colours the Gantt bars and names assignees; a functional role describes a POST, for the org chart and the directory.",
+    "code": "Code",
+    "name": "Name",
+    "title_": "Title",
+    "accessMode": "Access mode",
+    "used": "In use",
+    "counts": "{users} account(s), {roles} post(s)",
+    "accounts": "Accounts",
+    "posts": "Posts",
+    "addOrg": "+ New organisation",
+    "deleteOrg": "Delete this organisation",
+    "confirmDeleteOrg": "Delete “{name}”?",
+    "rolesTitle": "Functional roles",
+    "rolesIntro": "One post per line. The code identifies it in the org chart; it does not change.",
+    "addRole": "+ New post",
+    "deleteRole": "Delete this post",
+    "confirmDeleteRole": "Delete “{name}”?",
+    "error_forbidden": "Reserved to a platform administrator.",
+    "error_emptyName": "A code and a name are both needed.",
+    "error_duplicateCode": "This code is already taken.",
+    "error_inUse": "Still in use by accounts or posts — it cannot be deleted.",
+    "error_writeFailed": "The change was refused."
   }
 }
