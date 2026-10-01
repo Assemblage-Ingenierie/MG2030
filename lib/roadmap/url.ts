@@ -127,6 +127,20 @@ export function buildRoadmapQuery(current: RoadmapParams, patch: RoadmapPatch = 
 }
 
 /**
+ * La seule QUERY, sans la route.
+ *
+ * Les exports et la page d'impression vivent sous d'autres chemins mais
+ * doivent porter exactement le même état : reconstruire la chaîne chez eux
+ * aurait rouvert la porte qu'on vient de fermer — deux lectures de l'URL qui
+ * finissent par diverger.
+ */
+export function roadmapQueryString(current: RoadmapParams, patch: RoadmapPatch = {}): string {
+  const url = buildRoadmapQuery(current, patch);
+  const cut = url.indexOf("?");
+  return cut === -1 ? "" : url.slice(cut + 1);
+}
+
+/**
  * Le tri suivant pour une colonne : croissant → décroissant → AUCUN.
  *
  * Le troisième clic rend l'ordre par défaut — échéance puis urgence — au lieu

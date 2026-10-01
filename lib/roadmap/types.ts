@@ -79,8 +79,15 @@ export interface RoadmapAssignee {
 
 export interface RoadmapActionRow {
   id: string;
-  subjectId: string;
-  subjectName: string;
+  /**
+   * NUL = action ORPHELINE : son sujet a été supprimé (migration 0040).
+   *
+   * Ce n'est pas un défaut de données, c'est un état du modèle. L'action garde
+   * tout le reste et l'écran la regroupe sous « sans sujet », pour qu'on la
+   * reclasse — plutôt que de la faire disparaître avec son rangement.
+   */
+  subjectId: string | null;
+  subjectName: string | null;
   title: string;
   /** Nuls quand personne ne les a renseignés. On ne comble pas. */
   status: RoadmapStatus | null;

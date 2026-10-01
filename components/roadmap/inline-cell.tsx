@@ -39,6 +39,8 @@ import {
 } from "@/lib/roadmap/types";
 import { patchRoadmapAction } from "@/app/(app)/roadmap/actions";
 import { ASSIGNEE_ENTITIES } from "@/lib/roadmap/types";
+import { shortAssignee } from "@/lib/roadmap/assignee-label";
+import { RichText, RichTextEditor } from "./rich-text";
 import type { PersonOption } from "./assignee-picker";
 
 /** Enveloppe commune : le bouton d'ouverture, l'attente, le refus. */
@@ -387,14 +389,9 @@ export function InlineDetail({
   const { editable, error, pending, run } = useCell();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
-  const input = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (editing) input.current?.focus();
-  }, [editing]);
 
   const display = value ? (
-    <span className="block text-xs text-[var(--text)]">{value}</span>
+    <RichText source={value} className="text-xs text-[var(--text)]" />
   ) : (
     <span className="block text-xs text-[var(--text-muted)]">{placeholder}</span>
   );
@@ -405,20 +402,20 @@ export function InlineDetail({
 
   if (editing) {
     return (
-      <textarea
-        ref={input}
-        rows={3}
+      /* ⚠ ON NE VALIDE PLUS SUR ENTRÉE ICI. Le détail accepte maintenant des
+         puces (voir lib/roadmap/rich-text.ts), et une liste se tape ligne par
+         ligne : faire d'Entrée la validation rendait les puces inaccessibles
+         au clavier. On enregistre en quittant la cellule, Échap renonce. */
+      <RichTextEditor
+        compact
+        autoFocus
+        rows={4}
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={setDraft}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             setDraft(value ?? "");
             setEditing(false);
-          } else if (e.key === "Enter" && !e.shiftKey) {
-            // Entrée valide, Maj+Entrée passe à la ligne : on vient corriger
-            // une précision, pas rédiger une note.
-            e.preventDefault();
-            (e.target as HTMLTextAreaElement).blur();
           }
         }}
         onBlur={() => {
@@ -428,8 +425,6 @@ export function InlineDetail({
           if (draft === (value ?? "")) return;
           run(() => patchRoadmapAction(actionId, { detail: draft }));
         }}
-        className="w-full rounded border bg-[var(--surface)] px-1.5 py-1 text-xs outline-none"
-        style={{ borderColor: "var(--focus)" }}
       />
     );
   }
@@ -465,11 +460,18 @@ export function InlineAssignees({
   value,
   people,
   notSetLabel,
+  shortNames = false,
 }: {
   actionId: string;
   value: { label: string }[];
   people: PersonOption[];
   notSetLabel: string;
+  /**
+   * Écrire le PRÉNOM seul. Décidé par l'appelant sur l'ensemble du tableau —
+   * voir `hasAmbiguousFirstNames` : deux homonymes et on réécrit tout en
+   * entier, parce qu'une colonne illisible vaut mieux qu'une colonne fausse.
+   */
+  shortNames?: boolean;
 }) {
   const t = useT();
   const { editable, open, setOpen, error, pending, run } = useCell();
@@ -483,9 +485,12 @@ export function InlineAssignees({
         {labels.map((l) => (
           <span
             key={l}
+            // Le libellé ENTIER reste en infobulle : raccourcir est une
+            // affaire d'affichage, jamais de donnée.
+            title={l}
             className="inline-block rounded bg-[var(--app-bg)] px-1.5 py-0.5 text-xs text-[var(--text)]"
           >
-            {l}
+            {shortNames ? shortAssignee(l) : l}
           </span>
         ))}
       </span>

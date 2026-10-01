@@ -1,10 +1,10 @@
 import { getI18n } from "@/lib/i18n/server";
 import { Card } from "@/components/ui/card";
-import { GANTT, STATUS } from "@/lib/tokens";
+import { GANTT, ROADMAP_PRIORITY, ROADMAP_STATUS } from "@/lib/tokens";
 import { PX_PER_DAY, buildTicks, suggestScale } from "@/lib/gantt/scale";
 import { addDays, daysBetween } from "@/lib/schedule/dates";
 import { timelineLabel } from "@/lib/roadmap/timeline";
-import type { RoadmapActionRow, RoadmapStatus } from "@/lib/roadmap/types";
+import { ROADMAP_STATUSES, type RoadmapActionRow, type RoadmapStatus } from "@/lib/roadmap/types";
 import type { RoadmapGroup } from "@/lib/roadmap/filter";
 
 const ROW_H = 26;
@@ -28,6 +28,17 @@ const LABEL_W = 280;
  *
  * L'échelle et les graduations viennent de `lib/gantt/scale`, déjà éprouvées
  * par le plan de charge : aucune arithmétique de dates n'est réécrite ici.
+ *
+ * ⚠ LES COULEURS SONT CELLES DE LA LISTE, exactement. La frise peignait ses
+ * barres avec `STATUS`, la palette générique du plan de charge : « en cours »
+ * y était jaune alors que la liste l'affiche en bleu, et « bloqué » n'avait
+ * aucune couleur propre — il tombait dans le gris de « à venir ». On lisait
+ * donc deux codes couleur différents pour une même donnée, d'un onglet à
+ * l'autre. Elles viennent maintenant de `ROADMAP_STATUS`, comme les pastilles
+ * du tableau, et une légende les rappelle sous la frise.
+ *
+ * L'URGENCE se marque par un liseré rouge à GAUCHE de la barre, comme dans la
+ * liste : un contour complet se confondait avec le rouge de « bloqué ».
  */
 export async function RoadmapTimeline({
   groups,
@@ -73,7 +84,8 @@ export async function RoadmapTimeline({
   const rows: ({ kind: "subject"; name: string } | { kind: "action"; action: RoadmapActionRow })[] =
     [];
   for (const g of groups) {
-    rows.push({ kind: "subject", name: g.subjectName });
+    // `null` = groupe des actions dont le sujet a été supprimé (0040).
+    rows.push({ kind: "subject", name: g.subjectName ?? t("roadmap.noSubject") });
     for (const a of g.actions) rows.push({ kind: "action", action: a });
   }
   const height = rows.length * ROW_H;
@@ -184,6 +196,20 @@ export async function RoadmapTimeline({
                 const label = timelineLabel(a.timeline, locale);
                 return (
                   <g key={a.id}>
+                    {/* Le liseré d'urgence est un RECTANGLE À GAUCHE, pas un
+                        contour : un contour rouge autour d'une barre rouge
+                        — « bloqué » — ne se voyait pas, et autour d'une barre
+                        verte il se lisait comme un second statut. */}
+                    {a.priority === "urgent" && (
+                      <rect
+                        x={bx - 3}
+                        y={i * ROW_H + 4}
+                        width={3}
+                        height={ROW_H - 8}
+                        rx={1}
+                        fill={ROADMAP_PRIORITY.urgent}
+                      />
+                    )}
                     <rect
                       x={bx}
                       y={i * ROW_H + 6}
@@ -191,8 +217,6 @@ export async function RoadmapTimeline({
                       height={ROW_H - 12}
                       rx={3}
                       fill={barFill(a.status)}
-                      stroke={a.priority === "urgent" ? "var(--danger)" : undefined}
-                      strokeWidth={a.priority === "urgent" ? 1.4 : 0}
                     >
                       {/* La formulation exacte, pour qu'on ne lise pas le bord
                           d'une barre hebdomadaire comme un jour arrêté.
@@ -225,6 +249,30 @@ export async function RoadmapTimeline({
         </div>
       </div>
 
+      {/* La légende sous la frise, et non au-dessus : on vient y vérifier une
+          couleur qu'on vient de voir, pas apprendre un code avant de lire. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--border)] px-3 py-2 text-[11px] text-[var(--text-muted)]">
+        <span className="font-medium">{t("roadmap.legendStatus")}</span>
+        {ROADMAP_STATUSES.map((status) => (
+          <span key={status} className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block h-2.5 w-2.5 rounded-sm"
+              style={{ backgroundColor: ROADMAP_STATUS[status].bg }}
+            />
+            {t(`roadmap.status_${status}`)}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="inline-block h-3 w-[3px] rounded-sm"
+            style={{ backgroundColor: ROADMAP_PRIORITY.urgent }}
+          />
+          {t("roadmap.legendUrgent")}
+        </span>
+      </div>
+
       {undated.length > 0 && (
         <div className="border-t border-[var(--border)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
@@ -234,11 +282,21 @@ export async function RoadmapTimeline({
             {undated.map((a) => (
               <li
                 key={a.id}
-                className="rounded border border-[var(--border)] bg-[var(--app-bg)] px-2 py-1 text-xs text-[var(--text)]"
+                title={a.title}
+                className="flex items-center gap-1.5 rounded border border-[var(--border)] bg-[var(--app-bg)] py-1 pr-2 text-xs text-[var(--text)]"
                 style={
-                  a.priority === "urgent" ? { borderColor: "var(--danger)" } : undefined
+                  a.priority === "urgent"
+                    ? { borderLeftColor: ROADMAP_PRIORITY.urgent, borderLeftWidth: 3 }
+                    : { paddingLeft: 2 }
                 }
               >
+                {/* La même pastille que dans la frise : une action sans date
+                    n'est pas une action sans statut. */}
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
+                  style={{ marginLeft: 6, backgroundColor: barFill(a.status) }}
+                />
                 {a.title}
               </li>
             ))}
@@ -249,9 +307,14 @@ export async function RoadmapTimeline({
   );
 }
 
-/** Couleur par STATUT : une frise répond d'abord à « où en est-on ? ». */
+/**
+ * Couleur par STATUT : une frise répond d'abord à « où en est-on ? ».
+ *
+ * MÊME TABLE que les pastilles de la liste (`lib/tokens.ts`). Une action sans
+ * statut garde le gris de « non commencé » : c'est le plus neutre des cinq, et
+ * inventer une sixième couleur pour « on ne sait pas » chargerait la légende
+ * d'un cas qui ne se décide jamais.
+ */
 function barFill(status: RoadmapStatus | null): string {
-  if (status === "done") return STATUS.done.bg;
-  if (status === "in_progress") return STATUS.running.bg;
-  return STATUS.upcoming.bg;
+  return ROADMAP_STATUS[status ?? "not_started"].bg;
 }

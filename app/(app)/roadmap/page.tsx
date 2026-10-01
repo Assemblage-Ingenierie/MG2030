@@ -26,6 +26,8 @@ import {
 import { RoadmapTimeline } from "@/components/roadmap/roadmap-timeline";
 import { AddActionButton, ActionRowActions } from "@/components/roadmap/action-form";
 import { AddSubject, SubjectTitle } from "@/components/roadmap/subject-row";
+import { RoadmapExports } from "@/components/roadmap/exports";
+import { hasAmbiguousFirstNames } from "@/lib/roadmap/assignee-label";
 import Link from "next/link";
 
 /**
@@ -63,6 +65,16 @@ export default async function RoadmapPage({
 
   const personOptions = people.map((p) => ({ id: p.id, fullName: p.fullName }));
 
+  // ⚠ ON N'ÉCRIT LE PRÉNOM SEUL QUE S'IL DÉSIGNE ENCORE. Deux « Arben »
+  // réduits à « Arben » ne se distinguent plus, et une colonne illisible vaut
+  // mieux qu'une colonne fausse. Décidé sur l'ensemble des comptes et des
+  // libellés employés, pas ligne par ligne : un même nom doit s'écrire de la
+  // même façon partout dans le tableau.
+  const shortNames = !hasAmbiguousFirstNames([
+    ...people.map((p) => p.fullName),
+    ...assigneeLabels(actions),
+  ]);
+
   // Les assignataires proposés au filtre viennent des DONNÉES, entités et
   // comptes compris : « Alban » et « G8 » n'existent dans aucun référentiel et
   // ne seraient jamais proposés autrement.
@@ -94,7 +106,10 @@ export default async function RoadmapPage({
             terminées masquées est la seule chose qui doive rester visible en
             permanence : sans lui, des lignes manquent sans explication. */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <ViewSwitch params={params} />
+          <span className="flex items-center gap-2">
+            <ViewSwitch params={params} />
+            <RoadmapExports params={params} />
+          </span>
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
             {hiddenCompleted > 0 && (
               <span>{t("roadmap.completedHidden", { count: String(hiddenCompleted) })}</span>
@@ -131,14 +146,45 @@ export default async function RoadmapPage({
         </div>
 
         {params.view === "timeline" ? (
-          <RoadmapTimeline
-            groups={groupBySubject(
-              sorted.filter((a) => a.timeline.kind !== null),
-              subjects,
-            )}
-            undated={sorted.filter((a) => a.timeline.kind === null)}
-            today={localToday()}
-          />
+          <>
+            {/* ⚠ LES FILTRES EXISTAIENT DÉJÀ, ILS N'AVAIENT PAS DE BOUTON.
+                `applyFilters` s'appliquait aux deux vues, mais les menus de
+                filtre vivaient dans les en-têtes du tableau : en frise, on ne
+                pouvait donc poser aucun filtre, et un filtre posé en liste
+                devenait invisible une fois basculé. Les trois facettes sont
+                reprises ici, sur la même mécanique d'URL. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <ColumnHeader
+                label={t("roadmap.filterByAssignee")}
+                column={null}
+                kind="assignees"
+                options={assigneeOptions}
+                params={params}
+              />
+              <ColumnHeader
+                label={t("roadmap.status")}
+                column={null}
+                kind="statuses"
+                options={statusOptions}
+                params={params}
+              />
+              <ColumnHeader
+                label={t("roadmap.priority")}
+                column={null}
+                kind="priorities"
+                options={priorityOptions}
+                params={params}
+              />
+            </div>
+            <RoadmapTimeline
+              groups={groupBySubject(
+                sorted.filter((a) => a.timeline.kind !== null),
+                subjects,
+              )}
+              undated={sorted.filter((a) => a.timeline.kind === null)}
+              today={localToday()}
+            />
+          </>
         ) : (
           /* UN SEUL TABLEAU, les sujets en lignes grises.
              Chaque sujet avait sa propre carte et son propre tableau : les
@@ -227,23 +273,58 @@ export default async function RoadmapPage({
                     {actions.length === 0 ? t("roadmap.empty") : t("roadmap.emptyFiltered")}
                   </EmptyRow>
                 )}
-                {groups.map((group) => (
-                  <Fragment key={group.subjectId}>
-                    <tr>
+                {groups.map((group, groupIndex) => (
+                  <Fragment key={group.subjectId ?? "orphans"}>
+                    <tr className="group">
                       <td
                         colSpan={7}
                         className="border-b border-t border-[var(--border)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
                       >
-                        <SubjectTitle
-                          subjectId={group.subjectId}
-                          name={group.subjectName}
-                          count={group.actions.length}
-                        />
+                        {/* Le groupe des ORPHELINES ne se renomme pas, ne se
+                            déplace pas et ne se supprime pas : ce n'est pas un
+                            sujet, c'est une anomalie à résorber. On dit ce qui
+                            leur est arrivé plutôt que de les laisser sous un
+                            intertitre muet. */}
+                        {group.subjectId === null ? (
+                          <span className="flex flex-wrap items-baseline gap-2">
+                            <span style={{ color: "var(--danger)" }}>
+                              {t("roadmap.noSubject")}
+                            </span>
+                            <span className="tabular-nums">{group.actions.length}</span>
+                            <span className="font-normal normal-case tracking-normal">
+                              {t("roadmap.noSubjectHint")}
+                            </span>
+                          </span>
+                        ) : (
+                          <SubjectTitle
+                            subjectId={group.subjectId}
+                            name={group.subjectName ?? ""}
+                            count={group.actions.length}
+                            canMoveUp={groupIndex > 0}
+                            canMoveDown={
+                              groupIndex < groups.length - 1 &&
+                              groups[groupIndex + 1].subjectId !== null
+                            }
+                          />
+                        )}
                       </td>
                     </tr>
                     {group.actions.map((action) => (
                       <Tr key={action.id}>
-                        <Td>
+                        {/* ⚠ LE LISERÉ EST PORTÉ PAR LA PREMIÈRE CELLULE, pas
+                            par la ligne : une bordure posée sur un `<tr>` ne
+                            s'affiche pas en `border-collapse`, qui est le mode
+                            de tous les tableaux de l'application. */}
+                        <Td
+                          className={
+                            action.priority === "urgent" ? "border-l-[3px]" : undefined
+                          }
+                          style={
+                            action.priority === "urgent"
+                              ? { borderLeftColor: "var(--danger)" }
+                              : undefined
+                          }
+                        >
                           <InlineTitle actionId={action.id} value={action.title} />
                         </Td>
                         <Td>
@@ -276,6 +357,7 @@ export default async function RoadmapPage({
                             value={action.assignees}
                             people={personOptions}
                             notSetLabel={t("roadmap.notSet")}
+                            shortNames={shortNames}
                           />
                         </Td>
                         <Td align="right">

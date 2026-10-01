@@ -34,6 +34,8 @@ import { usePermissions } from "@/components/auth/auth-context";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
+import { DateField } from "@/components/ui/date-field";
+import { RichTextEditor } from "./rich-text";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { ArchiveIcon, EditIcon, RestoreIcon, TrashIcon } from "@/components/ui/icons";
 import { IconButton } from "@/components/ui/button";
@@ -202,14 +204,15 @@ function FormModal({
             <Label htmlFor="roadmap-detail" optionalText={t("common.optional")}>
               {t("roadmap.detail")}
             </Label>
-            <textarea
-              id="roadmap-detail"
-              rows={3}
-              className={fieldClasses() + " mt-1"}
-              placeholder={t("roadmap.detailHint")}
-              value={draft.detail}
-              onChange={(e) => set("detail", e.target.value)}
-            />
+            <div className="mt-1">
+              <RichTextEditor
+                id="roadmap-detail"
+                rows={4}
+                placeholder={t("roadmap.detailHint")}
+                value={draft.detail}
+                onChange={(v) => set("detail", v)}
+              />
+            </div>
           </div>
         </Block>
 
@@ -244,20 +247,18 @@ function FormModal({
 
           {draft.kind !== "" && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field
+              <DateField
                 label={draft.kind === "range" ? t("roadmap.rangeFrom") : anchorLabel}
-                type="date"
                 required
                 value={draft.anchor}
-                onChange={(e) => set("anchor", e.target.value)}
+                onChange={(v) => set("anchor", v)}
               />
               {draft.kind === "range" && (
-                <Field
+                <DateField
                   label={t("roadmap.rangeTo")}
-                  type="date"
                   required
                   value={draft.rangeEnd}
-                  onChange={(e) => set("rangeEnd", e.target.value)}
+                  onChange={(v) => set("rangeEnd", v)}
                 />
               )}
             </div>

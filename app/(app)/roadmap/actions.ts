@@ -293,6 +293,73 @@ export async function renameRoadmapSubject(
   return { ok: true };
 }
 
+/**
+ * Déplace un sujet d'un rang, vers le haut ou vers le bas.
+ *
+ * ⚠ ON ÉCHANGE LES DEUX `sort_order`, on ne renumérote pas la liste entière.
+ * Une renumérotation écrit autant de lignes qu'il y a de sujets à chaque clic,
+ * et deux administrateurs qui réordonnent en même temps se marchent dessus sur
+ * toute la table au lieu de deux lignes.
+ *
+ * Les rangs du seed valent 10, 20, 30… : l'échange reste exact même si un
+ * sujet ajouté depuis porte un rang intercalaire.
+ */
+export async function moveRoadmapSubject(
+  id: string,
+  direction: "up" | "down",
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: subjects, error: readError } = await supabase
+    .from("mg2030_roadmap_subject")
+    .select("id, sort_order")
+    .order("sort_order");
+  if (readError || !subjects) return { ok: false, error: "writeFailed" };
+
+  const index = subjects.findIndex((s) => s.id === id);
+  const other = subjects[index + (direction === "up" ? -1 : 1)];
+  // Déjà au bout : ce n'est pas une erreur, il n'y a simplement rien à faire.
+  if (index === -1 || !other) return { ok: true };
+
+  const mine = subjects[index];
+  const [a, b] = await Promise.all([
+    supabase
+      .from("mg2030_roadmap_subject")
+      .update({ sort_order: other.sort_order })
+      .eq("id", mine.id),
+    supabase
+      .from("mg2030_roadmap_subject")
+      .update({ sort_order: mine.sort_order })
+      .eq("id", other.id),
+  ]);
+  if (a.error || b.error) return { ok: false, error: "writeFailed" };
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}
+
+/**
+ * Supprime un sujet. SES ACTIONS SURVIVENT.
+ *
+ * La clé étrangère est passée en `on delete set null` (migration 0040) : les
+ * actions perdent leur rangement, pas leur contenu, et l'écran les regroupe
+ * sous « sans sujet » pour qu'on les reclasse. C'était la demande explicite du
+ * 01/10/2026 — un sujet créé par erreur devait pouvoir disparaître sans
+ * emporter le travail qu'on y avait rangé entre-temps.
+ *
+ * Pas d'archivage ici, contrairement aux actions : un sujet ne porte aucune
+ * information propre — un intitulé, un rang — et « pourquoi avait-on arrêté de
+ * suivre ce sujet ? » ne se pose pas comme pour une action abandonnée.
+ */
+export async function deleteRoadmapSubject(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("mg2030_roadmap_subject").delete().eq("id", id);
+  if (error) return { ok: false, error: "writeFailed" };
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}
+
 function toCode(name: string): string {
   return name
     .normalize("NFKD")
@@ -319,7 +386,7 @@ export async function patchRoadmapAction(
   id: string,
   patch: {
     title?: string;
-    subjectId?: string;
+    subjectId?: string | null;
     status?: RoadmapStatus | null;
     priority?: RoadmapPriority | null;
     detail?: string | null;
@@ -337,7 +404,9 @@ export async function patchRoadmapAction(
     if (title === "") return { ok: false, error: "emptyTitle" };
     row.title = title;
   }
-  if (patch.subjectId !== undefined) row.subject_id = patch.subjectId;
+  // `null` est une valeur LÉGITIME ici : c'est ainsi qu'on déclasse une action
+  // sans la supprimer. D'où `in` plutôt que `!== undefined`.
+  if ("subjectId" in patch) row.subject_id = patch.subjectId;
   if ("status" in patch) row.status = patch.status;
   if ("priority" in patch) row.priority = patch.priority;
   // Un détail vidé vaut « pas de détail », pas une chaîne vide : sinon la

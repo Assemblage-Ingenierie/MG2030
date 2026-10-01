@@ -258,3 +258,45 @@ describe("tri par colonne", () => {
     expect(sortActions([undated, dated], asc("status"))[0]).toBe(dated);
   });
 });
+
+describe("actions orphelines", () => {
+  it("les RASSEMBLE au lieu de les perdre", () => {
+    // Un sujet supprime met `subject_id` a NULL (migration 0040). Avant ce
+    // groupe, l'action tombait hors de toute boucle et disparaissait de
+    // l'ecran sans un mot.
+    const rows = [
+      action({ subjectId: "s1" }),
+      action({ subjectId: null, subjectName: null }),
+    ];
+    const groups = groupBySubject(rows, [{ id: "s1", name: "Project Steering" }]);
+    expect(groups).toHaveLength(2);
+    expect(groups[1].subjectId).toBeNull();
+    expect(groups[1].actions).toHaveLength(1);
+  });
+
+  it("traite un sujet INCONNU du referentiel comme une orpheline", () => {
+    // Meme symptome, autre cause : un sujet filtre, retire, ou une donnee
+    // incoherente. Le resultat visible doit etre le meme.
+    const groups = groupBySubject([action({ subjectId: "disparu" })], [
+      { id: "s1", name: "Project Steering" },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].subjectId).toBeNull();
+  });
+
+  it("les range EN DERNIER : c'est une anomalie, pas une rubrique", () => {
+    const rows = [
+      action({ subjectId: null, subjectName: null }),
+      action({ subjectId: "s1" }),
+    ];
+    const groups = groupBySubject(rows, [{ id: "s1", name: "Project Steering" }]);
+    expect(groups.map((g) => g.subjectId)).toEqual(["s1", null]);
+  });
+
+  it("n'invente pas de groupe quand il n'y a aucune orpheline", () => {
+    const groups = groupBySubject([action({ subjectId: "s1" })], [
+      { id: "s1", name: "Project Steering" },
+    ]);
+    expect(groups.every((g) => g.subjectId !== null)).toBe(true);
+  });
+});

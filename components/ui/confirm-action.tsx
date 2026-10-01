@@ -16,12 +16,14 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n/i18n-context";
 import { Button } from "./button";
+import { cn } from "@/lib/cn";
 
 export function ConfirmAction({
   message,
   onConfirm,
   children,
   disabled = false,
+  className,
 }: {
   /** La question posée, déjà traduite. */
   message: string;
@@ -29,6 +31,11 @@ export function ConfirmAction({
   /** Le déclencheur, qui reçoit la fonction à appeler au premier clic. */
   children: (arm: () => void) => React.ReactNode;
   disabled?: boolean;
+  /**
+   * Pour neutraliser un style hérité du contexte — une ligne d'intertitre en
+   * capitales, par exemple, où la question sortait tout en majuscules.
+   */
+  className?: string;
 }) {
   const t = useT();
   const [armed, setArmed] = useState(false);
@@ -48,7 +55,11 @@ export function ConfirmAction({
   if (!armed) return <>{children(() => setArmed(true))}</>;
 
   return (
-    <span role="alertdialog" aria-label={message} className="inline-flex flex-wrap items-center gap-2">
+    <span
+      role="alertdialog"
+      aria-label={message}
+      className={cn("inline-flex flex-wrap items-center gap-2", className)}
+    >
       <span className="text-xs" style={{ color: "var(--danger)" }}>
         {message}
       </span>

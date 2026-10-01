@@ -10,8 +10,15 @@
 // approchant et la roadmap se déforme.
 //
 // On renomme donc en cliquant l'intertitre, et on ajoute par le bouton en pied
-// de tableau. Pas d'écran d'administration : ces deux gestes sont tout ce qu'on
-// fait d'un sujet.
+// de tableau. Pas d'écran d'administration : ces gestes sont tout ce qu'on fait
+// d'un sujet.
+//
+// S'y ajoutent le 01/10/2026 le RANG et la SUPPRESSION. L'ordre des sujets est
+// celui du plan, pas celui des créations : un sujet ouvert en cours de route
+// atterrissait en queue de liste quelle que soit sa place réelle. Et un sujet
+// créé par erreur était indestructible dès qu'il portait une action — la clé
+// étrangère est maintenant en `set null` (migration 0040), ses actions
+// survivent sous « sans sujet ».
 // ============================================================
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -19,16 +26,28 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/components/i18n/i18n-context";
 import { usePermissions } from "@/components/auth/auth-context";
 import { cn } from "@/lib/cn";
-import { createRoadmapSubject, renameRoadmapSubject } from "@/app/(app)/roadmap/actions";
+import { DownIcon, TrashIcon, UpIcon } from "@/components/ui/icons";
+import { IconButton } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/confirm-action";
+import {
+  createRoadmapSubject,
+  deleteRoadmapSubject,
+  moveRoadmapSubject,
+  renameRoadmapSubject,
+} from "@/app/(app)/roadmap/actions";
 
 export function SubjectTitle({
   subjectId,
   name,
   count,
+  canMoveUp,
+  canMoveDown,
 }: {
   subjectId: string;
   name: string;
   count: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }) {
   const t = useT();
   const router = useRouter();
@@ -91,27 +110,89 @@ export function SubjectTitle({
     );
   }
 
+  /* Les commandes ne s'affichent qu'au SURVOL de la ligne (`group-hover`) :
+     trois boutons par intertitre, sur sept sujets, c'est vingt-et-un boutons
+     en permanence pour des gestes qu'on fait trois fois par an. */
   return (
-    <button
-      type="button"
-      onClick={() => {
-        setDraft(name);
-        setEditing(true);
-      }}
-      disabled={pending}
-      title={t("roadmap.renameSubject")}
-      className={cn("rounded px-1 hover:bg-[var(--border)]", pending && "opacity-50")}
-    >
-      {label}
-      {error && (
-        <span
-          aria-hidden="true"
-          className="ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
-          style={{ backgroundColor: "var(--danger)" }}
-        />
-      )}
-    </button>
+    <span className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(name);
+          setEditing(true);
+        }}
+        disabled={pending}
+        title={t("roadmap.renameSubject")}
+        className={cn("rounded px-1 hover:bg-[var(--border)]", pending && "opacity-50")}
+      >
+        {label}
+        {error && (
+          <span
+            aria-hidden="true"
+            className="ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
+            style={{ backgroundColor: "var(--danger)" }}
+          />
+        )}
+      </button>
+
+      <span className="flex items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <IconButton
+          label={t("roadmap.subjectUp")}
+          disabled={!canMoveUp || pending}
+          onClick={() => move("up")}
+          className="h-6 w-6"
+        >
+          <UpIcon className="h-3.5 w-3.5" />
+        </IconButton>
+        <IconButton
+          label={t("roadmap.subjectDown")}
+          disabled={!canMoveDown || pending}
+          onClick={() => move("down")}
+          className="h-6 w-6"
+        >
+          <DownIcon className="h-3.5 w-3.5" />
+        </IconButton>
+        {/* La confirmation DIT CE QUI ARRIVE AUX ACTIONS. « Supprimer ce
+            sujet ? » laisserait croire qu'on supprime aussi son contenu, et
+            personne ne cliquerait. */}
+        {/* `normal-case` : l'intertitre du sujet est en capitales, et la
+            phrase de confirmation en héritait — une question de deux lignes
+            tout en majuscules se lit mal et crie. */}
+        <ConfirmAction
+          className="normal-case tracking-normal"
+          message={t("roadmap.confirmDeleteSubject", { name, count: String(count) })}
+          disabled={pending}
+          onConfirm={() =>
+            start(async () => {
+              const result = await deleteRoadmapSubject(subjectId);
+              if (!result.ok) setError(true);
+              else router.refresh();
+            })
+          }
+        >
+          {(arm) => (
+            <IconButton
+              label={t("roadmap.deleteSubject")}
+              disabled={pending}
+              onClick={arm}
+              className="h-6 w-6"
+            >
+              <TrashIcon className="h-3.5 w-3.5" />
+            </IconButton>
+          )}
+        </ConfirmAction>
+      </span>
+    </span>
   );
+
+  function move(direction: "up" | "down") {
+    setError(false);
+    start(async () => {
+      const result = await moveRoadmapSubject(subjectId, direction);
+      if (!result.ok) setError(true);
+      else router.refresh();
+    });
+  }
 }
 
 /**

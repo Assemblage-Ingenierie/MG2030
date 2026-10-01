@@ -26,7 +26,7 @@ export type { RoadmapActionRow, RoadmapSubjectRow } from "@/lib/roadmap/types";
 
 interface RawAction {
   id: string;
-  subject_id: string;
+  subject_id: string | null;
   title: string;
   status: RoadmapStatus | null;
   priority: RoadmapPriority | null;
@@ -93,8 +93,10 @@ export async function listRoadmapActions(
     const r = row as unknown as RawAction;
     return {
       id: r.id,
+      // Nuls ensemble : le sujet a été supprimé (0040). L'écran les regroupe
+      // sous « sans sujet » plutôt que de laisser l'action hors de toute vue.
       subjectId: r.subject_id,
-      subjectName: r.mg2030_roadmap_subject?.name ?? "",
+      subjectName: r.mg2030_roadmap_subject?.name ?? null,
       title: r.title,
       status: r.status,
       priority: r.priority,

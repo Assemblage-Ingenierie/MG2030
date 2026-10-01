@@ -107,8 +107,9 @@ function matchesExceptCompleted(a: RoadmapActionRow, f: RoadmapFilters): boolean
 }
 
 export interface RoadmapGroup {
-  subjectId: string;
-  subjectName: string;
+  /** `null` pour le groupe des actions SANS SUJET. */
+  subjectId: string | null;
+  subjectName: string | null;
   actions: RoadmapActionRow[];
 }
 
@@ -123,21 +124,44 @@ export interface RoadmapGroup {
  *
  * Un sujet sans action visible DISPARAÎT : garder un intertitre vide ferait
  * croire à un chargement incomplet.
+ *
+ * ⚠ LES ORPHELINES FORMENT UN GROUPE, ELLES NE SE PERDENT PAS. Une action dont
+ * le sujet a été supprimé — ou dont le sujet ne figure plus dans le référentiel
+ * — tombait auparavant hors de toute boucle et disparaissait de l'écran sans
+ * un mot. Elle se range maintenant EN DERNIER, sous un intertitre « sans
+ * sujet » : en dernier parce que c'est une anomalie à résorber, pas une
+ * rubrique du plan.
  */
 export function groupBySubject(
   actions: RoadmapActionRow[],
   subjects: { id: string; name: string }[],
 ): RoadmapGroup[] {
+  const known = new Set(subjects.map((s) => s.id));
   const byId = new Map<string, RoadmapActionRow[]>();
+  const orphans: RoadmapActionRow[] = [];
+
   for (const action of actions) {
+    if (action.subjectId === null || !known.has(action.subjectId)) {
+      orphans.push(action);
+      continue;
+    }
     const found = byId.get(action.subjectId);
     if (found) found.push(action);
     else byId.set(action.subjectId, [action]);
   }
 
-  return subjects
+  const groups: RoadmapGroup[] = subjects
     .filter((s) => (byId.get(s.id) ?? []).length > 0)
-    .map((s) => ({ subjectId: s.id, subjectName: s.name, actions: byId.get(s.id) ?? [] }));
+    .map((s) => ({
+      subjectId: s.id as string | null,
+      subjectName: s.name as string | null,
+      actions: byId.get(s.id) ?? [],
+    }));
+
+  if (orphans.length > 0) {
+    groups.push({ subjectId: null, subjectName: null, actions: orphans });
+  }
+  return groups;
 }
 
 /**
