@@ -1,18 +1,17 @@
 "use client";
 
 // ============================================================
-// user-access-editor.tsx — rôle fonctionnel et périmètre d'un compte.
+// user-access-editor.tsx — ce qu'un compte a le droit de faire.
 //
-// Les trois dimensions des droits (brief §8) :
-//   1. l'ORGANISATION dit en lecture ou en contribution — elle est fixée à la
-//      création du compte et ne se change pas ici ;
-//   2. le RÔLE FONCTIONNEL dit quoi ;
-//   3. le PÉRIMÈTRE dit sur quoi.
+// Trois réglages, qui répondent à trois questions distinctes :
+//   • le NIVEAU D'ACCÈS dit QUOI — lire, écrire, administrer. Depuis la
+//     migration 0037 c'est la seule autorité sur le droit d'écrire ;
+//   • le PÉRIMÈTRE dit SUR QUOI — tout le projet, un sous-projet, un site ;
+//   • le RÔLE FONCTIONNEL dit QUEL POSTE, pour l'organigramme et l'annuaire.
+//     Il n'accorde plus rien.
 //
-// Les deux dernières ne se réglaient que par SQL. Un écran d'administration
-// qui affiche le rôle et le périmètre sans permettre de les changer
-// n'administre rien — et avec une trentaine de comptes à ouvrir, cela voulait
-// dire une trentaine de requêtes écrites à la main.
+// Aucun ne se réglait autrement que par SQL ; avec une trentaine de comptes à
+// ouvrir, cela voulait dire une trentaine de requêtes écrites à la main.
 // ============================================================
 
 import { useState, useTransition } from "react";
@@ -20,7 +19,8 @@ import { useT } from "@/components/i18n/i18n-context";
 import { Modal } from "@/components/ui/modal";
 import { Label, fieldClasses } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { setUserRole, setUserScope } from "./actions";
+import { ACCESS_LEVELS, type AccessLevel } from "@/lib/auth/types";
+import { setUserAccessLevel, setUserRole, setUserScope } from "./actions";
 
 export type ScopeKind = "global" | "subproject" | "site" | "lot";
 
@@ -43,23 +43,29 @@ export function UserAccessEditor({
   userId,
   userName,
   organisationCode,
+  currentAccessLevel,
   currentRoleId,
   currentScopeKind,
   roles,
   sites,
   lots,
+  isSelf,
 }: {
   userId: string;
   userName: string;
   organisationCode: string;
+  currentAccessLevel: AccessLevel;
   currentRoleId: string;
   currentScopeKind: ScopeKind | null;
   roles: RoleChoice[];
   sites: ScopeTarget[];
   lots: ScopeTarget[];
+  /** Sa propre fiche : on ne se retire pas l'administration par mégarde. */
+  isSelf: boolean;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const [level, setLevel] = useState<AccessLevel>(currentAccessLevel);
   const [roleId, setRoleId] = useState(currentRoleId);
   const [kind, setKind] = useState<ScopeKind>(currentScopeKind ?? "global");
   const [target, setTarget] = useState<string>("");
@@ -81,6 +87,7 @@ export function UserAccessEditor({
     }
     start(async () => {
       try {
+        if (level !== currentAccessLevel) await setUserAccessLevel(userId, level);
         if (roleId !== currentRoleId) await setUserRole(userId, roleId);
         await setUserScope(userId, kind, kind === "global" ? null : target);
         setOpen(false);
@@ -103,6 +110,33 @@ export function UserAccessEditor({
         title={t("users.accessTitle", { name: userName })}
       >
         <div className="flex flex-col gap-4">
+          {/* Le niveau EN PREMIER : c'est la question qu'on vient régler. Le
+              rôle et le périmètre viennent ensuite, et ne gouvernent rien de
+              l'écriture. */}
+          <div>
+            <Label>{t("users.accessLevel")}</Label>
+            <select
+              className={fieldClasses() + " mt-1"}
+              value={level}
+              onChange={(e) => setLevel(e.target.value as AccessLevel)}
+              disabled={isSelf}
+            >
+              {ACCESS_LEVELS.map((l) => (
+                <option key={l} value={l}>
+                  {t(`users.level_${l}`)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              {t(`users.level_${level}_desc`)}
+            </p>
+            {isSelf && (
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                {t("users.cannotDemoteSelf")}
+              </p>
+            )}
+          </div>
+
           <div>
             <Label>{t("users.role")}</Label>
             <select

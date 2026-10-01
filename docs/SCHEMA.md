@@ -222,9 +222,24 @@ jour.
 
 ## 3. Organisation, utilisateurs, droits
 
-Le brief §8 fixe **trois dimensions et pas une de plus** : organisation (mode
-d'accès), rôle fonctionnel (actions), périmètre (champ des données). Les tags
-gouvernent la lecture documentaire **indépendamment** de ces trois dimensions.
+Le brief §8 fixait **trois dimensions** : organisation (mode d'accès), rôle
+fonctionnel (actions), périmètre (champ des données).
+
+> ⚠ **DEPUIS LA MIGRATION 0037, LES DEUX PREMIÈRES SONT FUSIONNÉES.** Elles se
+> recouvraient sans jamais se contredire utilement : on ne pouvait pas ouvrir
+> l'écriture à une personne de l'AFD sans basculer toute l'AFD en contributeur,
+> ni retirer un droit à quelqu'un sans toucher à un rôle partagé par ses
+> collègues. Une seule colonne décide désormais —
+> `mg2030_app_user.access_level`, à trois valeurs : `viewer`, `editor`,
+> `administrator`. Le **périmètre** répond à une autre question — « sur quoi » —
+> et reste entier.
+>
+> `mg2030_organisation.access_mode`, `mg2030_functional_role.is_platform_admin`
+> et la table `mg2030_role_permission` **ne décident plus rien**. Les colonnes
+> restent (gouvernance, organigramme) et portent chacune un `comment` qui le
+> dit ; la table est à supprimer après une version.
+
+Les tags gouvernent la lecture documentaire **indépendamment** de tout cela.
 
 ```sql
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -239,8 +254,8 @@ create table mg2030_organisation (
   created_at   timestamptz not null default now()
 );
 comment on column mg2030_organisation.access_mode is
-  'Brief §3 : PIU et AT contribuent, AFD est en lecture seule sur tout. '
-  'Cette colonne prime sur toute permission de rôle : un read_only ne peut jamais écrire.';
+  'SANS EFFET sur les droits depuis 0037 — conservé comme information de '
+  'gouvernance (brief §3 : l''AFD consulte). Voir mg2030_app_user.access_level.';
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- mg2030_functional_role — DIMENSION 2 : les ACTIONS autorisées.
@@ -254,7 +269,7 @@ create table mg2030_functional_role (
   time_type         text,                        -- full_time | part_time | full_time_or_part_time
   posts             integer not null default 1,  -- SITEREP = 14, tous les autres = 1
   level_of_effort   text,                        -- ex. « 5 days per month » (COMM)
-  is_platform_admin boolean not null default false,  -- vrai pour ADMIN uniquement
+  is_platform_admin boolean not null default false,  -- SANS EFFET depuis 0037
   source            text
 );
 
@@ -296,8 +311,15 @@ create table mg2030_app_user (
   organisation_id     uuid not null references mg2030_organisation(id),
   functional_role_id  uuid not null references mg2030_functional_role(id),
   org_unit_id         uuid references mg2030_org_unit(id),
+  -- Prénom et nom séparés (0036) ; `full_name` en reste DÉRIVÉ, tenu par
+  -- déclencheur, parce qu'une vingtaine de requêtes le lisent.
+  first_name          text,
+  last_name           text,
   locale              text not null default 'en'
                       check (locale in ('en', 'sq')),   -- décision GAPS 40
+  -- SEULE autorité des droits d'écriture (0037). Protégée par le déclencheur
+  -- mg2030_private.guard_access_columns() — voir §10.2.
+  access_level        mg2030_access_level not null default 'viewer',
   is_active           boolean not null default false,
   approved_at         timestamptz,
   approved_by         uuid references mg2030_app_user(id),
@@ -1059,6 +1081,27 @@ comment on table mg2030_tag_access is
 
 ```sql
 -- ─────────────────────────────────────────────────────────────────────────────
+-- mg2030_nav_visibility (0038) — les onglets que l'administrateur a masqués.
+--
+-- ⚠ PRÉSENTATION, JAMAIS SÉCURITÉ. Masquer un onglet retire une entrée de menu
+-- et refuse l'écran à qui en connaîtrait l'adresse ; les données restent
+-- exactement aussi lisibles qu'avant par l'API, puisque c'est la RLS qui en
+-- décide et elle seule. Pour soustraire une donnée, on change sa politique,
+-- pas son onglet.
+--
+-- L'ABSENCE DE LIGNE VAUT « VISIBLE » : un onglet ajouté au code apparaît sans
+-- qu'il faille penser à l'autoriser. L'oubli penche du côté qui se voit.
+-- ─────────────────────────────────────────────────────────────────────────────
+create table mg2030_nav_visibility (
+  href       text primary key,                   -- la route, telle que lib/nav.ts la déclare
+  is_hidden  boolean not null default false,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references mg2030_app_user(id) on delete set null
+);
+-- Lecture : tout membre actif (chaque session doit savoir quoi dessiner).
+-- Écriture : administrateur seul.
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- mg2030_notification — applicatives uniquement. Pas d'e-mail en version 1.
 -- ─────────────────────────────────────────────────────────────────────────────
 create table mg2030_notification (
@@ -1179,41 +1222,72 @@ language sql stable security definer set search_path = '' as $$
   );
 $$;
 
--- DIMENSION 1 — peut-il écrire ? (l'AFD est read_only sur tout)
+-- ⚠ TROIS NIVEAUX DEPUIS LA MIGRATION 0037. Le mode d'accès de l'organisation
+-- et la matrice rôle × permission ne décident plus rien : `access_level` est la
+-- seule autorité. Seuls les CORPS de ces trois fonctions ont changé — les
+-- quelque cent politiques qui les appellent sont intactes.
+
+-- Peut-il écrire ?
 create or replace function mg2030_private.can_write() returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (
-    select 1
-      from public.mg2030_app_user     u
-      join public.mg2030_organisation o on o.id = u.organisation_id
+    select 1 from public.mg2030_app_user u
      where u.id = (select auth.uid())
        and u.is_active
-       and o.access_mode = 'contributor'
+       and u.access_level in ('editor', 'administrator')
   );
 $$;
 
--- Administrateur de la plateforme (rôle ADMIN).
+-- Administrateur : éditeur, plus la gestion des comptes et des onglets.
 create or replace function mg2030_private.is_platform_admin() returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (
-    select 1
-      from public.mg2030_app_user        u
-      join public.mg2030_functional_role r on r.id = u.functional_role_id
-     where u.id = (select auth.uid()) and u.is_active and r.is_platform_admin
+    select 1 from public.mg2030_app_user u
+     where u.id = (select auth.uid())
+       and u.is_active
+       and u.access_level = 'administrator'
   );
 $$;
 
--- DIMENSION 2 — l'action est-elle autorisée pour son rôle ?
+-- `has_perm` ignore désormais le détail de son argument, à une exception près :
+-- les permissions `user.*` sont réservées à l'administrateur, « éditeur » se
+-- définissant comme « tout, sauf gérer les comptes ». L'argument est conservé
+-- pour documenter le point d'appel, et pour permettre de refaire de la
+-- granularité sans retoucher une seule politique.
 create or replace function mg2030_private.has_perm(p text) returns boolean
 language sql stable security definer set search_path = '' as $$
-  select mg2030_private.is_platform_admin()
-      or exists (
-        select 1
-          from public.mg2030_app_user        u
-          join public.mg2030_role_permission rp on rp.functional_role_id = u.functional_role_id
-         where u.id = (select auth.uid()) and u.is_active and rp.permission_code = p
-      );
+  select case
+    when p like 'user.%' then mg2030_private.is_platform_admin()
+    else mg2030_private.can_write()
+  end;
 $$;
+
+-- ⚠ LE VERROU QUI EMPÊCHE L'AUTO-PROMOTION. La politique
+-- `mg2030_app_user_update_self` autorise chacun à modifier SA PROPRE ligne
+-- (locale, intitulé de poste) : la RLS n'a aucun moyen d'en exclure une
+-- colonne. Sans ce déclencheur, tout éditeur s'écrirait `administrator` d'une
+-- requête — le défaut préexistait d'ailleurs sur `functional_role_id`, dont le
+-- rôle portait `is_platform_admin`.
+create or replace function mg2030_private.guard_access_columns()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if (select auth.uid()) is null then return new; end if;   -- maintenance SQL
+  if (new.access_level       is distinct from old.access_level)
+  or (new.is_active          is distinct from old.is_active)
+  or (new.organisation_id    is distinct from old.organisation_id)
+  or (new.functional_role_id is distinct from old.functional_role_id)
+  then
+    if not mg2030_private.is_platform_admin() then
+      raise exception 'Seul un administrateur peut modifier ces colonnes.'
+        using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end $$;
+
+create trigger mg2030_app_user_guard_access
+  before update on mg2030_app_user
+  for each row execute function mg2030_private.guard_access_columns();
 
 -- DIMENSION 3 — périmètre.
 create or replace function mg2030_private.has_global_scope() returns boolean

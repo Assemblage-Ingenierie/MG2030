@@ -7,12 +7,12 @@
 // ============================================================
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useT } from "@/components/i18n/i18n-context";
-import { useAuthUser } from "@/components/auth/auth-context";
-import { isTechnicalAssistance } from "@/lib/auth/types";
-import { NavIcon } from "@/components/ui/icons";
-import { NAV, isActive } from "@/lib/nav";
+import { NavIcon, EyeOffIcon } from "@/components/ui/icons";
+import { isActive, visibleNav } from "@/lib/nav";
+import type { NavState } from "./app-shell";
 import { cn } from "@/lib/cn";
 import { wordmarkFont } from "@/lib/fonts";
 import { BrandMark } from "./brand-mark";
@@ -20,14 +20,24 @@ import { BrandMark } from "./brand-mark";
 export function Sidebar({
   mobileOpen,
   onNavigate,
+  nav,
+  hidden,
 }: {
   mobileOpen: boolean;
   /** Ferme le tiroir mobile au clic d'un lien. */
   onNavigate: () => void;
+  nav: NavState;
+  hidden: ReadonlySet<string>;
 }) {
   const pathname = usePathname();
   const t = useT();
-  const isTa = isTechnicalAssistance(useAuthUser());
+
+  // Le menu est résolu par une fonction PURE, partagée et testée : le serveur
+  // et le navigateur ne peuvent pas en avoir deux lectures différentes.
+  const groups = useMemo(
+    () => visibleNav({ isAdmin: nav.isAdmin, isTa: nav.isTa, hidden }),
+    [nav.isAdmin, nav.isTa, hidden],
+  );
 
   return (
     <aside
@@ -62,7 +72,7 @@ export function Sidebar({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label={t("nav.main")}>
-        {NAV.map((group, index) => (
+        {groups.map((group, index) => (
           <div key={group.labelKey ?? `group-${index}`} className={index > 0 ? "mt-5" : undefined}>
             {group.labelKey && (
               <h2
@@ -74,8 +84,6 @@ export function Sidebar({
             )}
             <ul className="space-y-1">
               {group.items.map((item) => {
-                // Écran interne : absent du menu hors assistance technique.
-                if (item.taOnly && !isTa) return null;
                 const active = isActive(pathname, item.href);
 
                 // Un module non livré est annoncé mais NON cliquable : mieux
@@ -127,6 +135,16 @@ export function Sidebar({
                         style={active ? { color: "var(--accent-2)" } : undefined}
                       />
                       <span className="truncate">{t(item.labelKey)}</span>
+                      {/* Masqué pour les autres : seul l'administrateur voit
+                          cette ligne, l'œil barré lui rappelle qu'il est le
+                          seul à la voir. Sans ce repère, il croirait l'onglet
+                          publié. */}
+                      {item.hidden && (
+                        <>
+                          <EyeOffIcon className="ml-auto h-4 w-4 shrink-0 opacity-60" />
+                          <span className="sr-only">{t("nav.hiddenForOthers")}</span>
+                        </>
+                      )}
                     </Link>
                   </li>
                 );

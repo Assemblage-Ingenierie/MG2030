@@ -1,6 +1,6 @@
 import { getI18n } from "@/lib/i18n/server";
 import { getCurrentUser } from "@/lib/auth/server";
-import { isPlatformAdmin } from "@/lib/auth/types";
+import { ACCESS_LEVELS, isPlatformAdmin } from "@/lib/auth/types";
 import {
   listOrganisations,
   listPendingAccessRequests,
@@ -22,10 +22,11 @@ import { AccessRequestList } from "./access-requests";
  * Cette page ne CRÉE aucun compte : la création d'identifiants relève de
  * l'administrateur humain, via Supabase Auth (voir docs/ADMIN.md).
  *
- * Elle règle en revanche les DEUX dimensions de droits qui ne dépendent pas de
- * l'authentification : le rôle fonctionnel et le périmètre (brief §8). Elles ne
- * se réglaient jusqu'ici que par SQL — donc, avec une trentaine de comptes à
- * ouvrir, une trentaine de requêtes écrites à la main.
+ * Elle règle en revanche ce qu'un compte a le droit de faire : son NIVEAU
+ * D'ACCÈS (viewer, editor, administrator — seule autorité sur l'écriture
+ * depuis la migration 0037) et son PÉRIMÈTRE. Cela ne se réglait jusqu'ici que
+ * par SQL — donc, avec une trentaine de comptes à ouvrir, une trentaine de
+ * requêtes écrites à la main.
  */
 export default async function UsersPage() {
   const { t } = await getI18n();
@@ -93,13 +94,14 @@ export default async function UsersPage() {
             <Thead>
               <Th>{t("users.name")}</Th>
               <Th>{t("users.organisation")}</Th>
+              <Th>{t("users.accessLevel")}</Th>
               <Th>{t("users.role")}</Th>
               <Th>{t("users.scope")}</Th>
               <Th>{t("users.status")}</Th>
               <Th align="right">{t("common.edit")}</Th>
             </Thead>
             <tbody>
-              {users.length === 0 && <EmptyRow colSpan={6}>{t("common.empty")}</EmptyRow>}
+              {users.length === 0 && <EmptyRow colSpan={7}>{t("common.empty")}</EmptyRow>}
               {users.map((u) => (
                 <Tr key={u.id}>
                   <Td>
@@ -108,11 +110,22 @@ export default async function UsersPage() {
                   </Td>
                   <Td>
                     <Chip>{u.organisation.code}</Chip>
-                    <span className="ml-2 text-xs text-[var(--text-muted)]">
-                      {u.organisation.accessMode === "contributor"
-                        ? t("users.contributor")
-                        : t("users.readOnly")}
-                    </span>
+                  </Td>
+                  {/* Le niveau porte une couleur : administrateur en accent,
+                      lecteur en sourdine. Une colonne de mots identiques se
+                      balaie mal du regard quand on cherche qui peut écrire. */}
+                  <Td>
+                    <Badge
+                      tone={
+                        u.accessLevel === "administrator"
+                          ? "running"
+                          : u.accessLevel === "editor"
+                            ? "done"
+                            : "upcoming"
+                      }
+                    >
+                      {t(`users.level_${u.accessLevel}`)}
+                    </Badge>
                   </Td>
                   <Td className="text-sm">{u.role.title}</Td>
                   <Td className="text-sm">
@@ -139,7 +152,9 @@ export default async function UsersPage() {
                         userId={u.id}
                         userName={u.fullName}
                         organisationCode={u.organisation.code}
+                        currentAccessLevel={u.accessLevel}
                         currentRoleId={u.role.id}
+                        isSelf={u.id === me!.id}
                         currentScopeKind={(u.scopes[0]?.kind as ScopeKind) ?? null}
                         roles={roleChoices}
                         sites={siteTargets}
@@ -159,48 +174,43 @@ export default async function UsersPage() {
         </Card>
       </Section>
 
-      {/* La matrice rôle × permission est une DONNÉE : la lire ici évite de
-          devoir ouvrir la base pour comprendre qui peut quoi. */}
-      <Section title={t("users.permissions")}>
+      {/* Les trois niveaux, écrits noir sur blanc. La matrice rôle ×
+          permission qui occupait cette place a disparu avec la migration
+          0037 : elle affichait une grille que plus rien ne consultait. */}
+      <Section title={t("users.levelsTitle")} description={t("users.levelHint")}>
         <Card className="overflow-hidden">
           <Table>
             <Thead>
-              <Th>{t("users.role")}</Th>
-              <Th align="center">{t("users.organisation")}</Th>
-              <Th>{t("users.permissions")}</Th>
+              <Th>{t("users.accessLevel")}</Th>
+              <Th>{t("common.description")}</Th>
             </Thead>
             <tbody>
-              {roles.map((r) => (
-                <Tr key={r.id}>
+              {ACCESS_LEVELS.map((level) => (
+                <Tr key={level}>
                   <Td>
-                    <span className="font-medium text-[var(--text)]">{r.code}</span>
-                    <span className="ml-2 text-xs text-[var(--text-muted)]">{r.title}</span>
-                    {r.posts > 1 && <Chip className="ml-2">{`x${r.posts}`}</Chip>}
+                    <Badge
+                      tone={
+                        level === "administrator"
+                          ? "running"
+                          : level === "editor"
+                            ? "done"
+                            : "upcoming"
+                      }
+                    >
+                      {t(`users.level_${level}`)}
+                    </Badge>
                   </Td>
-                  <Td align="center">
-                    <Chip>{r.organisation.code}</Chip>
-                  </Td>
-                  <Td>
-                    {r.permissions.length === 0 ? (
-                      <span className="text-xs text-[var(--text-muted)]">
-                        {r.organisation.accessMode === "read_only"
-                          ? t("users.readOnly")
-                          : t("common.empty")}
-                      </span>
-                    ) : (
-                      <span className="flex flex-wrap gap-1">
-                        {r.permissions.map((p) => (
-                          <Chip key={p}>{p}</Chip>
-                        ))}
-                      </span>
-                    )}
+                  <Td className="text-sm text-[var(--text-muted)]">
+                    {t(`users.level_${level}_desc`)}
                   </Td>
                 </Tr>
               ))}
             </tbody>
           </Table>
         </Card>
+        <p className="text-xs text-[var(--text-muted)]">{t("users.levelAfdNote")}</p>
       </Section>
+
     </div>
   );
 }

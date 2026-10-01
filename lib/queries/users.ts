@@ -9,6 +9,7 @@ import "server-only";
 // ============================================================
 
 import { createClient } from "@/lib/supabase/server";
+import { isAccessLevel, type AccessLevel } from "@/lib/auth/types";
 
 export interface DirectoryUser {
   id: string;
@@ -16,6 +17,7 @@ export interface DirectoryUser {
   fullName: string;
   jobTitle: string | null;
   isActive: boolean;
+  accessLevel: AccessLevel;
   organisation: { code: string; name: string; accessMode: string };
   role: { id: string; code: string; title: string };
   scopes: { kind: string; subproject: string | null; siteCode: string | null; lotCode: string | null }[];
@@ -27,7 +29,7 @@ export async function listUsers(): Promise<DirectoryUser[]> {
   const { data, error } = await supabase
     .from("mg2030_app_user")
     .select(
-      `id, email, full_name, job_title, is_active,
+      `id, email, full_name, job_title, is_active, access_level,
        mg2030_organisation ( code, name, access_mode ),
        mg2030_functional_role ( id, code, title ),
        mg2030_app_user_scope ( kind, subproject,
@@ -45,6 +47,7 @@ export async function listUsers(): Promise<DirectoryUser[]> {
       full_name: string;
       job_title: string | null;
       is_active: boolean;
+      access_level: string;
       mg2030_organisation: { code: string; name: string; access_mode: string };
       mg2030_functional_role: { id: string; code: string; title: string };
       mg2030_app_user_scope: {
@@ -60,6 +63,7 @@ export async function listUsers(): Promise<DirectoryUser[]> {
       fullName: r.full_name,
       jobTitle: r.job_title,
       isActive: r.is_active,
+      accessLevel: isAccessLevel(r.access_level) ? r.access_level : "viewer",
       organisation: {
         code: r.mg2030_organisation.code,
         name: r.mg2030_organisation.name,
@@ -86,10 +90,16 @@ export interface RoleOption {
   title: string;
   posts: number;
   organisation: { code: string; accessMode: string };
-  permissions: string[];
 }
 
-/** Les 14 rôles fonctionnels, avec leur matrice de permissions. */
+/**
+ * Les 14 rôles fonctionnels — des POSTES, plus des droits.
+ *
+ * La matrice rôle x permission n'est plus lue depuis la migration 0037 : les
+ * droits sont portés par `mg2030_app_user.access_level`. Continuer à la
+ * charger ici aurait affiché à l'administrateur une grille sans effet, qu'il
+ * aurait crue vivante.
+ */
 export async function listRoles(): Promise<RoleOption[]> {
   const supabase = await createClient();
 
@@ -97,8 +107,7 @@ export async function listRoles(): Promise<RoleOption[]> {
     .from("mg2030_functional_role")
     .select(
       `id, code, title, posts,
-       mg2030_organisation ( code, access_mode ),
-       mg2030_role_permission ( permission_code )`,
+       mg2030_organisation ( code, access_mode )`,
     )
     .order("code");
 
@@ -111,7 +120,6 @@ export async function listRoles(): Promise<RoleOption[]> {
       title: string;
       posts: number;
       mg2030_organisation: { code: string; access_mode: string };
-      mg2030_role_permission: { permission_code: string }[];
     };
     return {
       id: r.id,
@@ -119,7 +127,6 @@ export async function listRoles(): Promise<RoleOption[]> {
       title: r.title,
       posts: r.posts,
       organisation: { code: r.mg2030_organisation.code, accessMode: r.mg2030_organisation.access_mode },
-      permissions: (r.mg2030_role_permission ?? []).map((p) => p.permission_code).sort(),
     };
   });
 }

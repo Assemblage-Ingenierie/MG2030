@@ -15,7 +15,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/server";
-import { isPlatformAdmin } from "@/lib/auth/types";
+import { isAccessLevel, isPlatformAdmin } from "@/lib/auth/types";
 
 async function requireAdmin() {
   const user = await getCurrentUser();
@@ -43,12 +43,41 @@ export async function setUserActive(userId: string, active: boolean): Promise<vo
 }
 
 /**
+ * Regle le NIVEAU D'ACCES : viewer, editor ou administrator.
+ *
+ * C'est la seule autorite applicative sur le droit d'ecrire depuis la
+ * migration 0037. Cote base, un declencheur refuse cette colonne a quiconque
+ * n'est pas administrateur : la politique update_self couvre toute la ligne,
+ * un editeur pourrait sinon s'ecrire administrator d'une requete.
+ *
+ * On refuse de se retirer soi-meme l'administration : se degrader par megarde
+ * pourrait laisser l'application sans personne pour rouvrir le droit, et il
+ * faudrait alors repasser par SQL.
+ */
+export async function setUserAccessLevel(userId: string, level: string): Promise<void> {
+  const admin = await requireAdmin();
+  if (!isAccessLevel(level)) throw new Error("Niveau d'acces inconnu.");
+
+  if (userId === admin.id && level !== "administrator") {
+    throw new Error("Vous ne pouvez pas retirer votre propre administration.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mg2030_app_user")
+    .update({ access_level: level })
+    .eq("id", userId);
+
+  if (error) throw new Error(`Niveau d'acces : ${error.message}`);
+  revalidatePath("/admin/users");
+}
+
+/**
  * Affecte le role fonctionnel.
  *
- * Deuxieme dimension des droits (brief §8) : l'organisation dit en lecture ou
- * en contribution, le role dit QUOI. Il ne se reglait que par SQL — un ecran
- * d'administration des comptes qui affiche le role sans permettre de le
- * changer n'administre rien.
+ * Le role fonctionnel decrit un POSTE : la place dans l'organigramme et
+ * l'intitule du metier. Depuis la migration 0037 il n'accorde plus aucun
+ * droit — c'est le niveau d'acces ci-dessus qui en decide.
  *
  * Le role appartient a une organisation. On refuse un role d'une autre
  * organisation que celle du compte : la base l'accepterait, mais l'utilisateur

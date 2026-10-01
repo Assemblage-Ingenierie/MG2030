@@ -2,6 +2,8 @@ import { AppShell } from "@/components/shell/app-shell";
 import { AccessGuard } from "@/components/auth/access-guard";
 import { AuthUserProvider } from "@/components/auth/auth-context";
 import { getAuthState } from "@/lib/auth/server";
+import { isPlatformAdmin, isTechnicalAssistance } from "@/lib/auth/types";
+import { listHiddenNav } from "@/lib/queries/nav";
 
 /**
  * Layout des écrans métier.
@@ -21,9 +23,21 @@ import { getAuthState } from "@/lib/auth/server";
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const state = await getAuthState();
+  const user = state.status === "active" ? state.user : null;
+
+  // Les onglets masques ne se lisent que pour un compte actif : un anonyme ou
+  // un compte etranger n'a de toute facon pas de menu a dessiner, et la RLS
+  // refuserait la lecture.
+  const hidden = user ? await listHiddenNav() : new Set<string>();
 
   const shell = (
-    <AppShell>
+    <AppShell
+      nav={{
+        isAdmin: isPlatformAdmin(user),
+        isTa: isTechnicalAssistance(user),
+        hidden: [...hidden],
+      }}
+    >
       <AccessGuard>{children}</AccessGuard>
     </AppShell>
   );

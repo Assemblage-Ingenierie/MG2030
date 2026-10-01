@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { getAuthState } from "@/lib/auth/server";
-import { isTechnicalAssistance } from "@/lib/auth/types";
+import { isPlatformAdmin, isTechnicalAssistance } from "@/lib/auth/types";
+import { listHiddenNav } from "@/lib/queries/nav";
 import { AuthUserProvider } from "@/components/auth/auth-context";
 
 /**
@@ -32,7 +33,22 @@ export default async function DesignSystemLayout({
     notFound();
   }
 
-  const shell = <AppShell>{children}</AppShell>;
+  const user = state.status === "active" ? state.user : null;
+  // Sans session (développement), aucun onglet masqué à lire : la RLS refuserait
+  // la requête, et le menu n'est de toute façon pas le sujet de cette page.
+  const hidden = user ? await listHiddenNav() : new Set<string>();
+
+  const shell = (
+    <AppShell
+      nav={{
+        isAdmin: isPlatformAdmin(user),
+        isTa: isTechnicalAssistance(user),
+        hidden: [...hidden],
+      }}
+    >
+      {children}
+    </AppShell>
+  );
   // Identité fournie au cadre, pour que la barre latérale sache quels items
   // montrer — dont celui-ci.
   return state.status === "active" ? (

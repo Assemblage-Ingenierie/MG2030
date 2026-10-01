@@ -100,12 +100,17 @@ s'affiche, l'UID de l'étape 2 ne correspond pas à celui de l'étape 1.
 
 Même procédure, avec deux différences :
 
-- **`functional_role_id`** : le code du rôle réel, parmi les 14 de
+- **`functional_role_id`** : le code du POSTE, parmi les 14 de
   `mg2030_functional_role` (`COORD`, `PROC`, `CONSTR`, `SITEREP`, `TA`, `AFD`…).
-  L'organisation est **déduite du rôle** — un rôle `AFD` donne un compte en
-  lecture seule, quelle que soit la matrice de permissions.
+  Depuis la migration 0037 il ne sert plus qu'à l'organigramme et à l'annuaire :
+  **il n'accorde aucun droit**.
+- **`access_level`** : `viewer`, `editor` ou `administrator`. C'est la **seule**
+  colonne qui décide du droit d'écrire. Par défaut `viewer` — un compte s'ouvre
+  en lecture, et c'est le bon sens du défaut.
 - **`is_active`** : laisser à `false`. L'administrateur active ensuite depuis
   `/admin/users`, ce qui horodate l'approbation et en garde trace.
+
+Les deux derniers se règlent ensuite depuis `/admin/users`, sans SQL.
 
 ### Périmètre des 14 représentants sur site
 
@@ -155,33 +160,48 @@ faudrait repasser par le SQL.
 
 ---
 
-## 6. Ajuster la matrice rôle × permission
+## 6. Régler les droits d'un compte
 
-La matrice chargée est une **proposition** (`docs/GAPS.md` point 11), pas une
-donnée projet. Elle se modifie sans migration :
+**Trois niveaux, et rien d'autre** (migration 0037) :
+
+| Niveau | Ce qu'il peut faire |
+| --- | --- |
+| `viewer` | Lit tout ce que son périmètre autorise. Filtre, trie, exporte. N'écrit rien. |
+| `editor` | Écrit partout où il voit, **sauf** sur les comptes. |
+| `administrator` | Éditeur, plus la gestion des comptes et le choix des onglets visibles. |
+
+Cela se règle depuis `/admin/users` → **Access**. Par SQL si besoin :
 
 ```sql
--- Accorder
-insert into mg2030_role_permission (functional_role_id, permission_code)
-select id, 'task.validate' from mg2030_functional_role where code = 'MRE';
-
--- Retirer
-delete from mg2030_role_permission
- where permission_code = 'contract.write'
-   and functional_role_id = (select id from mg2030_functional_role where code = 'LEGAL');
+update mg2030_app_user set access_level = 'editor'
+ where email = 'prenom.nom@example.org';
 ```
 
-L'effet est immédiat : la RLS lit la matrice à chaque requête. La table est
-visible en lecture sur `/admin/users`.
+⚠ **Un déclencheur refuse cette colonne à qui n'est pas administrateur**
+(`mg2030_private.guard_access_columns`). La politique `update_self` autorise
+chacun à modifier sa propre fiche, et la RLS n'a aucun moyen d'en exclure une
+colonne : sans ce verrou, tout éditeur s'écrirait `administrator` d'une requête.
+Le même verrou couvre `is_active`, `organisation_id` et `functional_role_id`.
 
-Trois attributions méritent un arbitrage de la PIU : les droits larges donnés à
-l'**AT** (elle écrit partout mais ne valide rien), le droit du **Legal
-Specialist** sur les marchés, et celui du **représentant sur site** sur les
-tâches.
+La table `mg2030_role_permission` et la colonne
+`mg2030_functional_role.is_platform_admin` **ne décident plus rien**. Elles sont
+conservées le temps d'une version, puis seront supprimées.
 
 ---
 
-## 6 bis. Qui voit quoi dans la bibliothèque — décision du 01/10/2026
+## 6 bis. Masquer un onglet — décision du 01/10/2026
+
+Un module en cours de finition se retire du menu des autres comptes depuis
+`/admin/navigation`, sans mise en production. L'administrateur continue de le
+voir, marqué d'un œil barré.
+
+⚠ **C'est de la présentation, pas de la protection.** Masquer un onglet ne
+restreint pas les données derrière : celles-ci dépendent de la RLS, et d'elle
+seule. Pour soustraire une donnée, on change sa politique.
+
+---
+
+## 6 ter. Qui voit quoi dans la bibliothèque — décision du 01/10/2026
 
 **Aucune restriction par rôle. C'est voulu, ce n'est pas un oubli.**
 

@@ -38,7 +38,10 @@
     "noObjections": "No-objections",
     "procurement": "Procurement",
     "map": "Map",
-    "roadmap": "Roadmap"
+    "roadmap": "Roadmap",
+    "tabs": "Tabs",
+    "hiddenTab": "This tab is hidden. An administrator has taken it out of the menu — usually because the module is still being built.",
+    "hiddenForOthers": "Hidden from everyone else"
   },
   "common": {
     "search": "Search",
@@ -70,7 +73,8 @@
     "myAccount": "My account",
     "fallbackNotice": "Albanian is not populated yet — showing English.",
     "actions": "Actions",
-    "none": "None"
+    "none": "None",
+    "description": "Description"
   },
   "status": {
     "running": "In progress",
@@ -260,7 +264,18 @@
     "approveNote": "The account is created INACTIVE and with no scope: activate it and set its scope from the accounts table below. An approved account is not yet a configured account.",
     "reject": "Reject",
     "error_notFound": "This request no longer exists.",
-    "error_alreadyHandled": "This request has already been handled."
+    "error_alreadyHandled": "This request has already been handled.",
+    "accessLevel": "Access level",
+    "level_viewer": "Viewer",
+    "level_editor": "Editor",
+    "level_administrator": "Administrator",
+    "level_viewer_desc": "Reads every screen their scope allows. Filters, sorts and exports. Writes nothing.",
+    "level_editor_desc": "Edits everything they can see, except user accounts.",
+    "level_administrator_desc": "Editor, plus managing accounts and choosing which tabs the others see.",
+    "levelsTitle": "What each level can do",
+    "levelHint": "One attribute decides the right to write. The scope below decides WHAT it applies to — that is a different question.",
+    "levelAfdNote": "Organisation access modes no longer grant anything. An AFD account can be made an editor one at a time, without changing anything for the rest of the organisation.",
+    "cannotDemoteSelf": "You cannot change your own access level: an administrator who demotes themselves by mistake leaves no one able to grant the right back."
   },
   "sites": {
     "title": "Sites",
@@ -934,5 +949,19 @@
     "error_duplicateSubject": "A subject with that name already exists.",
     "error_notArchived": "Only an archived action can be deleted.",
     "applyFilter": "Apply"
+  },
+  "tabs": {
+    "title": "Tabs",
+    "intro": "Choose which tabs the rest of the team sees. A hidden tab leaves their menu, and its screen refuses to open. You keep seeing it, marked with a crossed-out eye.",
+    "warning": "This is presentation, not protection. Hiding a tab does not restrict the data behind it — that is decided by the database policies, and by them alone.",
+    "tab": "Tab",
+    "section": "Section",
+    "state": "Visible to everyone",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "show": "Show",
+    "hide": "Hide",
+    "adminKept": "Administration screens stay visible to administrators whatever happens: hiding them would lock you out.",
+    "error_writeFailed": "The change was refused."
   }
 }

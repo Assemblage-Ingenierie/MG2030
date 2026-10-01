@@ -12,7 +12,7 @@ import {
 } from "@/lib/roadmap/types";
 import { ROADMAP_PRIORITY, ROADMAP_STATUS } from "@/lib/tokens";
 import { Card, Section } from "@/components/ui/card";
-import { Table, Thead, Th, Tr, Td } from "@/components/ui/table";
+import { EmptyRow, Table, Thead, Th, Tr, Td } from "@/components/ui/table";
 import { ViewSwitch } from "@/components/roadmap/view-switch";
 import { ColumnHeader } from "@/components/roadmap/column-header";
 import {
@@ -138,10 +138,6 @@ export default async function RoadmapPage({
             undated={sorted.filter((a) => a.timeline.kind === null)}
             today={localToday()}
           />
-        ) : groups.length === 0 ? (
-          <Card className="p-8 text-center text-sm text-[var(--text-muted)]">
-            {actions.length === 0 ? t("roadmap.empty") : t("roadmap.emptyFiltered")}
-          </Card>
         ) : (
           /* UN SEUL TABLEAU, les sujets en lignes grises.
              Chaque sujet avait sa propre carte et son propre tableau : les
@@ -152,7 +148,14 @@ export default async function RoadmapPage({
              ligne de respiration plutôt qu'un nouveau départ.
 
              `overflow-visible` : les menus de filtre et d'édition débordent de
-             la carte, un rognage les couperait net. */
+             la carte, un rognage les couperait net.
+
+             ⚠ LE TABLEAU EST RENDU MÊME VIDE. Une liste sans résultat
+             remplaçait tout l'écran par un message, en-têtes comprises : on
+             perdait l'accès aux filtres au moment précis où il fallait en
+             défaire un, et le seul recours était de recharger l'adresse à la
+             main. Le vide est désormais une LIGNE du tableau, pas sa
+             disparition — signalé le 01/10/2026. */
           <Card className="overflow-visible">
             <Table>
               <Thead>
@@ -202,6 +205,11 @@ export default async function RoadmapPage({
                 <Th align="right">{t("common.actions")}</Th>
               </Thead>
               <tbody>
+                {groups.length === 0 && (
+                  <EmptyRow colSpan={6}>
+                    {actions.length === 0 ? t("roadmap.empty") : t("roadmap.emptyFiltered")}
+                  </EmptyRow>
+                )}
                 {groups.map((group) => (
                   <Fragment key={group.subjectId}>
                     <tr>

@@ -7,7 +7,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
-import type { AppUser, AuthState } from "./types";
+import { isAccessLevel, type AppUser, type AuthState } from "./types";
 
 /** Forme brute renvoyée par PostgREST pour la requête ci-dessous. */
 interface Row {
@@ -17,13 +17,9 @@ interface Row {
   job_title: string | null;
   locale: string;
   is_active: boolean;
+  access_level: string;
   mg2030_organisation: { code: string; name: string; access_mode: string } | null;
-  mg2030_functional_role: {
-    code: string;
-    title: string;
-    is_platform_admin: boolean;
-    mg2030_role_permission: { permission_code: string }[];
-  } | null;
+  mg2030_functional_role: { code: string; title: string } | null;
   mg2030_app_user_scope: {
     kind: string;
     subproject: string | null;
@@ -72,10 +68,9 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
   const { data, error } = await supabase
     .from("mg2030_app_user")
     .select(
-      `id, email, full_name, job_title, locale, is_active,
+      `id, email, full_name, job_title, locale, is_active, access_level,
        mg2030_organisation ( code, name, access_mode ),
-       mg2030_functional_role ( code, title, is_platform_admin,
-                                mg2030_role_permission ( permission_code ) ),
+       mg2030_functional_role ( code, title ),
        mg2030_app_user_scope ( kind, subproject, site_id, lot_id )`,
     )
     .eq("id", authUser.id)
@@ -101,11 +96,10 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
     role: {
       code: data.mg2030_functional_role.code,
       title: data.mg2030_functional_role.title,
-      isPlatformAdmin: data.mg2030_functional_role.is_platform_admin,
     },
-    permissions: (data.mg2030_functional_role.mg2030_role_permission ?? []).map(
-      (p) => p.permission_code,
-    ),
+    // Une valeur inattendue retombe sur le niveau le MOINS ouvert : un enum
+    // élargi côté base ne doit jamais accorder des droits par surprise.
+    accessLevel: isAccessLevel(data.access_level) ? data.access_level : "viewer",
     scopes: (data.mg2030_app_user_scope ?? []).map((s) => ({
       kind: s.kind as AppUser["scopes"][number]["kind"],
       subproject: s.subproject,
