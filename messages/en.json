@@ -41,7 +41,9 @@
     "roadmap": "Roadmap",
     "tabs": "Tabs",
     "hiddenTab": "This tab is hidden. An administrator has taken it out of the menu — usually because the module is still being built.",
-    "hiddenForOthers": "Hidden from everyone else"
+    "hiddenForOthers": "Hidden from everyone else",
+    "hideMenu": "Hide the menu",
+    "showMenu": "Show the menu"
   },
   "common": {
     "search": "Search",
@@ -549,7 +551,23 @@
     "entity_TA": "Technical assistance",
     "entity_AFD": "AFD",
     "entity_PIU": "PIU (MYS)",
-    "entityNoOwner": "— tasks with no named owner keep the default colour."
+    "entityNoOwner": "— tasks with no named owner keep the default colour.",
+    "columnsBare": "Activity only",
+    "columnsCompact": "Schedule",
+    "columnsAll": "All columns",
+    "columnsLegend": "Columns",
+    "print": "Print / PDF",
+    "printHint": "Opens a page laid out for paper: the whole chart on one width, no menu, no toolbar.",
+    "printTitle": "Schedule",
+    "printScenario": "Scenario",
+    "printScale": "Scale",
+    "printFilter": "Filter",
+    "printIssued": "Issued",
+    "printNothing": "Nothing to print with these filters.",
+    "printBack": "Back to the schedule",
+    "printNow": "Print",
+    "printPaperHint": "In the print dialog, choose landscape and “Save as PDF”.",
+    "printScaleWidened": "Printed by {used} rather than {asked}: at this width, {asked} labels would not fit."
   },
   "deliverables": {
     "title": "Deliverables",
@@ -876,7 +894,6 @@
     "priority": "Priority",
     "timeline": "Timeline",
     "assignee": "Assignee",
-    "comments": "Comments",
     "status_not_started": "Not started",
     "status_pending": "Pending",
     "status_in_progress": "In progress",
@@ -948,7 +965,13 @@
     "error_emptySubjectName": "A subject needs a name.",
     "error_duplicateSubject": "A subject with that name already exists.",
     "error_notArchived": "Only an archived action can be deleted.",
-    "applyFilter": "Apply"
+    "applyFilter": "Apply",
+    "detail": "Action detail",
+    "detailHint": "Who to chase, what document is expected, what has to be cleared first.",
+    "addDetail": "Add a detail",
+    "sectionWhat": "The action",
+    "sectionWhen": "When",
+    "sectionTracking": "Tracking"
   },
   "tabs": {
     "title": "Tabs",

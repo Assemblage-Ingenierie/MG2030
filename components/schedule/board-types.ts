@@ -91,8 +91,36 @@ export const COMPACT_COLUMNS: BoardColumn[] = [
   "successors",
 ];
 
-export function visibleColumns(compact: boolean): BoardColumn[] {
-  return compact ? COMPACT_COLUMNS : BOARD_COLUMNS;
+/**
+ * Jeu NU : l'activité, et le diagramme.
+ *
+ * C'est la vue de lecture — celle qu'on projette en réunion et qu'on imprime.
+ * Toute colonne intermédiaire y est du bruit : on ne vient pas y saisir, on
+ * vient regarder où tombent les barres, et chaque colonne retirée est 60 à
+ * 90 px rendus au diagramme. Demandé le 01/10/2026.
+ *
+ * La fin de tâche reste affichée : elle est hors du jeu de colonnes (voir
+ * `gridWidth`), et une barre sans sa date de fin lisible oblige à viser
+ * l'échelle de temps à l'œil.
+ */
+export const BARE_COLUMNS: BoardColumn[] = ["activity"];
+
+/**
+ * Trois densités, et chacune répond à une question différente :
+ *   • `bare`    — où en est-on ? (lecture, projection, impression)
+ *   • `compact` — pourquoi cette tâche tombe-t-elle là ? (précédences)
+ *   • `all`     — qui la tient, sur quel marché, à quel avancement ? (saisie)
+ */
+export type Density = "bare" | "compact" | "all";
+
+export const DENSITIES: Density[] = ["bare", "compact", "all"];
+
+export const isDensity = (v: string): v is Density =>
+  (DENSITIES as string[]).includes(v);
+
+export function visibleColumns(density: Density): BoardColumn[] {
+  if (density === "bare") return BARE_COLUMNS;
+  return density === "compact" ? COMPACT_COLUMNS : BOARD_COLUMNS;
 }
 
 /** Largeurs en pixels. Le total fixe la largeur du volet de gauche. */
@@ -110,11 +138,20 @@ export const COLUMN_WIDTH: Record<BoardColumn | "rowNo" | "end", number> = {
   progress: 58,
 };
 
-/** Largeur du volet de gauche : numéro, colonnes visibles, fin, actions. */
+/**
+ * Largeur du volet de gauche : numéro, colonnes visibles, fin, actions.
+ *
+ * ⚠ LA COLONNE « FIN » SUIT « DÉBUT ». Elle n'est pas dans `BoardColumn` — elle
+ * n'est pas éditable, c'est début + durée — mais elle occupe bien une colonne.
+ * Sa largeur était comptée en toutes circonstances : avec le jeu NU, qui ne
+ * garde que l'activité, le volet réservait 90 px à une colonne qu'il ne
+ * dessinait plus. Même règle que `renderOrder`, et c'est voulu : les deux
+ * doivent dire la même chose.
+ */
 export function gridWidth(columns: BoardColumn[], actionsWidth: number): number {
   return (
     COLUMN_WIDTH.rowNo +
-    COLUMN_WIDTH.end +
+    (columns.includes("start") ? COLUMN_WIDTH.end : 0) +
     columns.reduce((sum, column) => sum + COLUMN_WIDTH[column], 0) +
     actionsWidth
   );

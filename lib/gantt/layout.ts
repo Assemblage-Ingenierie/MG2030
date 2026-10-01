@@ -98,6 +98,15 @@ export interface LayoutOptions {
   bufferStart?: IsoDate | null;
   deadline?: IsoDate | null;
   locale?: "en" | "sq";
+  /**
+   * Pixels par jour imposés, au lieu de ceux de l'échelle.
+   *
+   * Sert à l'IMPRESSION : le papier a une largeur fixe, c'est donc elle qui
+   * dicte la densité, pas l'inverse. Les graduations restent celles de
+   * l'échelle demandée — le rendu saute simplement les libellés qui ne
+   * tiennent plus (voir le `if (w < 24)` du volet).
+   */
+  pxPerDay?: number;
 }
 
 export function buildLayout(options: LayoutOptions): GanttLayout {
@@ -107,7 +116,7 @@ export function buildLayout(options: LayoutOptions): GanttLayout {
   const bounds = timeBounds(dated, [bufferStart, deadline, today]);
   const { origin, ticks, totalDays } = buildTicks(scale, bounds.from, bounds.to, locale);
 
-  const pxPerDay = PX_PER_DAY[scale];
+  const pxPerDay = options.pxPerDay ?? PX_PER_DAY[scale];
   const originDay = toDayNumber(origin);
   const x = (iso: IsoDate) => (toDayNumber(iso) - originDay) * pxPerDay;
 

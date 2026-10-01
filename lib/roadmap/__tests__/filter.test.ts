@@ -20,7 +20,7 @@ function action(over: Partial<RoadmapActionRow> = {}): RoadmapActionRow {
     status: "pending" as RoadmapStatus,
     priority: "medium" as RoadmapPriority,
     timeline: NO_TIMELINE,
-    comments: null,
+    detail: null,
     sortOrder: seq * 10,
     assignees: [],
     ...over,

@@ -233,6 +233,22 @@ export const RoadmapIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Panneau latéral : rectangle de page, colonne de gauche marquée. */
+export const SidebarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <line x1="9" y1="4" x2="9" y2="20" />
+  </Svg>
+);
+
+export const PrinterIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 9V3h12v6" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="7" rx="1" />
+  </Svg>
+);
+
 export const EyeIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />

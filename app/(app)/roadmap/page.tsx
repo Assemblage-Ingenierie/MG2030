@@ -17,6 +17,7 @@ import { ViewSwitch } from "@/components/roadmap/view-switch";
 import { ColumnHeader } from "@/components/roadmap/column-header";
 import {
   InlineAssignees,
+  InlineDetail,
   InlinePriority,
   InlineStatus,
   InlineTimeline,
@@ -157,12 +158,28 @@ export default async function RoadmapPage({
              main. Le vide est désormais une LIGNE du tableau, pas sa
              disparition — signalé le 01/10/2026. */
           <Card className="overflow-visible">
-            <Table>
+            {/* ⚠ UNE LARGEUR MINIMALE, SINON LE TABLEAU SE PLIE. Avec sept
+                colonnes sur un écran de portable, « Appoint a panel for the
+                complaint mechanism » se repliait sur huit lignes d'un ou deux
+                mots : la ligne devenait un paragraphe, et le tableau
+                illisible. `Table` offre déjà un défilement horizontal — mieux
+                vaut faire glisser que lire à la verticale. */}
+            <Table className="min-w-[1020px]">
               <Thead>
-                <Th>
+                <Th className="w-[22%]">
                   <ColumnHeader
                     label={t("roadmap.action")}
                     column="action"
+                    kind={null}
+                    params={params}
+                  />
+                </Th>
+                {/* Le DÉTAIL contre l'intitulé : les deux se lisent ensemble
+                    — « relancer le MoF » n'a de sens qu'avec « sur quoi ». */}
+                <Th className="w-[22%]">
+                  <ColumnHeader
+                    label={t("roadmap.detail")}
+                    column={null}
                     kind={null}
                     params={params}
                   />
@@ -206,7 +223,7 @@ export default async function RoadmapPage({
               </Thead>
               <tbody>
                 {groups.length === 0 && (
-                  <EmptyRow colSpan={6}>
+                  <EmptyRow colSpan={7}>
                     {actions.length === 0 ? t("roadmap.empty") : t("roadmap.emptyFiltered")}
                   </EmptyRow>
                 )}
@@ -214,7 +231,7 @@ export default async function RoadmapPage({
                   <Fragment key={group.subjectId}>
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="border-b border-t border-[var(--border)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
                       >
                         <SubjectTitle
@@ -227,10 +244,13 @@ export default async function RoadmapPage({
                     {group.actions.map((action) => (
                       <Tr key={action.id}>
                         <Td>
-                          <InlineTitle
+                          <InlineTitle actionId={action.id} value={action.title} />
+                        </Td>
+                        <Td>
+                          <InlineDetail
                             actionId={action.id}
-                            value={action.title}
-                            comments={action.comments}
+                            value={action.detail}
+                            placeholder={t("roadmap.addDetail")}
                           />
                         </Td>
                         <Td>

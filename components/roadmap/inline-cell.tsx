@@ -281,15 +281,7 @@ function shiftDay(iso: string, days: number): string {
 
 // ── Intitulé ────────────────────────────────────────────────────────────────
 
-export function InlineTitle({
-  actionId,
-  value,
-  comments,
-}: {
-  actionId: string;
-  value: string;
-  comments: string | null;
-}) {
+export function InlineTitle({ actionId, value }: { actionId: string; value: string }) {
   const { editable, error, pending, run } = useCell();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -299,14 +291,10 @@ export function InlineTitle({
     if (editing) input.current?.select();
   }, [editing]);
 
-  const display = (
-    <>
-      <span className="text-[14px] text-[var(--text)]">{value}</span>
-      {comments && (
-        <span className="block text-xs text-[var(--text-muted)]">{comments}</span>
-      )}
-    </>
-  );
+  /* Le DÉTAIL a quitté cette cellule le 01/10/2026. Écrit en petit sous
+     l'intitulé, il n'avait pas de cible propre : cliquer dessus ouvrait
+     l'édition du titre. Il a maintenant sa colonne, donc son clic. */
+  const display = <span className="text-[14px] text-[var(--text)]">{value}</span>;
 
   if (!editable) return display;
 
@@ -354,6 +342,104 @@ export function InlineTitle({
         type="button"
         onClick={() => {
           setDraft(value);
+          setEditing(true);
+        }}
+        disabled={pending}
+        className={cn(TRIGGER, pending && "opacity-50")}
+      >
+        {display}
+      </button>
+      {error && (
+        <span
+          aria-hidden="true"
+          className="absolute -right-1 top-0 h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "var(--danger)" }}
+        />
+      )}
+    </span>
+  );
+}
+
+// ── Détail de l'action ──────────────────────────────────────────────────────
+
+/**
+ * Le « quoi faire exactement » : l'interlocuteur à relancer, le document
+ * attendu, la condition à lever.
+ *
+ * Il s'écrivait jusqu'ici dans la fenêtre d'édition, sept champs plus bas, et
+ * se lisait en petit sous l'intitulé sans qu'on puisse le toucher. C'est
+ * pourtant le champ qui bouge le plus d'une revue à l'autre.
+ *
+ * Un `textarea` à même la cellule, sans fenêtre : le détail tient en une ou
+ * deux lignes, et l'ouvrir dans une fenêtre pour corriger un nom coûterait
+ * plus cher que de le retaper.
+ */
+export function InlineDetail({
+  actionId,
+  value,
+  placeholder,
+}: {
+  actionId: string;
+  value: string | null;
+  /** Ce qu'on écrit dans une cellule vide, pour qu'elle se propose au clic. */
+  placeholder: string;
+}) {
+  const { editable, error, pending, run } = useCell();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const input = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (editing) input.current?.focus();
+  }, [editing]);
+
+  const display = value ? (
+    <span className="block text-xs text-[var(--text)]">{value}</span>
+  ) : (
+    <span className="block text-xs text-[var(--text-muted)]">{placeholder}</span>
+  );
+
+  if (!editable) {
+    return value ? display : <span className="text-[var(--text-muted)]">—</span>;
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        ref={input}
+        rows={3}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setDraft(value ?? "");
+            setEditing(false);
+          } else if (e.key === "Enter" && !e.shiftKey) {
+            // Entrée valide, Maj+Entrée passe à la ligne : on vient corriger
+            // une précision, pas rédiger une note.
+            e.preventDefault();
+            (e.target as HTMLTextAreaElement).blur();
+          }
+        }}
+        onBlur={() => {
+          setEditing(false);
+          // VIDER est une modification légitime ici, contrairement à
+          // l'intitulé : une précision devenue fausse doit pouvoir s'effacer.
+          if (draft === (value ?? "")) return;
+          run(() => patchRoadmapAction(actionId, { detail: draft }));
+        }}
+        className="w-full rounded border bg-[var(--surface)] px-1.5 py-1 text-xs outline-none"
+        style={{ borderColor: "var(--focus)" }}
+      />
+    );
+  }
+
+  return (
+    <span className="relative block">
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(value ?? "");
           setEditing(true);
         }}
         disabled={pending}

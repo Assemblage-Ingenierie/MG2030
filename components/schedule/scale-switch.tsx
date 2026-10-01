@@ -3,6 +3,8 @@ import { getI18n } from "@/lib/i18n/server";
 import { ENTITY_COLOR, GANTT } from "@/lib/tokens";
 import { cn } from "@/lib/cn";
 import type { ScaleUnit } from "@/lib/gantt/scale";
+import { DENSITIES, type Density } from "./board-types";
+import { PrinterIcon } from "@/components/ui/icons";
 
 /**
  * Barre d'outils du plan de charge : échelle, filtres, légende.
@@ -25,7 +27,7 @@ export async function ScaleSwitch({
   currentContract,
   subprojects,
   currentSubproject,
-  compact,
+  density,
   showNames,
   scenarioCode,
 }: {
@@ -35,7 +37,7 @@ export async function ScaleSwitch({
   currentContract: string | null;
   subprojects: string[];
   currentSubproject: string | null;
-  compact: boolean;
+  density: Density;
   showNames: boolean;
   scenarioCode: string;
 }) {
@@ -45,11 +47,11 @@ export async function ScaleSwitch({
    * Tout passe par l'URL. `undefined` = garder la valeur courante ; `null` =
    * l'effacer. Sans cette distinction, poser un filtre effacerait les autres.
    */
-  const href = (next: {
+  const query = (next: {
     scale?: ScaleUnit;
     contract?: string | null;
     subproject?: string | null;
-    cols?: "compact" | "all";
+    cols?: Density;
     names?: boolean;
   }) => {
     const params = new URLSearchParams({ scenario: scenarioCode });
@@ -58,11 +60,13 @@ export async function ScaleSwitch({
     if (contract) params.set("contract", contract);
     const sub = next.subproject === undefined ? currentSubproject : next.subproject;
     if (sub) params.set("subproject", sub);
-    const cols = next.cols ?? (compact ? "compact" : "all");
-    if (cols === "all") params.set("cols", "all");
+    const cols = next.cols ?? density;
+    if (cols !== "compact") params.set("cols", cols);
     if (!(next.names ?? showNames)) params.set("names", "0");
-    return `/schedule?${params.toString()}`;
+    return params.toString();
   };
+
+  const href = (next: Parameters<typeof query>[0]) => `/schedule?${query(next)}`;
 
   const chip = "rounded px-2.5 py-1 text-xs font-medium transition-colors";
   const activeChip = "bg-[var(--surface)] text-[var(--text)] shadow-sm";
@@ -150,8 +154,6 @@ export async function ScaleSwitch({
         </div>
       )}
 
-      {/* Colonnes. Le jeu réduit est le défaut : sinon la grille prend 986 px
-          et le diagramme n'a plus de place pour exister. */}
       {/* Nom des tâches sur les barres. Hors du jeu de colonnes : c'est une
           question de lecture du diagramme, pas de saisie. */}
       <Link
@@ -166,15 +168,42 @@ export async function ScaleSwitch({
         {t("gantt.showNames")}
       </Link>
 
-      <Link
-        href={href({ cols: compact ? "all" : "compact" })}
-        className={
-          "rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 " +
-          "text-xs font-medium text-[var(--text)]"
-        }
-        title={t(compact ? "gantt.showAllColumnsHint" : "gantt.showFewerColumnsHint")}
+      {/* Densité de colonnes. Un bouton qui BASCULE entre deux états ne pouvait
+          plus dire où l'on est dès qu'il y en a trois : les trois sont écrits,
+          celui en cours est marqué, comme pour l'échelle. */}
+      <div
+        role="group"
+        aria-label={t("gantt.columnsLegend")}
+        className="inline-flex items-center gap-0.5 rounded-md bg-[var(--app-bg)] p-0.5"
       >
-        {t(compact ? "gantt.showAllColumns" : "gantt.showFewerColumns")}
+        {DENSITIES.map((value) => (
+          <Link
+            key={value}
+            href={href({ cols: value })}
+            aria-current={value === density ? "true" : undefined}
+            className={cn(chip, value === density ? activeChip : idleChip)}
+          >
+            {t(`gantt.columns${value === "bare" ? "Bare" : value === "compact" ? "Compact" : "All"}`)}
+          </Link>
+        ))}
+      </div>
+
+      {/* Impression. Une page à part plutôt qu'une feuille de style : le
+          diagramme doit être RECALCULÉ pour tenir dans la largeur du papier,
+          et une mise à l'échelle CSS d'un SVG de 3 000 px donnerait des
+          libellés illisibles. Voir app/(app)/schedule/print/page.tsx. */}
+      <Link
+        href={`/schedule/print?${query({})}`}
+        target="_blank"
+        rel="noopener"
+        title={t("gantt.printHint")}
+        className={
+          "inline-flex items-center gap-1.5 rounded border border-[var(--border)] " +
+          "bg-[var(--surface)] px-2 py-1 text-xs font-medium text-[var(--text)]"
+        }
+      >
+        <PrinterIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("gantt.print")}
       </Link>
 
       <div className="ml-auto flex flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">

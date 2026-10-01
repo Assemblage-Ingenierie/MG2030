@@ -44,6 +44,7 @@ import {
   visibleColumns,
   type BoardColumn,
   type BoardTask,
+  type Density,
   type ContractChoice,
   type PersonOption,
 } from "./board-types";
@@ -70,7 +71,7 @@ export function ScheduleBoard({
   bufferStart,
   deadline,
   locale,
-  compact,
+  density,
   showNames,
   visibleIds,
 }: {
@@ -84,7 +85,7 @@ export function ScheduleBoard({
   bufferStart: string | null;
   deadline: string | null;
   locale: "en" | "sq";
-  compact: boolean;
+  density: Density;
   /** Écrire le nom de la tâche à côté de sa barre. */
   showNames: boolean;
   /**
@@ -116,7 +117,7 @@ export function ScheduleBoard({
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [bulkEditing, setBulkEditing] = useState(false);
 
-  const columns = useMemo(() => visibleColumns(compact), [compact]);
+  const columns = useMemo(() => visibleColumns(density), [density]);
 
   // La corbeille et le crayon vivent dans une colonne d'actions propre : les
   // glisser dans la colonne d'avancement les faisait disparaître avec elle.
@@ -798,6 +799,12 @@ function GridRow(props: RowProps) {
         onCommit={(v, d) => onCommit(row, "activity", v, d)}
       />
 
+      {/* ⚠ CES TROIS COLONNES SE GARDENT COMME LES AUTRES. Durée, début et fin
+          figuraient dans les deux seuls jeux existants, si bien qu'elles se
+          rendaient sans condition. Le jeu NU (01/10/2026) les a retirées de
+          l'en-tête, et les lignes ont continué de les dessiner : six colonnes
+          de chiffres sous un en-tête qui n'en annonçait aucune. */}
+      {shown("duration") && (
       <BoardCell
         width={COLUMN_WIDTH.duration}
         align="right"
@@ -829,10 +836,13 @@ function GridRow(props: RowProps) {
         onActivate={() => onActivate({ row, column: "duration" })}
         onCommit={(v, d) => onCommit(row, "duration", v, d)}
       />
+      )}
 
       {/* Début — éditable SEULEMENT sans prédécesseur. Avec un lien fin-début,
           la date est un résultat : la maillon suivant commence où le précédent
           finit, automatiquement. */}
+      {shown("start") && (
+      <>
       <BoardCell
         width={COLUMN_WIDTH.start}
         align="right"
@@ -864,13 +874,16 @@ function GridRow(props: RowProps) {
         onCommit={(v, d) => onCommit(row, "start", v, d)}
       />
 
-      {/* Fin — jamais éditable : c'est début + durée, un résultat. */}
+      {/* Fin — jamais éditable : c'est début + durée, un résultat. Elle suit
+          « début » partout, en-tête comme largeur du volet. */}
       <div
         className="flex shrink-0 items-center justify-end border-r border-b border-[var(--border)] px-2 text-sm tabular-nums"
         style={{ width: COLUMN_WIDTH.end }}
       >
         {formatPlanDate(task.end)}
       </div>
+      </>
+      )}
 
       {shown("predecessors") && (
         <BoardCell

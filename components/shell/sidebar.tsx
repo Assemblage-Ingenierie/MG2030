@@ -22,12 +22,15 @@ export function Sidebar({
   onNavigate,
   nav,
   hidden,
+  className,
 }: {
   mobileOpen: boolean;
   /** Ferme le tiroir mobile au clic d'un lien. */
   onNavigate: () => void;
   nav: NavState;
   hidden: ReadonlySet<string>;
+  /** `lg:hidden` quand la colonne est repliée. Voir app-shell.tsx. */
+  className?: string;
 }) {
   const pathname = usePathname();
   const t = useT();
@@ -42,12 +45,14 @@ export function Sidebar({
   return (
     <aside
       id="sidebar"
+      data-print-hide=""
       className={cn(
         "fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col",
         "bg-[var(--sidebar-bg)] text-[var(--sidebar-text)] shadow-xl",
         "transition-transform duration-200 ease-out",
         "lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-full lg:translate-x-0 lg:shadow-none",
         mobileOpen ? "translate-x-0" : "-translate-x-full",
+        className,
       )}
     >
       {/* Bloc de marque — même hauteur que le header, pour aligner les deux */}

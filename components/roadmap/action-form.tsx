@@ -14,6 +14,18 @@
 // L'aperçu sous le sélecteur montre la phrase telle qu'elle apparaîtra dans la
 // liste : « Week of 12/10/2026 ». Il rend visible, à la saisie, le fait que le
 // jour cliqué ne sera pas celui qu'on affichera.
+//
+// ⚠ TROIS BLOCS, ET L'ORDRE DES QUESTIONS EST LE SUJET (01/10/2026). Les sept
+// champs se suivaient à plat, du même poids : l'intitulé, puis le sujet, puis
+// deux listes déroulantes, puis la date, puis les assignataires, puis le
+// détail — si bien que le détail de l'action se saisissait à l'autre bout du
+// formulaire que l'action elle-même. On répond désormais, dans cet ordre :
+//
+//   1. QUOI   — le sujet, l'intitulé, le détail. Le détail touche l'intitulé,
+//               parce que les deux ne se relisent qu'ensemble.
+//   2. QUAND  — la précision, puis le sélecteur adapté, puis l'aperçu.
+//   3. SUIVI  — statut, priorité, assignataires : ce qui se règle ensuite, à
+//               chaque revue, et qu'on laisse volontiers vide à la création.
 // ============================================================
 
 import { useState, useTransition } from "react";
@@ -57,7 +69,7 @@ interface Draft {
   kind: TimelineKind | "";
   anchor: string;
   rangeEnd: string;
-  comments: string;
+  detail: string;
   assignees: string[];
 }
 
@@ -74,7 +86,7 @@ function draftFrom(action: RoadmapActionRow | null, subjects: RoadmapSubjectRow[
       action?.timeline.kind === "range" && action.timeline.end
         ? shiftDay(action.timeline.end, -1)
         : "",
-    comments: action?.comments ?? "",
+    detail: action?.detail ?? "",
     assignees: (action?.assignees ?? []).map((a) => a.label),
   };
 }
@@ -125,7 +137,7 @@ function FormModal({
       timelineKind: draft.kind || null,
       anchor: draft.anchor || null,
       rangeEnd: draft.rangeEnd || null,
-      comments: draft.comments || null,
+      detail: draft.detail || null,
       assignees: draft.assignees,
     };
     start(async () => {
@@ -156,91 +168,82 @@ function FormModal({
       onClose={onClose}
       closeLabel={t("common.close")}
       title={action ? t("roadmap.editTitle") : t("roadmap.createTitle")}
+      maxWidth="max-w-2xl"
     >
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <Field
-          label={t("roadmap.titleField")}
-          required
-          value={draft.title}
-          onChange={(e) => set("title", e.target.value)}
-        />
-
-        <div>
-          <Label>{t("roadmap.subject")}</Label>
-          <select
-            className={fieldClasses() + " mt-1"}
-            value={draft.subjectId}
-            onChange={(e) => set("subjectId", e.target.value)}
-          >
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={submit} className="flex flex-col gap-5">
+        {/* ── 1. QUOI ────────────────────────────────────────────────────── */}
+        <Block title={t("roadmap.sectionWhat")}>
           <div>
-            <Label optionalText={t("common.optional")}>{t("roadmap.status")}</Label>
+            <Label htmlFor="roadmap-subject">{t("roadmap.subject")}</Label>
             <select
+              id="roadmap-subject"
               className={fieldClasses() + " mt-1"}
-              value={draft.status}
-              onChange={(e) => set("status", e.target.value as Draft["status"])}
+              value={draft.subjectId}
+              onChange={(e) => set("subjectId", e.target.value)}
             >
-              <option value="">{t("roadmap.notSet")}</option>
-              {ROADMAP_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {t(`roadmap.status_${s}`)}
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>
           </div>
+
+          <Field
+            label={t("roadmap.titleField")}
+            required
+            value={draft.title}
+            onChange={(e) => set("title", e.target.value)}
+          />
+
+          {/* Le DÉTAIL contre l'intitulé, et sur plusieurs lignes : il porte
+              l'interlocuteur à relancer ou la condition à lever, pas un mot. */}
           <div>
-            <Label optionalText={t("common.optional")}>{t("roadmap.priority")}</Label>
-            <select
+            <Label htmlFor="roadmap-detail" optionalText={t("common.optional")}>
+              {t("roadmap.detail")}
+            </Label>
+            <textarea
+              id="roadmap-detail"
+              rows={3}
               className={fieldClasses() + " mt-1"}
-              value={draft.priority}
-              onChange={(e) => set("priority", e.target.value as Draft["priority"])}
+              placeholder={t("roadmap.detailHint")}
+              value={draft.detail}
+              onChange={(e) => set("detail", e.target.value)}
+            />
+          </div>
+        </Block>
+
+        {/* ── 2. QUAND : la précision, PUIS le sélecteur adapté ───────────── */}
+        <Block title={t("roadmap.sectionWhen")}>
+          <div>
+            <Label htmlFor="roadmap-kind">{t("roadmap.timelineKind")}</Label>
+            <select
+              id="roadmap-kind"
+              className={fieldClasses() + " mt-1"}
+              value={draft.kind}
+              onChange={(e) => {
+                const kind = e.target.value as Draft["kind"];
+                // Repasser à « aucune date » efface les dates : les garder en
+                // réserve ferait réapparaître une date qu'on vient de retirer.
+                setDraft((d) =>
+                  kind === ""
+                    ? { ...d, kind, anchor: "", rangeEnd: "" }
+                    : { ...d, kind, rangeEnd: kind === "range" ? d.rangeEnd : "" },
+                );
+              }}
             >
-              <option value="">{t("roadmap.notSet")}</option>
-              {ROADMAP_PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {t(`roadmap.priority_${p}`)}
+              <option value="">{t("roadmap.kind_none")}</option>
+              {TIMELINE_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {t(`roadmap.kind_${k}`)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{t("roadmap.kindHint")}</p>
           </div>
-        </div>
-
-        {/* ── Timeline : la précision, PUIS le sélecteur adapté ───────────── */}
-        <div className="rounded-md border border-[var(--border)] p-3">
-          <Label>{t("roadmap.timelineKind")}</Label>
-          <select
-            className={fieldClasses() + " mt-1"}
-            value={draft.kind}
-            onChange={(e) => {
-              const kind = e.target.value as Draft["kind"];
-              // Repasser à « aucune date » efface les dates : les garder en
-              // réserve ferait réapparaître une date qu'on vient de retirer.
-              setDraft((d) =>
-                kind === ""
-                  ? { ...d, kind, anchor: "", rangeEnd: "" }
-                  : { ...d, kind, rangeEnd: kind === "range" ? d.rangeEnd : "" },
-              );
-            }}
-          >
-            <option value="">{t("roadmap.kind_none")}</option>
-            {TIMELINE_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {t(`roadmap.kind_${k}`)}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">{t("roadmap.kindHint")}</p>
 
           {draft.kind !== "" && (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field
                 label={draft.kind === "range" ? t("roadmap.rangeFrom") : anchorLabel}
                 type="date"
@@ -261,23 +264,58 @@ function FormModal({
           )}
 
           {/* Ce que la liste écrira, mot pour mot. */}
-          <p className="mt-2 text-sm text-[var(--text)]">
+          <p className="rounded-md bg-[var(--app-bg)] px-3 py-2 text-sm text-[var(--text)]">
             {t(`roadmap.timeline_${preview.key}`, preview.values)}
           </p>
-        </div>
+        </Block>
 
-        <AssigneePicker
-          people={people}
-          value={draft.assignees}
-          onChange={(labels) => set("assignees", labels)}
-        />
+        {/* ── 3. SUIVI ───────────────────────────────────────────────────── */}
+        <Block title={t("roadmap.sectionTracking")}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="roadmap-status" optionalText={t("common.optional")}>
+                {t("roadmap.status")}
+              </Label>
+              <select
+                id="roadmap-status"
+                className={fieldClasses() + " mt-1"}
+                value={draft.status}
+                onChange={(e) => set("status", e.target.value as Draft["status"])}
+              >
+                <option value="">{t("roadmap.notSet")}</option>
+                {ROADMAP_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {t(`roadmap.status_${s}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="roadmap-priority" optionalText={t("common.optional")}>
+                {t("roadmap.priority")}
+              </Label>
+              <select
+                id="roadmap-priority"
+                className={fieldClasses() + " mt-1"}
+                value={draft.priority}
+                onChange={(e) => set("priority", e.target.value as Draft["priority"])}
+              >
+                <option value="">{t("roadmap.notSet")}</option>
+                {ROADMAP_PRIORITIES.map((p) => (
+                  <option key={p} value={p}>
+                    {t(`roadmap.priority_${p}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-        <Field
-          label={t("roadmap.comments")}
-          optionalText={t("common.optional")}
-          value={draft.comments}
-          onChange={(e) => set("comments", e.target.value)}
-        />
+          <AssigneePicker
+            people={people}
+            value={draft.assignees}
+            onChange={(labels) => set("assignees", labels)}
+          />
+        </Block>
 
         {error && (
           <p role="alert" className="text-sm" style={{ color: "var(--danger)" }}>
@@ -295,6 +333,24 @@ function FormModal({
         </div>
       </form>
     </Modal>
+  );
+}
+
+/**
+ * Un bloc de formulaire : un intertitre, un filet, des champs.
+ *
+ * L'intertitre n'est pas décoratif — il nomme la QUESTION à laquelle les champs
+ * répondent. Sept champs du même poids obligent à lire chaque étiquette pour
+ * retrouver celui qu'on cherche ; trois blocs nommés se parcourent.
+ */
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-md border border-[var(--border)] px-3 pb-3">
+      <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        {title}
+      </legend>
+      {children}
+    </fieldset>
   );
 }
 

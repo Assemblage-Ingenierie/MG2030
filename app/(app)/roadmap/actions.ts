@@ -30,7 +30,7 @@ export interface RoadmapInput {
   anchor: string | null;
   /** Dernier jour COMPRIS, pour une plage seulement. */
   rangeEnd: string | null;
-  comments: string | null;
+  detail: string | null;
   /** Libellés libres : une personne, une organisation, un tiers. */
   assignees: string[];
 }
@@ -63,7 +63,7 @@ function toRow(input: RoadmapInput) {
     timeline_kind: timeline.kind,
     timeline_start: timeline.start,
     timeline_end: timeline.end,
-    comments: input.comments?.trim() || null,
+    detail: input.detail?.trim() || null,
   };
 }
 
@@ -322,6 +322,7 @@ export async function patchRoadmapAction(
     subjectId?: string;
     status?: RoadmapStatus | null;
     priority?: RoadmapPriority | null;
+    detail?: string | null;
     timeline?: { kind: TimelineKind | null; anchor: string | null; rangeEnd: string | null };
     assignees?: string[];
   },
@@ -339,6 +340,9 @@ export async function patchRoadmapAction(
   if (patch.subjectId !== undefined) row.subject_id = patch.subjectId;
   if ("status" in patch) row.status = patch.status;
   if ("priority" in patch) row.priority = patch.priority;
+  // Un détail vidé vaut « pas de détail », pas une chaîne vide : sinon la
+  // cellule afficherait une ligne blanche sous l'intitulé.
+  if ("detail" in patch) row.detail = patch.detail?.trim() || null;
 
   if (patch.timeline) {
     const { kind, anchor, rangeEnd } = patch.timeline;

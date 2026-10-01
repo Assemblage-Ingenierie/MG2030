@@ -86,7 +86,7 @@ export interface RoadmapActionRow {
   status: RoadmapStatus | null;
   priority: RoadmapPriority | null;
   timeline: Timeline;
-  comments: string | null;
+  detail: string | null;
   sortOrder: number;
   assignees: RoadmapAssignee[];
 }

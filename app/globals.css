@@ -68,3 +68,40 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   IMPRESSION.
+   Seule la page /schedule/print est conçue pour le papier ; ces règles
+   servent à l'en débarrasser de tout ce qui n'y a pas sa place.
+
+   `data-print-hide` est posé sur le cadre applicatif — menu, en-tête, boutons.
+   Les masquer par leur balise (`aside`, `header`) aurait aussi effacé les
+   en-têtes des tableaux imprimés.
+
+   `print-color-adjust: exact` : sans lui le navigateur blanchit les fonds, et
+   l'échelle de temps du Gantt — un bandeau bleu nuit à texte blanc — sortirait
+   en blanc sur blanc.
+   ============================================================ */
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .print-sheet {
+    break-after: page;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-sheet:last-child {
+    break-after: auto;
+  }
+}

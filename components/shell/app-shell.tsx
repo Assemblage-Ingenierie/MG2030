@@ -11,10 +11,12 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useT } from "@/components/i18n/i18n-context";
 import { hiddenRouteFor } from "@/lib/nav";
+import { cn } from "@/lib/cn";
 import { Card } from "@/components/ui/card";
 import { AlertIcon } from "@/components/ui/icons";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
+import { useSidebarCollapsed } from "./use-sidebar";
 
 /** Ce que le serveur a résolu du menu. Voir app/(app)/layout.tsx. */
 export interface NavState {
@@ -36,6 +38,12 @@ export function AppShell({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const close = useCallback(() => setMobileOpen(false), []);
+
+  /* Replié ou non : voir use-sidebar.ts. Le réglage vit dans le navigateur de
+     chacun — c'est une commodité de poste, pas une donnée du projet — et le
+     rendu serveur part toujours de « déplié ». */
+  const [collapsed, toggleSidebar] = useSidebarCollapsed();
+
   const t = useT();
   const pathname = usePathname();
 
@@ -51,8 +59,29 @@ export function AppShell({
   const blocked = nav.isAdmin ? null : hiddenRouteFor(pathname, hidden);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <Sidebar mobileOpen={mobileOpen} onNavigate={close} nav={nav} hidden={hidden} />
+    <div
+      /* ⚠ ON RETIRE LA GRILLE, ON NE MET PAS SA PREMIÈRE COLONNE À ZÉRO.
+         Essayé d'abord : `lg:grid-cols-[0_minmax(0,1fr)]` avec le volet en
+         `lg:hidden`. Or `display: none` SORT l'élément du placement de la
+         grille — le contenu devenait alors le premier enfant et atterrissait
+         dans la colonne de zéro pixel. La page entière se retrouvait large de
+         cent cinquante pixels. Sans grille, le contenu s'étale simplement. */
+      className={cn(
+        "min-h-screen",
+        !collapsed && "lg:grid lg:grid-cols-[248px_minmax(0,1fr)]",
+      )}
+    >
+      {/* Replié, la colonne fait zéro : le volet doit disparaître AVEC elle,
+          sinon son contenu déborde sur la page. Le tiroir mobile, lui, est
+          `fixed` et reste commandé par le bouton hamburger — `lg:hidden` ne
+          le concerne pas. */}
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onNavigate={close}
+        nav={nav}
+        hidden={hidden}
+        className={collapsed ? "lg:hidden" : undefined}
+      />
 
       {mobileOpen && (
         <button
@@ -64,7 +93,12 @@ export function AppShell({
       )}
 
       <div className="flex min-h-screen min-w-0 flex-col">
-        <Header onMenu={() => setMobileOpen(true)} bell={bell} />
+        <Header
+          onMenu={() => setMobileOpen(true)}
+          onToggleSidebar={toggleSidebar}
+          sidebarCollapsed={collapsed}
+          bell={bell}
+        />
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-6">
           {blocked ? (
             <Card className="mx-auto max-w-md p-8 text-center">

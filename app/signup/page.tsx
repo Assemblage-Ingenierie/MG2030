@@ -6,7 +6,6 @@ import { listSignupOrganisations } from "@/lib/queries/users";
 import { PanelCard } from "@/components/ui/card";
 import { SignUpForm } from "@/components/auth/signup-form";
 import { FunderMark, KosovoEmblem } from "@/components/shell/brand-mark";
-import { LanguageSwitch } from "@/components/shell/language-switch";
 
 /**
  * Création de compte.
@@ -64,8 +63,6 @@ export default async function SignUpPage() {
           </Link>
         </p>
       </PanelCard>
-
-      <LanguageSwitch />
     </div>
   );
 }

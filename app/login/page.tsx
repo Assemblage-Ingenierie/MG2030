@@ -5,7 +5,6 @@ import { getI18n } from "@/lib/i18n/server";
 import { PanelCard } from "@/components/ui/card";
 import { LoginForm } from "@/components/auth/login-form";
 import { FunderMark, KosovoEmblem } from "@/components/shell/brand-mark";
-import { LanguageSwitch } from "@/components/shell/language-switch";
 
 /**
  * Connexion.
@@ -68,8 +67,6 @@ export default async function LoginPage({
           </Link>
         </p>
       </PanelCard>
-
-      <LanguageSwitch />
     </div>
   );
 }

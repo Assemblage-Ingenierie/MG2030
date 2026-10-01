@@ -7,8 +7,9 @@ import { ScenarioSwitch } from "@/components/schedule/scenario-switch";
 import { UnschedulableNotice } from "@/components/schedule/unschedulable-notice";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { ScaleSwitch } from "@/components/schedule/scale-switch";
-import { filterTree } from "@/components/schedule/board-types";
-import { recompute, type BoardModel, type ModelTask } from "@/lib/schedule/board-model";
+import { filterTree, isDensity, type Density } from "@/components/schedule/board-types";
+import { toBoardModel } from "@/lib/schedule/to-board";
+import type { BoardModel } from "@/lib/schedule/board-model";
 import type { ScaleUnit } from "@/lib/gantt/scale";
 
 const SCALES: ScaleUnit[] = ["day", "week", "month", "quarter"];
@@ -82,62 +83,17 @@ export default async function SchedulePage({
 
   // Jeu de colonnes réduit PAR DÉFAUT : toutes colonnes affichées, la grille
   // prend près de 1000 px et il ne reste presque rien pour le diagramme.
-  const compact = params.cols !== "all";
+  // `cols=all` (ancien lien) continue de fonctionner, et `cols=bare` ne garde
+  // que l'activité.
+  const density: Density = isDensity(params.cols ?? "") ? (params.cols as Density) : "compact";
   // Noms des tâches affichés PAR DÉFAUT : sans eux, une barre ne se lit qu'en
   // suivant sa ligne jusqu'à la grille. `names=0` les masque.
   const showNames = params.names !== "0";
 
-  const constraintByTask = new Map(constraints.map((c) => [c.taskId, c.date]));
-  const contractIdByCode = new Map(contracts.map((c) => [c.contractCode, c.id]));
-
-  const modelTasks: ModelTask[] = tasks.map((task) => ({
-    id: task.id,
-    wbsCode: task.wbsCode,
-    activity: task.activity,
-    type: task.type,
-    parentId: task.parentId,
-    durationDays: task.durationDays,
-    startAnchor: task.startDateInput,
-    constraintDate: constraintByTask.get(task.id) ?? null,
-    progressPct: task.progressPct,
-    ownerId: task.ownerId,
-    ownerName: task.ownerName,
-    ownerOrgCode: task.ownerOrgCode,
-    contractId: task.contractCode ? contractIdByCode.get(task.contractCode) ?? null : null,
-    contractCode: task.contractCode,
-    siteId: task.siteId,
-    siteCode: task.siteCode,
-    subproject: task.subproject,
-    sortOrder: task.sortOrder,
-    start: task.computed?.start ?? task.storedStart,
-    end: task.computed?.end ?? task.storedEnd,
-    depth: task.depth,
-    driver: task.computed?.driver ?? null,
-    drivingPredecessor: task.computed?.drivingPredecessor ?? null,
-    drifted: task.drifted,
-  }));
-
-  // Début de projet : la plus ancienne contrainte, à défaut la plus ancienne
-  // date stockée. Jamais une date en dur.
-  const projectStart =
-    constraints.map((c) => c.date).sort()[0] ??
-    modelTasks
-      .map((task) => task.start)
-      .filter((d): d is string => Boolean(d))
-      .sort()[0] ??
-    new Date().toISOString().slice(0, 10);
-
-  // On recalcule une fois côté serveur pour que le premier rendu soit déjà
-  // juste : sans cela, l'écran afficherait brièvement les dates stockées.
-  const initial: BoardModel = recompute({
-    tasks: modelTasks,
-    dependencies: dependencies.map((d) => ({
-      predecessorId: d.predecessorId,
-      successorId: d.successorId,
-    })),
-    projectStart,
-    cycle: null,
-  });
+  const initial: BoardModel = toBoardModel(
+    { tasks, dependencies, constraints },
+    contracts.map((c) => ({ id: c.id, contractCode: c.contractCode })),
+  );
 
   // ── Vues filtrées (brief §9.4) ───────────────────────────────────────────
   //
@@ -194,7 +150,7 @@ export default async function SchedulePage({
             currentContract={params.contract ?? null}
             subprojects={subprojects}
             currentSubproject={params.subproject ?? null}
-            compact={compact}
+            density={density}
             showNames={showNames}
             scenarioCode={selected.code}
           />
@@ -213,7 +169,7 @@ export default async function SchedulePage({
             bufferStart={scenario?.bufferStartDate ?? null}
             deadline={scenario?.deadlineDate ?? null}
             locale={locale}
-            compact={compact}
+            density={density}
             showNames={showNames}
             visibleIds={visibleIds}
           />

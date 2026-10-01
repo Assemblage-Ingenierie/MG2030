@@ -33,7 +33,7 @@ interface RawAction {
   timeline_kind: TimelineKind | null;
   timeline_start: string | null;
   timeline_end: string | null;
-  comments: string | null;
+  detail: string | null;
   sort_order: number;
   mg2030_roadmap_subject: { name: string } | null;
   mg2030_roadmap_assignee: { label: string; app_user_id: string | null; sort_order: number }[];
@@ -77,7 +77,7 @@ export async function listRoadmapActions(
     .select(
       `id, subject_id, title, status, priority,
        timeline_kind, timeline_start, timeline_end,
-       comments, sort_order,
+       detail, sort_order,
        mg2030_roadmap_subject ( name ),
        mg2030_roadmap_assignee ( label, app_user_id, sort_order )`,
     )
@@ -99,7 +99,7 @@ export async function listRoadmapActions(
       status: r.status,
       priority: r.priority,
       timeline: toTimeline(r),
-      comments: r.comments,
+      detail: r.detail,
       sortOrder: r.sort_order,
       assignees: (r.mg2030_roadmap_assignee ?? [])
         .slice()
