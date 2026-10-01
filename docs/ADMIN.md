@@ -181,6 +181,51 @@ tâches.
 
 ---
 
+## 6 bis. Qui voit quoi dans la bibliothèque — décision du 01/10/2026
+
+**Aucune restriction par rôle. C'est voulu, ce n'est pas un oubli.**
+
+`mg2030_tag_access` contient aujourd'hui le produit complet **14 rôles × 4
+tags** : tout membre actif voit toute la bibliothèque, y compris les documents
+étiquetés `procurement`.
+
+Cet état a été posé par la migration `0026`, qui réparait une bibliothèque
+devenue invisible — la table n'avait jamais été peuplée, si bien que tout
+document déposé disparaissait pour tout le monde sauf un administrateur
+plateforme. Les droits ont alors été inscrits **explicitement**, en lignes,
+plutôt que par une règle du type « un tag sans règle ne restreint personne » :
+une confidentialité qui ne se lit pas dans les données n'est pas une
+confidentialité.
+
+La question a été posée le 01/10/2026. Réponse : **pas de restriction pour le
+moment.**
+
+Conséquence pratique, à connaître avant de déposer :
+
+> Un document versé dans `02_Procurement` est lisible par l'ensemble de
+> l'équipe projet, quel que soit son rôle. Les montants d'un appel d'offres non
+> encore lancé ne doivent donc pas y être déposés tant que cette décision
+> tient.
+
+Pour restreindre le jour venu, retirer des lignes de `mg2030_tag_access` — le
+mécanisme est en place et n'a pas besoin d'être récrit :
+
+```sql
+-- Exemple : reserver « procurement » a PROC, LEGAL, COORD et AFD.
+delete from mg2030_tag_access a
+ using mg2030_tag t, mg2030_functional_role r
+ where a.tag_id = t.id
+   and a.functional_role_id = r.id
+   and t.code = 'procurement'
+   and r.code not in ('PROC', 'LEGAL', 'COORD', 'AFD');
+```
+
+Le déposant lit toujours son propre dépôt, quel qu'en soit le tag, et
+l'administrateur plateforme voit tout : ces deux règles vivent dans
+`mg2030_private.can_read_document` et ne dépendent pas de cette table.
+
+---
+
 ## 7. Vérifier que le cloisonnement tient
 
 Après toute migration touchant aux politiques, exécuter
