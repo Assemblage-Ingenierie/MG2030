@@ -86,24 +86,38 @@ export interface RoadmapGroup {
 }
 
 /**
- * Regroupe par sujet, en conservant l'ordre du tableur.
+ * Regroupe par sujet, dans l'ordre DU RÉFÉRENTIEL.
  *
- * Un sujet qui n'a plus d'action visible DISPARAÎT : garder un intertitre vide
- * ferait croire à un chargement incomplet.
+ * ⚠ L'ORDRE DES SUJETS NE SE DÉDUIT PAS DES ACTIONS. Une première version
+ * conservait l'ordre d'apparition dans la liste déjà triée : le rang d'un sujet
+ * dépendait alors de l'échéance de son action la plus proche, et « Training and
+ * capacity building » passait devant « Training venues » parce qu'il contenait
+ * la seule action datée des deux. L'ordre du tableur — du pilotage vers les
+ * ouvrages — s'en trouvait détruit à chaque changement de date.
+ *
+ * `subjects` est donc la source de l'ordre ; les actions ne font que s'y ranger.
+ *
+ * Un sujet sans action visible DISPARAÎT : garder un intertitre vide ferait
+ * croire à un chargement incomplet.
  */
-export function groupBySubject(actions: RoadmapActionRow[]): RoadmapGroup[] {
-  const groups = new Map<string, RoadmapGroup>();
+export function groupBySubject(
+  actions: RoadmapActionRow[],
+  subjects: { id: string; name: string }[],
+): RoadmapGroup[] {
+  const byId = new Map<string, RoadmapActionRow[]>();
   for (const action of actions) {
-    const found = groups.get(action.subjectId);
-    if (found) found.actions.push(action);
-    else
-      groups.set(action.subjectId, {
-        subjectId: action.subjectId,
-        subjectName: action.subjectName,
-        actions: [action],
-      });
+    const found = byId.get(action.subjectId);
+    if (found) found.push(action);
+    else byId.set(action.subjectId, [action]);
   }
-  return [...groups.values()];
+
+  return subjects
+    .filter((s) => (byId.get(s.id) ?? []).length > 0)
+    .map((s) => ({
+      subjectId: s.id,
+      subjectName: s.name,
+      actions: byId.get(s.id) ?? [],
+    }));
 }
 
 /**

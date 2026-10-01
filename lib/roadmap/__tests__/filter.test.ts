@@ -112,22 +112,54 @@ describe("filtres", () => {
 });
 
 describe("regroupement par sujet", () => {
-  it("conserve l'ordre d'arrivee des sujets", () => {
+  const SUBJECTS = [
+    { id: "s1", name: "Project Steering" },
+    { id: "s2", name: "Student Center" },
+    { id: "s3", name: "Training venues" },
+    { id: "s4", name: "Training and capacity building" },
+  ];
+
+  it("suit l'ordre du REFERENTIEL, pas celui des actions", () => {
+    const rows = [
+      action({ subjectId: "s2", subjectName: "Student Center" }),
+      action({ subjectId: "s1", subjectName: "Project Steering" }),
+    ];
+    const groups = groupBySubject(rows, SUBJECTS);
+    expect(groups.map((g) => g.subjectName)).toEqual(["Project Steering", "Student Center"]);
+  });
+
+  it("ne laisse PAS une date decider du rang d'un sujet", () => {
+    // Le defaut constate a l'ecran : « Training and capacity building » passait
+    // devant « Training venues » parce qu'il portait la seule action datee.
+    const rows = [
+      action({
+        subjectId: "s4",
+        subjectName: "Training and capacity building",
+        timeline: resolveTimeline("quarter", "2027-01-01"),
+      }),
+      action({ subjectId: "s3", subjectName: "Training venues", timeline: NO_TIMELINE }),
+    ];
+    const groups = groupBySubject(sortActions(rows), SUBJECTS);
+    expect(groups.map((g) => g.subjectName)).toEqual([
+      "Training venues",
+      "Training and capacity building",
+    ]);
+  });
+
+  it("regroupe bien toutes les actions d'un sujet", () => {
     const rows = [
       action({ subjectId: "s1", subjectName: "Project Steering" }),
       action({ subjectId: "s2", subjectName: "Student Center" }),
       action({ subjectId: "s1", subjectName: "Project Steering" }),
     ];
-    const groups = groupBySubject(rows);
-    expect(groups.map((g) => g.subjectName)).toEqual(["Project Steering", "Student Center"]);
-    expect(groups[0].actions).toHaveLength(2);
+    expect(groupBySubject(rows, SUBJECTS)[0].actions).toHaveLength(2);
   });
 
   it("fait DISPARAITRE un sujet qui n'a plus d'action visible", () => {
     // Un intertitre vide ferait croire a un chargement incomplet.
     const rows = [action({ subjectId: "s2", subjectName: "Student Center", status: "done" })];
     const visible = applyFilters(rows, DEFAULT_FILTERS).actions;
-    expect(groupBySubject(visible)).toEqual([]);
+    expect(groupBySubject(visible, SUBJECTS)).toEqual([]);
   });
 });
 

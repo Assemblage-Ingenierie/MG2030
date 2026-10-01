@@ -195,10 +195,14 @@ export async function RoadmapTimeline({
                       strokeWidth={a.priority === "urgent" ? 1.4 : 0}
                     >
                       {/* La formulation exacte, pour qu'on ne lise pas le bord
-                          d'une barre hebdomadaire comme un jour arrêté. */}
-                      <title>
-                        {a.title} · {t(`roadmap.timeline_${label.key}`, label.values)}
-                      </title>
+                          d'une barre hebdomadaire comme un jour arrêté.
+
+                          ⚠ UNE SEULE EXPRESSION, et non `{x} · {y}`. Un
+                          `<title>` SVG ne peut contenir que du texte : React
+                          sépare plusieurs enfants par des marqueurs côté
+                          serveur, que le navigateur n'accepte pas ici, et
+                          l'hydratation échouait sur toute la frise. */}
+                      <title>{`${a.title} · ${t(`roadmap.timeline_${label.key}`, label.values)}`}</title>
                     </rect>
                   </g>
                 );

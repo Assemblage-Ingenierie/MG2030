@@ -60,7 +60,7 @@ export default async function RoadmapPage({
 
   const { actions: visible, hiddenCompleted } = applyFilters(actions, filters);
   const sorted = sortActions(visible);
-  const groups = groupBySubject(sorted);
+  const groups = groupBySubject(sorted, subjects);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
@@ -80,7 +80,10 @@ export default async function RoadmapPage({
 
         {view === "timeline" ? (
           <RoadmapTimeline
-            groups={groupBySubject(sorted.filter((a) => a.timeline.kind !== null))}
+            groups={groupBySubject(
+              sorted.filter((a) => a.timeline.kind !== null),
+              subjects,
+            )}
             undated={sorted.filter((a) => a.timeline.kind === null)}
             today={localToday()}
           />
