@@ -81,33 +81,48 @@ export default async function LibraryPage({
           />
         }
       >
-        <LibrarySearch initial={search} />
+        {/* ⚠ `key` SUR LA REQUÊTE : la barre garde sa saisie dans un état
+            local, qui survivait à la navigation. Quitter la recherche en
+            cliquant une partie laissait donc le champ rempli devant une vue
+            non filtrée — un écran qui se contredit. Changer la clé la
+            remonte, et l'état repart de l'URL, qui est la vérité. */}
+        <LibrarySearch key={search} initial={search} />
 
-        {search !== "" ? (
-          <SearchResults
-            documents={documents}
-            allTags={allTags}
-            folders={folders}
-            query={search}
-          />
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <Card className="h-max p-2">
-              <RootList roots={roots} selectedRootId={current?.id ?? null} />
-            </Card>
+        {/* ⚠ LA COLONNE DES PARTIES RESTE, MÊME EN RECHERCHE. Elle disparaissait
+            avec le reste : une fois les résultats affichés, on n'avait plus
+            aucun chemin de retour visible — il fallait deviner qu'effacer le
+            champ ramenait la bibliothèque. Signalé le 01/10/2026. Elle sert
+            maintenant de sortie : cliquer une partie quitte la recherche, et
+            c'est le geste qu'on fait de toute façon ensuite. */}
+        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <Card className="h-max p-2">
+            <RootList
+              roots={roots}
+              selectedRootId={search === "" ? (current?.id ?? null) : null}
+              searching={search !== ""}
+            />
+          </Card>
 
-            <div className="flex min-w-0 flex-col gap-4">
-              {openRoot && (
+          <div className="flex min-w-0 flex-col gap-4">
+            {search !== "" ? (
+              <SearchResults
+                documents={documents}
+                allTags={allTags}
+                folders={folders}
+                query={search}
+              />
+            ) : (
+              openRoot && (
                 <LibraryBrowser
                   root={openRoot}
                   documents={documents}
                   allTags={allTags}
                   folders={folders}
                 />
-              )}
-            </div>
+              )
+            )}
           </div>
-        )}
+        </div>
       </Section>
     </div>
   );

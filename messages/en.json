@@ -779,7 +779,9 @@
     "searchEmpty": "Nothing matches. Try part of the file name, or a word from its description.",
     "expandAll": "Expand all",
     "collapseAll": "Collapse all",
-    "error_invalidColour": "This colour is not valid."
+    "error_invalidColour": "This colour is not valid.",
+    "clearSearch": "Clear the search",
+    "backToFolders": "Back to folders"
   },
   "notifications": {
     "title": "Notifications",

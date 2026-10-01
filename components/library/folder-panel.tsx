@@ -58,21 +58,29 @@ export function folderLabel(name: string): string {
 export function RootList({
   roots,
   selectedRootId,
+  searching = false,
 }: {
   roots: FolderView[];
   selectedRootId: string | null;
+  /**
+   * Une recherche est en cours : AUCUNE entrée n'est marquée courante, et
+   * « tous les documents » devient le chemin de retour. La marquer courante
+   * la ferait lire comme l'endroit où l'on est déjà, donc comme un lien mort.
+   */
+  searching?: boolean;
 }) {
   const t = useT();
   const { can } = usePermissions();
+  const atRoot = !searching && selectedRootId === null;
 
   return (
     <nav aria-label={t("library.folders")} className="flex flex-col gap-0.5">
       <Link
         href="/library"
-        aria-current={selectedRootId === null ? "true" : undefined}
+        aria-current={atRoot ? "true" : undefined}
         className={cn(
           "rounded-md px-2 py-1.5 text-sm transition-colors",
-          selectedRootId === null
+          atRoot
             ? "bg-[var(--app-bg)] font-medium text-[var(--text)]"
             : "text-[var(--text-muted)] hover:bg-[var(--app-bg)]",
         )}
