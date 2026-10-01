@@ -165,3 +165,57 @@ export async function deleteRoadmapAction(id: string): Promise<ActionResult> {
   revalidatePath("/roadmap");
   return { ok: true };
 }
+
+/**
+ * Modification d'UN SEUL champ, depuis la liste.
+ *
+ * L'édition en ligne ne renvoie pas l'action entière : deux personnes peuvent
+ * modifier deux colonnes de la même ligne à quelques secondes d'intervalle, et
+ * renvoyer tout le formulaire ferait écraser par la seconde ce que la première
+ * vient d'écrire — sans que personne ne le voie. On n'envoie donc que ce qu'on
+ * change.
+ *
+ * La timeline reste indivisible : précision et intervalle voyagent ensemble,
+ * parce qu'une précision sans intervalle est un état que la contrainte de base
+ * refuse, à juste titre.
+ */
+export async function patchRoadmapAction(
+  id: string,
+  patch: {
+    status?: RoadmapStatus | null;
+    priority?: RoadmapPriority | null;
+    timeline?: { kind: TimelineKind | null; anchor: string | null; rangeEnd: string | null };
+    assignees?: string[];
+  },
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const row: Record<string, unknown> = {};
+
+  if ("status" in patch) row.status = patch.status;
+  if ("priority" in patch) row.priority = patch.priority;
+
+  if (patch.timeline) {
+    const { kind, anchor, rangeEnd } = patch.timeline;
+    if (kind && !anchor) return { ok: false, error: "missingAnchor" };
+    if (kind === "range" && (!rangeEnd || (anchor && rangeEnd < anchor))) {
+      return { ok: false, error: "invalidRange" };
+    }
+    const timeline = resolveTimeline(kind, anchor, rangeEnd);
+    row.timeline_kind = timeline.kind;
+    row.timeline_start = timeline.start;
+    row.timeline_end = timeline.end;
+  }
+
+  if (Object.keys(row).length > 0) {
+    const { error } = await supabase.from("mg2030_roadmap_action").update(row).eq("id", id);
+    if (error) return { ok: false, error: "writeFailed" };
+  }
+
+  if (patch.assignees) {
+    const failed = await replaceAssignees(supabase, id, patch.assignees);
+    if (failed) return { ok: false, error: "writeFailed" };
+  }
+
+  revalidatePath("/roadmap");
+  return { ok: true };
+}

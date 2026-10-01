@@ -23,6 +23,9 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Label, fieldClasses } from "@/components/ui/field";
 import { ConfirmAction } from "@/components/ui/confirm-action";
+import { EditIcon, TrashIcon } from "@/components/ui/icons";
+import { IconButton } from "@/components/ui/button";
+import { AssigneePicker, type PersonOption } from "./assignee-picker";
 import {
   TIMELINE_KINDS,
   resolveTimeline,
@@ -53,7 +56,7 @@ interface Draft {
   anchor: string;
   rangeEnd: string;
   comments: string;
-  assignees: string;
+  assignees: string[];
 }
 
 function draftFrom(action: RoadmapActionRow | null, subjects: RoadmapSubjectRow[]): Draft {
@@ -70,7 +73,7 @@ function draftFrom(action: RoadmapActionRow | null, subjects: RoadmapSubjectRow[
         ? shiftDay(action.timeline.end, -1)
         : "",
     comments: action?.comments ?? "",
-    assignees: (action?.assignees ?? []).map((a) => a.label).join(", "),
+    assignees: (action?.assignees ?? []).map((a) => a.label),
   };
 }
 
@@ -85,11 +88,13 @@ function FormModal({
   onClose,
   action,
   subjects,
+  people,
 }: {
   open: boolean;
   onClose: () => void;
   action: RoadmapActionRow | null;
   subjects: RoadmapSubjectRow[];
+  people: PersonOption[];
 }) {
   const t = useT();
   const { locale } = useI18n();
@@ -119,7 +124,7 @@ function FormModal({
       anchor: draft.anchor || null,
       rangeEnd: draft.rangeEnd || null,
       comments: draft.comments || null,
-      assignees: draft.assignees.split(",").map((s) => s.trim()).filter(Boolean),
+      assignees: draft.assignees,
     };
     start(async () => {
       const result = action
@@ -259,12 +264,10 @@ function FormModal({
           </p>
         </div>
 
-        <Field
-          label={t("roadmap.assignee")}
-          optionalText={t("common.optional")}
-          hint={t("roadmap.assigneeHint")}
+        <AssigneePicker
+          people={people}
           value={draft.assignees}
-          onChange={(e) => set("assignees", e.target.value)}
+          onChange={(labels) => set("assignees", labels)}
         />
 
         <Field
@@ -293,7 +296,13 @@ function FormModal({
   );
 }
 
-export function AddActionButton({ subjects }: { subjects: RoadmapSubjectRow[] }) {
+export function AddActionButton({
+  subjects,
+  people,
+}: {
+  subjects: RoadmapSubjectRow[];
+  people: PersonOption[];
+}) {
   const t = useT();
   const { can } = usePermissions();
   const [open, setOpen] = useState(false);
@@ -306,7 +315,13 @@ export function AddActionButton({ subjects }: { subjects: RoadmapSubjectRow[] })
         {t("roadmap.addAction")}
       </Button>
       {open && (
-        <FormModal open onClose={() => setOpen(false)} action={null} subjects={subjects} />
+        <FormModal
+          open
+          onClose={() => setOpen(false)}
+          action={null}
+          subjects={subjects}
+          people={people}
+        />
       )}
     </>
   );
@@ -315,9 +330,11 @@ export function AddActionButton({ subjects }: { subjects: RoadmapSubjectRow[] })
 export function ActionRowActions({
   action,
   subjects,
+  people,
 }: {
   action: RoadmapActionRow;
   subjects: RoadmapSubjectRow[];
+  people: PersonOption[];
 }) {
   const t = useT();
   const { can } = usePermissions();
@@ -326,24 +343,40 @@ export function ActionRowActions({
 
   if (!can("roadmap.write")) return null;
 
+  /* Icônes et non libellés : « Edit » et « Delete » répétés sur chaque ligne
+     prenaient deux colonnes de texte et tiraient l'œil autant que le contenu.
+     `IconButton` EXIGE un `label` — l'icône est muette pour un lecteur
+     d'écran, le nom de l'action reste donc porté par l'accessibilité et par
+     l'infobulle. */
   return (
-    <span className="flex items-center justify-end gap-1">
-      <Button size="sm" variant="quiet" onClick={() => setOpen(true)}>
-        {t("common.edit")}
-      </Button>
+    <span className="flex items-center justify-end gap-0.5">
+      <IconButton label={t("common.edit")} onClick={() => setOpen(true)} className="h-7 w-7">
+        <EditIcon className="h-4 w-4" />
+      </IconButton>
       <ConfirmAction
         message={t("roadmap.confirmDelete", { title: action.title })}
         disabled={pending}
         onConfirm={() => start(() => void deleteRoadmapAction(action.id))}
       >
         {(arm) => (
-          <Button size="sm" variant="quiet" disabled={pending} onClick={arm}>
-            {t("common.delete")}
-          </Button>
+          <IconButton
+            label={t("common.delete")}
+            disabled={pending}
+            onClick={arm}
+            className="h-7 w-7"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </IconButton>
         )}
       </ConfirmAction>
       {open && (
-        <FormModal open onClose={() => setOpen(false)} action={action} subjects={subjects} />
+        <FormModal
+          open
+          onClose={() => setOpen(false)}
+          action={action}
+          subjects={subjects}
+          people={people}
+        />
       )}
     </span>
   );

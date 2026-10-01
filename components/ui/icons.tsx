@@ -166,6 +166,48 @@ export const FlowIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Crayon. Modifier. */
+export const EditIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20h4l10-10-4-4L4 16v4z" />
+  </Svg>
+);
+
+/** Corbeille. Supprimer. */
+export const TrashIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+  </Svg>
+);
+
+/** Lignes empilées : la vue liste. */
+export const ListViewIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </Svg>
+);
+
+/** Barres décalées dans le temps : la vue frise. */
+export const TimelineViewIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 7h9M7 12h11M4 17h7" />
+  </Svg>
+);
+
+/** Entonnoir. Filtrer. */
+export const FilterIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 5h18l-7 8v6l-4 2v-8z" />
+  </Svg>
+);
+
+/** Deux flèches opposées. Trier. */
+export const SortIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 4v16M8 20l-3-3M8 20l3-3M16 20V4M16 4l-3 3M16 4l3 3" />
+  </Svg>
+);
+
 /** Jalons sur un chemin : une suite d'etapes datees, pas un calendrier. */
 export const RoadmapIcon = (p: IconProps) => (
   <Svg {...p}>

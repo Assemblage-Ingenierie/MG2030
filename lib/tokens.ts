@@ -107,6 +107,43 @@ export const STATUS: Record<StatusTone, { bg: string; fg: string }> = {
 };
 
 // ============================================================
+// Couleurs de la Roadmap (demande du 01/10/2026).
+//
+// Même famille que `STATUS` ci-dessus — celle du dépôt de charte, éprouvée en
+// production — pour que les deux écrans ne se contredisent pas.
+//
+// ⚠ UN SEUL STATUT EST ROUGE, et c'est délibéré. `blocked` réclame une action
+// de quelqu'un ; les quatre autres décrivent un état. Si « non commencé » était
+// rouge lui aussi, le rouge ne voudrait plus rien dire sur cet écran, où la
+// majorité des actions n'est pas commencée.
+//
+// `pending` en orange et `in_progress` en bleu : l'attente et le travail en
+// cours se distinguent d'un coup d'œil, alors qu'ils se ressemblaient en deux
+// nuances de la même pastille.
+// ============================================================
+export const ROADMAP_STATUS: Record<string, { bg: string; fg: string }> = {
+  not_started: { bg: "#e6e8ec", fg: TEXT_DARK },
+  pending: { bg: "#f6b26b", fg: TEXT_DARK },
+  in_progress: { bg: "#9fc5e8", fg: TEXT_DARK },
+  blocked: { bg: "#e06666", fg: TEXT_LIGHT },
+  done: { bg: "#b6d7a8", fg: TEXT_DARK },
+};
+
+/**
+ * Priorité : seules les deux plus hautes portent une couleur.
+ *
+ * Colorer les quatre ferait de la colonne un arc-en-ciel où rien ne ressort.
+ * « Moyenne » et « basse » restent donc dans le gris du texte secondaire —
+ * elles se lisent, elles n'appellent pas.
+ */
+export const ROADMAP_PRIORITY: Record<string, string> = {
+  urgent: "#c0392b",
+  high: "#e8820c",
+  medium: "#646b78",
+  low: "#646b78",
+};
+
+// ============================================================
 // Palette du Gantt. Reprise de `lib/cronograma/cronograma-svg.ts` du dépôt de
 // charte, où elle est éprouvée en production. Le jalon passe à l'or de marque.
 // ============================================================

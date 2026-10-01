@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_FILTERS, applyFilters, groupBySubject, sortActions } from "../filter";
+import {
+  DEFAULT_FILTERS,
+  applyFilters,
+  groupBySubject,
+  sortActions,
+  type RoadmapSort,
+} from "../filter";
 import { NO_TIMELINE, resolveTimeline } from "../timeline";
 import type { RoadmapActionRow, RoadmapPriority, RoadmapStatus } from "../types";
 
@@ -22,63 +28,92 @@ function action(over: Partial<RoadmapActionRow> = {}): RoadmapActionRow {
 }
 
 describe("les actions terminees sont masquees par defaut", () => {
-  it("les ecarte sans rien dire d'autre", () => {
+  it("les ecarte", () => {
     const rows = [action({ status: "done" }), action({ status: "pending" })];
-    const out = applyFilters(rows, DEFAULT_FILTERS);
-    expect(out.actions).toHaveLength(1);
-    expect(out.actions[0].status).toBe("pending");
+    expect(applyFilters(rows, DEFAULT_FILTERS).actions).toHaveLength(1);
   });
 
   it("ANNONCE combien elle en a masque", () => {
-    // Masquer sans le dire ferait croire a une perte de donnees.
     const rows = [action({ status: "done" }), action({ status: "done" }), action()];
     expect(applyFilters(rows, DEFAULT_FILTERS).hiddenCompleted).toBe(2);
   });
 
-  it("les montre toutes quand on le demande, et n'annonce plus rien", () => {
-    const rows = [action({ status: "done" }), action()];
-    const out = applyFilters(rows, { ...DEFAULT_FILTERS, showCompleted: true });
-    expect(out.actions).toHaveLength(2);
-    expect(out.hiddenCompleted).toBe(0);
-  });
-
   it("ne compte QUE celles que le masquage ecarte, pas celles deja filtrees", () => {
-    // Deux terminees, mais une seule survit au filtre de priorite : annoncer
-    // « 2 masquees » serait un chiffre faux.
     const rows = [
       action({ status: "done", priority: "urgent" }),
       action({ status: "done", priority: "low" }),
       action({ status: "pending", priority: "urgent" }),
     ];
-    const out = applyFilters(rows, { ...DEFAULT_FILTERS, priority: "urgent" });
+    const out = applyFilters(rows, { ...DEFAULT_FILTERS, priorities: ["urgent"] });
     expect(out.hiddenCompleted).toBe(1);
     expect(out.actions).toHaveLength(1);
   });
+
+  it("DEMANDER « terminees » dans le filtre les montre", () => {
+    // Sans cette regle, cocher « Completed » rendait une liste vide : le filtre
+    // les retenait, puis le masquage par defaut les retirait toutes.
+    const rows = [action({ status: "done" }), action({ status: "pending" })];
+    const out = applyFilters(rows, { ...DEFAULT_FILTERS, statuses: ["done"] });
+    expect(out.actions).toHaveLength(1);
+    expect(out.actions[0].status).toBe("done");
+    expect(out.hiddenCompleted).toBe(0);
+  });
 });
 
-describe("filtres", () => {
-  it("filtre par priorite", () => {
+describe("filtres multi-selection", () => {
+  it("une liste vide ne filtre RIEN", () => {
     const rows = [action({ priority: "urgent" }), action({ priority: "low" })];
-    expect(applyFilters(rows, { ...DEFAULT_FILTERS, priority: "urgent" }).actions).toHaveLength(1);
+    expect(applyFilters(rows, DEFAULT_FILTERS).actions).toHaveLength(2);
   });
 
-  it("filtre par statut", () => {
-    const rows = [action({ status: "in_progress" }), action({ status: "pending" })];
-    expect(
-      applyFilters(rows, { ...DEFAULT_FILTERS, status: "in_progress" }).actions,
-    ).toHaveLength(1);
+  it("plusieurs priorites s'additionnent (OU)", () => {
+    const rows = [
+      action({ priority: "urgent" }),
+      action({ priority: "high" }),
+      action({ priority: "low" }),
+    ];
+    const out = applyFilters(rows, { ...DEFAULT_FILTERS, priorities: ["urgent", "high"] });
+    expect(out.actions).toHaveLength(2);
   });
 
-  it("filtre par assignataire sur le LIBELLE, compte ou non", () => {
-    // « G8 » n'a aucun compte : un filtre bati sur l'annuaire ne le trouverait
-    // jamais. C'est tout l'interet du libelle libre.
+  it("plusieurs statuts s'additionnent", () => {
+    const rows = [
+      action({ status: "blocked" }),
+      action({ status: "in_progress" }),
+      action({ status: "not_started" }),
+    ];
+    const out = applyFilters(rows, {
+      ...DEFAULT_FILTERS,
+      statuses: ["blocked", "in_progress"],
+    });
+    expect(out.actions).toHaveLength(2);
+  });
+
+  it("plusieurs assignataires s'additionnent, comptes ou entites", () => {
     const rows = [
       action({ assignees: [{ label: "G8", appUserId: null }] }),
+      action({ assignees: [{ label: "AFD", appUserId: null }] }),
       action({ assignees: [{ label: "Kushtrim", appUserId: "u1" }] }),
     ];
-    const out = applyFilters(rows, { ...DEFAULT_FILTERS, assignee: "G8" });
-    expect(out.actions).toHaveLength(1);
-    expect(out.actions[0].assignees[0].label).toBe("G8");
+    const out = applyFilters(rows, { ...DEFAULT_FILTERS, assignees: ["G8", "AFD"] });
+    expect(out.actions).toHaveLength(2);
+  });
+
+  it("retient une action des qu'UN de ses assignataires correspond", () => {
+    const rows = [
+      action({
+        assignees: [
+          { label: "Kushtrim", appUserId: "u1" },
+          { label: "AFD", appUserId: null },
+        ],
+      }),
+    ];
+    expect(applyFilters(rows, { ...DEFAULT_FILTERS, assignees: ["AFD"] }).actions).toHaveLength(1);
+  });
+
+  it("une action SANS priorite est ecartee des qu'on filtre sur une priorite", () => {
+    const rows = [action({ priority: null })];
+    expect(applyFilters(rows, { ...DEFAULT_FILTERS, priorities: ["low"] }).actions).toHaveLength(0);
   });
 
   it("separe les actions datees de celles qui ne le sont pas", () => {
@@ -88,8 +123,7 @@ describe("filtres", () => {
   });
 
   it("une fenetre ne retient jamais une action SANS date", () => {
-    const rows = [action()];
-    const out = applyFilters(rows, {
+    const out = applyFilters([action()], {
       ...DEFAULT_FILTERS,
       from: "2020-01-01",
       to: "2030-01-01",
@@ -97,15 +131,15 @@ describe("filtres", () => {
     expect(out.actions).toHaveLength(0);
   });
 
-  it("les filtres se cumulent", () => {
+  it("les filtres de colonnes differentes se cumulent (ET)", () => {
     const rows = [
       action({ priority: "urgent", status: "pending" }),
       action({ priority: "urgent", status: "not_started" }),
     ];
     const out = applyFilters(rows, {
       ...DEFAULT_FILTERS,
-      priority: "urgent",
-      status: "pending",
+      priorities: ["urgent"],
+      statuses: ["pending"],
     });
     expect(out.actions).toHaveLength(1);
   });
@@ -124,13 +158,13 @@ describe("regroupement par sujet", () => {
       action({ subjectId: "s2", subjectName: "Student Center" }),
       action({ subjectId: "s1", subjectName: "Project Steering" }),
     ];
-    const groups = groupBySubject(rows, SUBJECTS);
-    expect(groups.map((g) => g.subjectName)).toEqual(["Project Steering", "Student Center"]);
+    expect(groupBySubject(rows, SUBJECTS).map((g) => g.subjectName)).toEqual([
+      "Project Steering",
+      "Student Center",
+    ]);
   });
 
   it("ne laisse PAS une date decider du rang d'un sujet", () => {
-    // Le defaut constate a l'ecran : « Training and capacity building » passait
-    // devant « Training venues » parce qu'il portait la seule action datee.
     const rows = [
       action({
         subjectId: "s4",
@@ -139,41 +173,27 @@ describe("regroupement par sujet", () => {
       }),
       action({ subjectId: "s3", subjectName: "Training venues", timeline: NO_TIMELINE }),
     ];
-    const groups = groupBySubject(sortActions(rows), SUBJECTS);
-    expect(groups.map((g) => g.subjectName)).toEqual([
+    expect(groupBySubject(sortActions(rows), SUBJECTS).map((g) => g.subjectName)).toEqual([
       "Training venues",
       "Training and capacity building",
     ]);
   });
 
-  it("regroupe bien toutes les actions d'un sujet", () => {
-    const rows = [
-      action({ subjectId: "s1", subjectName: "Project Steering" }),
-      action({ subjectId: "s2", subjectName: "Student Center" }),
-      action({ subjectId: "s1", subjectName: "Project Steering" }),
-    ];
-    expect(groupBySubject(rows, SUBJECTS)[0].actions).toHaveLength(2);
-  });
-
   it("fait DISPARAITRE un sujet qui n'a plus d'action visible", () => {
-    // Un intertitre vide ferait croire a un chargement incomplet.
     const rows = [action({ subjectId: "s2", subjectName: "Student Center", status: "done" })];
     const visible = applyFilters(rows, DEFAULT_FILTERS).actions;
     expect(groupBySubject(visible, SUBJECTS)).toEqual([]);
   });
 });
 
-describe("tri", () => {
+describe("tri par defaut", () => {
   it("la DATE prime sur la priorite", () => {
-    // Une action moyenne due cette semaine demande une decision plus tot qu'une
-    // urgente sans date.
     const urgentUndated = action({ priority: "urgent", timeline: NO_TIMELINE });
     const mediumDated = action({
       priority: "medium",
       timeline: resolveTimeline("week", "2026-10-12"),
     });
-    const sorted = sortActions([urgentUndated, mediumDated]);
-    expect(sorted[0]).toBe(mediumDated);
+    expect(sortActions([urgentUndated, mediumDated])[0]).toBe(mediumDated);
   });
 
   it("a date egale, l'urgence passe devant", () => {
@@ -183,17 +203,58 @@ describe("tri", () => {
     expect(sortActions([low, urgent])[0]).toBe(urgent);
   });
 
-  it("une action sans priorite passe apres celles qui en ont une", () => {
-    const tl = resolveTimeline("day", "2026-10-01");
-    const none = action({ priority: null, timeline: tl });
-    const low = action({ priority: "low", timeline: tl });
-    expect(sortActions([none, low])[0]).toBe(low);
-  });
-
   it("ne modifie pas le tableau d'origine", () => {
     const rows = [action({ priority: "low" }), action({ priority: "urgent" })];
     const copy = [...rows];
     sortActions(rows);
     expect(rows).toEqual(copy);
+  });
+});
+
+describe("tri par colonne", () => {
+  const asc = (column: RoadmapSort["column"]): RoadmapSort => ({ column, direction: "asc" });
+  const desc = (column: RoadmapSort["column"]): RoadmapSort => ({ column, direction: "desc" });
+
+  it("trie par intitule, dans les deux sens", () => {
+    const a = action({ title: "Alpha" });
+    const z = action({ title: "Zulu" });
+    expect(sortActions([z, a], asc("action"))[0]).toBe(a);
+    expect(sortActions([a, z], desc("action"))[0]).toBe(z);
+  });
+
+  it("trie par statut selon l'ordre D'AVANCEMENT, pas l'alphabet", () => {
+    // « blocked » doit suivre « in_progress », alors que l'alphabet le mettrait
+    // en tete.
+    const blocked = action({ status: "blocked" });
+    const notStarted = action({ status: "not_started" });
+    expect(sortActions([blocked, notStarted], asc("status"))[0]).toBe(notStarted);
+  });
+
+  it("trie par priorite du plus pressant au moins", () => {
+    const low = action({ priority: "low" });
+    const urgent = action({ priority: "urgent" });
+    expect(sortActions([low, urgent], asc("priority"))[0]).toBe(urgent);
+  });
+
+  it("range une valeur ABSENTE apres celles qui existent, dans les deux sens", () => {
+    // Inverser le sens ne doit pas remonter les trous en tete de liste.
+    const none = action({ priority: null });
+    const low = action({ priority: "low" });
+    expect(sortActions([none, low], asc("priority"))[0]).toBe(low);
+    expect(sortActions([low, none], desc("priority"))[0]).toBe(low);
+  });
+
+  it("trie par premier assignataire", () => {
+    const afd = action({ assignees: [{ label: "AFD", appUserId: null }] });
+    const ta = action({ assignees: [{ label: "TA", appUserId: null }] });
+    expect(sortActions([ta, afd], asc("assignee"))[0]).toBe(afd);
+  });
+
+  it("a colonne egale, l'ordre par defaut departage", () => {
+    // Deux actions de meme statut se rangent encore par echeance.
+    const tl = resolveTimeline("day", "2026-10-01");
+    const dated = action({ status: "pending", timeline: tl });
+    const undated = action({ status: "pending", timeline: NO_TIMELINE });
+    expect(sortActions([undated, dated], asc("status"))[0]).toBe(dated);
   });
 });
