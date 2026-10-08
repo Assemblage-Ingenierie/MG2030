@@ -54,7 +54,8 @@ export function LibrarySearch({ initial }: { initial: string }) {
         className="relative flex min-w-0 flex-1 items-center sm:max-w-sm"
       >
         <SearchIcon
-          className="pointer-events-none absolute left-2.5 h-4 w-4 text-[var(--text-muted)]"
+          className="pointer-events-none absolute left-2.5 h-4 w-4"
+          style={{ color: "var(--accent)" }}
           aria-hidden="true"
         />
         <input
@@ -74,6 +75,13 @@ export function LibrarySearch({ initial }: { initial: string }) {
              retrouvait avec un champ vide devant des résultats toujours
              filtrés. La croix ci-dessous, elle, navigue. */
           className={cn(fieldClasses(), "pl-8", value !== "" && "pr-9")}
+          /* Bleu nuit de la charte (08/10/2026) : sur le fond ivoire, un champ
+             gris clair passait inaperçu. Bordure pleine et fond teinté. */
+          style={{
+            borderColor: "var(--accent)",
+            borderWidth: 2,
+            backgroundColor: "color-mix(in srgb, var(--accent) 7%, var(--surface))",
+          }}
         />
         {value !== "" && (
           <button

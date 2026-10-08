@@ -39,10 +39,6 @@ export async function FolderTree({
       {nodes.map((node) => (
         <FolderBranch key={node.id} node={node} depth={0} selectedId={selectedId} />
       ))}
-
-      <p className="mt-2 border-t border-[var(--border)] px-2 pt-2 text-[11px] text-[var(--text-muted)]">
-        {t("library.treeIsProposal")}
-      </p>
     </nav>
   );
 }

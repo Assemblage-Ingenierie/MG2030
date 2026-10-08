@@ -113,10 +113,6 @@ export function RootList({
       ))}
 
       {can("document.upload") && <AddFolder parentId={null} label={t("library.addPart")} />}
-
-      <p className="mt-2 border-t border-[var(--border)] px-2 pt-2 text-[11px] text-[var(--text-muted)]">
-        {t("library.treeIsProposal")}
-      </p>
     </nav>
   );
 }

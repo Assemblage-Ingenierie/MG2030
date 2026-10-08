@@ -166,7 +166,9 @@ export async function loadDashboard(): Promise<Dashboard> {
         .not("contractual_date", "is", null)
         .lt("contractual_date", today),
 
-      supabase.from("mg2030_no_objection").select("*", HEAD).in("status", ["draft", "sent"]),
+      // En attente d'une réponse : envoyées seulement, pas les brouillons
+      // (même règle que isPending, lib/queries/procurement.ts).
+      supabase.from("mg2030_no_objection").select("*", HEAD).eq("status", "sent"),
     ]);
 
   // ── Les tâches ────────────────────────────────────────────────────────

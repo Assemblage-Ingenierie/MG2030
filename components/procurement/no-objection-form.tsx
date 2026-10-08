@@ -351,7 +351,10 @@ export function NoObjectionRowActions({
 
   if (!can("no_objection.write")) return null;
   const id = row.id!;
-  const awaitingAnswer = row.status === "draft" || row.status === "sent";
+  // Une réponse ne s'enregistre que sur une demande ENVOYÉE ; un brouillon
+  // se marque d'abord « envoyé ». Le retrait, lui, vaut pour les deux.
+  const awaitingAnswer = row.status === "sent";
+  const withdrawable = row.status === "draft" || row.status === "sent";
 
   return (
     <span className="flex flex-wrap items-center justify-end gap-1">
@@ -380,7 +383,7 @@ export function NoObjectionRowActions({
         sentDate={row.sentDate}
       />
 
-      {awaitingAnswer && (
+      {withdrawable && (
         <Button
           size="sm"
           variant="quiet"
