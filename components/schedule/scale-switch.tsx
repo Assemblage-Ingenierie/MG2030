@@ -59,8 +59,11 @@ export async function ScaleSwitch({
     if (contract) params.set("contract", contract);
     const sub = next.subproject === undefined ? currentSubproject : next.subproject;
     if (sub) params.set("subproject", sub);
-    const cols = next.cols ?? density;
-    if (cols !== "compact") params.set("cols", cols);
+    // TOUJOURS écrit, jamais déduit. Le lien omettait `cols` pour « compact »,
+    // le croyant par défaut ; or la page prend « bare » par défaut : cliquer
+    // sur « Schedule » ramenait donc à « bare » et rien ne se passait
+    // (08/10/2026). Écrire la valeur supprime la dépendance au défaut.
+    params.set("cols", next.cols ?? density);
     if (!(next.names ?? showNames)) params.set("names", "0");
     return params.toString();
   };

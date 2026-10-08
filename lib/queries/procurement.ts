@@ -59,10 +59,13 @@ export interface NoObjectionRow {
   turnaroundDays: number | null;
 }
 
-const PENDING: NoObjectionStatus[] = ["draft", "sent"];
-
+/**
+ * En attente d'une réponse de l'AFD : SEULE une demande envoyée l'est.
+ * Un brouillon n'est pas parti — l'AFD ne peut rien répondre à ce qu'elle n'a
+ * pas reçu (correction du 08/10/2026 : les brouillons gonflaient le compteur).
+ */
 export function isPending(status: NoObjectionStatus): boolean {
-  return PENDING.includes(status);
+  return status === "sent";
 }
 
 export async function listNoObjections(): Promise<NoObjectionRow[]> {

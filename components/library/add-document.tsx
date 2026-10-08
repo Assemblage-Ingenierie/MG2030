@@ -201,6 +201,11 @@ function UploadForm({
           </select>
         </div>
 
+        {/* Le champ de fichier NATIF est masqué : son bouton et son « aucun
+            fichier choisi » sont écrits par le navigateur, dans la langue du
+            poste — en français sur un Windows français, au milieu d'une
+            interface anglaise (08/10/2026). Le bouton et le libellé visibles
+            sont ceux de l'application ; le champ caché garde `required`. */}
         <div>
           <Label htmlFor="upload-file">{t("library.file")}</Label>
           <input
@@ -210,8 +215,22 @@ function UploadForm({
             required
             disabled={busy}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className={fieldClasses() + " mt-1 file:mr-3 file:rounded file:border-0 file:bg-[var(--app-bg)] file:px-2 file:py-1 file:text-sm"}
+            className="sr-only"
           />
+          <div className="mt-1 flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={busy}
+              onClick={() => inputRef.current?.click()}
+            >
+              {t("library.chooseFile")}
+            </Button>
+            <span className="min-w-0 truncate text-sm text-[var(--text-muted)]">
+              {file ? file.name : t("library.noFileChosen")}
+            </span>
+          </div>
         </div>
 
         {/* La description se saisit AVANT l'envoi : au moment où l'on choisit
